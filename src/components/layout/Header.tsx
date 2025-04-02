@@ -221,14 +221,14 @@ const Header: React.FC = () => {
             Certifications
           </NavLink>
           <NavLink
-            to="case-studies"
+            to="project-insights"
             spy={true}
             smooth={true}
             offset={-80}
             duration={500}
             onClick={closeMenu}
           >
-            Case Studies
+            Project Insights
           </NavLink>
           <NavLink
             to="pricing"

@@ -249,7 +249,7 @@ const Footer: React.FC = () => {
           <FooterLink to="home" smooth={true} offset={-80} duration={500}>Home</FooterLink>
           <FooterLink to="services" smooth={true} offset={-80} duration={500}>Services</FooterLink>
           <FooterLink to="certifications" smooth={true} offset={-80} duration={500}>Certifications</FooterLink>
-          <FooterLink to="case-studies" smooth={true} offset={-80} duration={500}>Case Studies</FooterLink>
+          <FooterLink to="project-insights" smooth={true} offset={-80} duration={500}>Project Insights</FooterLink>
           <FooterLink to="pricing" smooth={true} offset={-80} duration={500}>Pricing</FooterLink>
           <FooterLink to="contact" smooth={true} offset={-80} duration={500}>Contact Us</FooterLink>
         </LinksColumn>

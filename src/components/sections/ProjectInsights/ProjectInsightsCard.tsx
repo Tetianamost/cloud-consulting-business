@@ -3,17 +3,15 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 
-interface CaseStudyResult {
-  costReduction: string;
-  performanceImprovement?: string;
-  deploymentTime?: string;
-  scalability?: string;
-  dataProcessingSpeed?: string;
-  complianceAutomation?: string;
-  insightsAccess?: string;
-  systemAvailability?: string;
-  recoveryTimeObjective?: string;
-  deploymentFrequency?: string;
+interface ProjectResult {
+  certifications?: string;
+  professionalExperience?: string;
+  technologiesMastered?: string;
+  continuousLearning?: string;
+  technicalSkills?: string;
+  infrastructureKnowledge?: string;
+  certificationLevel?: string;
+  problemSolvingApproach?: string;
   [key: string]: string | undefined;
 }
 
@@ -23,20 +21,20 @@ interface Testimonial {
   position: string;
 }
 
-interface CaseStudy {
+interface ProjectHighlight {
   id: number;
   title: string;
   industry: string;
   description: string;
   challenges: string[];
   solution: string;
-  results: CaseStudyResult;
+  results: ProjectResult;
   testimonial: Testimonial;
   image: string;
 }
 
-interface CaseStudyCardProps {
-  caseStudy: CaseStudy;
+interface ProjectHighlightCardProps {
+  projectHighlight: ProjectHighlight;
 }
 
 const CardContainer = styled.div`
@@ -252,8 +250,8 @@ const challengeVariants = {
   })
 };
 
-const CaseStudyCard: React.FC<CaseStudyCardProps> = ({ caseStudy }) => {
-  const resultsArray = Object.entries(caseStudy.results).map(([key, value], index) => ({
+const ProjectHighlightCard: React.FC<ProjectHighlightCardProps> = ({ projectHighlight }) => {
+  const resultsArray = Object.entries(projectHighlight.results).map(([key, value], index) => ({
     key,
     value,
     label: key
@@ -265,34 +263,34 @@ const CaseStudyCard: React.FC<CaseStudyCardProps> = ({ caseStudy }) => {
   return (
     <CardContainer>
       <ImageContainer>
-        <Image src={caseStudy.image} alt={caseStudy.title} />
+        <Image src={projectHighlight.image} alt={projectHighlight.title} />
         <Overlay>
           <IndustryTag
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {caseStudy.industry}
+            {projectHighlight.industry}
           </IndustryTag>
-          <ProjectTitle>{caseStudy.title}</ProjectTitle>
-          <ProjectDescription>{caseStudy.description}</ProjectDescription>
+          <ProjectTitle>{projectHighlight.title}</ProjectTitle>
+          <ProjectDescription>{projectHighlight.description}</ProjectDescription>
           <Testimonial
             variants={testimonialVariants}
             initial="initial"
             animate="animate"
           >
-            <Quote>"{caseStudy.testimonial.quote}"</Quote>
+            <Quote>"{projectHighlight.testimonial.quote}"</Quote>
             <Author>
-              {caseStudy.testimonial.author} • <span>{caseStudy.testimonial.position}</span>
+              {projectHighlight.testimonial.author} • <span>{projectHighlight.testimonial.position}</span>
             </Author>
           </Testimonial>
         </Overlay>
       </ImageContainer>
       
       <ContentContainer>
-        <SectionTitle>Challenges</SectionTitle>
+        <SectionTitle>Professional Challenges</SectionTitle>
         <ChallengesList>
-          {caseStudy.challenges.map((challenge, index) => (
+          {projectHighlight.challenges.map((challenge, index) => (
             <ChallengeItem
               key={index}
               variants={challengeVariants}
@@ -305,10 +303,10 @@ const CaseStudyCard: React.FC<CaseStudyCardProps> = ({ caseStudy }) => {
           ))}
         </ChallengesList>
         
-        <SectionTitle>Our Solution</SectionTitle>
-        <Solution>{caseStudy.solution}</Solution>
+        <SectionTitle>Professional Growth Strategy</SectionTitle>
+        <Solution>{projectHighlight.solution}</Solution>
         
-        <SectionTitle>Results</SectionTitle>
+        <SectionTitle>Professional Achievements</SectionTitle>
         <ResultsGrid>
           {resultsArray.map((result, index) => (
             <ResultItem
@@ -328,4 +326,4 @@ const CaseStudyCard: React.FC<CaseStudyCardProps> = ({ caseStudy }) => {
   );
 };
 
-export default CaseStudyCard;
+export default ProjectHighlightCard;
