@@ -2,12 +2,13 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
+import { IconBaseProps, IconType } from 'react-icons';
 
 interface CertificationItem {
   id: number;
   title: string;
   description: string;
-  image: string;
+  image: IconType;
   color: string;
 }
 
@@ -134,6 +135,9 @@ const glowVariants = {
 };
 
 const CertificationBadge: React.FC<CertificationBadgeProps> = ({ certification, index }) => {
+  // Explicitly type the icon with IconType and additional props
+  const IconComponent = certification.image as React.ComponentType<IconBaseProps>;
+
   return (
     <Badge
       initial="hidden"
@@ -144,12 +148,10 @@ const CertificationBadge: React.FC<CertificationBadgeProps> = ({ certification, 
       whileHover="hover"
     >
       <BadgeImage>
-        <motion.img 
-          src={certification.image}
-          alt={certification.title}
-          variants={imageVariants}
-        />
-        <Glow 
+        <motion.div variants={imageVariants}>
+          <IconComponent size={120} color={certification.color} />
+        </motion.div>
+        <Glow
           color={certification.color}
           variants={glowVariants}
         />

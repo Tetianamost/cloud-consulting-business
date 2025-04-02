@@ -4,51 +4,47 @@ import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import Section from '../../ui/Section';
 import CertificationBadge from './CertificationBadge';
+import { FaAward, FaCertificate } from 'react-icons/fa';
+import { SiAmazon } from 'react-icons/si';
+
 
 // AWS certification images would normally be imported from your assets folder
 // For this example, we'll use placeholders
 const certifications = [
   {
+    id: 5,
+    title: 'AWS Advanced Networking – Specialty',
+    description: 'Expert-level knowledge in designing and implementing complex AWS network architectures',
+    image: SiAmazon,
+    color: '#FDCB6E'
+  },
+  {
+    id: 3,
+    title: 'AWS Certified Database – Specialty',
+    description: 'Advanced skills in designing, implementing, and managing AWS database solutions',
+    image: FaAward,
+    color: '#4ECDC4'
+  },
+  {
     id: 1,
-    title: 'AWS Certified Solutions Architect – Professional',
-    description: 'Advanced expertise in designing distributed applications and systems on AWS platform.',
-    image: 'https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-Solutions-Architect-Professional_badge.63c39369def4468dab4822b6fad24158909bffc0.png',
+    title: 'AWS Certified Solutions Architect – Associate',
+    description: 'Validated expertise in designing distributed systems and AWS cloud architectures',
+    image: SiAmazon,
     color: '#FF9900'
   },
   {
     id: 2,
-    title: 'AWS Certified DevOps Engineer – Professional',
-    description: 'Expertise in continuous delivery and automation of AWS infrastructure for security and compliance.',
-    image: 'https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-DevOps-Engineer-Professional_badge.e1e4bcd2ee73d669a6b490c5622cf62e5494253e.png',
-    color: '#FF9900'
-  },
-  {
-    id: 3,
-    title: 'AWS Certified Data Analytics – Specialty',
-    description: 'Expertise in designing and implementing AWS services to derive insights from data.',
-    image: 'https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-Data-Analytics-Specialty_badge.73b622eb78b8f1118689e28d665a6ddff553651a.png',
-    color: '#FF9900'
+    title: 'AWS Certified Developer – Associate',
+    description: 'Certified in developing and maintaining AWS-based applications and services',
+    image: FaCertificate,
+    color: '#FF6B6B'
   },
   {
     id: 4,
-    title: 'AWS Certified Security – Specialty',
-    description: 'Expertise in security best practices for AWS platform and securing complex AWS environments.',
-    image: 'https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-Security-Specialty_badge.b8d70d28dc20dd8e7643b5b1b0ee6d57f54c95f3.png',
-    color: '#FF9900'
-  },
-  {
-    id: 5,
-    title: 'AWS Certified Advanced Networking – Specialty',
-    description: 'Expertise in designing and implementing AWS and hybrid IT network architectures.',
-    image: 'https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-Advanced-Networking-Specialty_badge.c3579756201966ad228869493772e3422d86bcf0.png',
-    color: '#FF9900'
-  },
-  {
-    id: 6,
-    title: 'AWS Certified Database – Specialty',
-    description: 'Expertise in designing, implementing, and managing AWS database solutions.',
-    image: 'https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-Database-Specialty_badge.d4edf2ddd4c63dbee96258a4a48db0a6b8a25580.png',
-    color: '#FF9900'
+    title: 'AWS Certified Cloud Practitioner',
+    description: 'Comprehensive understanding of AWS cloud fundamentals and best practices',
+    image: FaCertificate,
+    color: '#45B7D1'
   }
 ];
 
@@ -80,45 +76,6 @@ const CertificationsGrid = styled.div`
   }
 `;
 
-const PartnerWrapper = styled(motion.div)`
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: ${theme.borderRadius.lg};
-  padding: ${theme.space[6]};
-  margin-top: ${theme.space[10]};
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-`;
-
-const PartnerTitle = styled.h3`
-  font-size: ${theme.fontSizes['2xl']};
-  color: ${theme.colors.white};
-  margin-bottom: ${theme.space[4]};
-`;
-
-const PartnerBadge = styled(motion.div)`
-  background-color: ${theme.colors.primary};
-  border: 2px solid ${theme.colors.secondary};
-  border-radius: ${theme.borderRadius.lg};
-  padding: ${theme.space[4]};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: ${theme.space[4]};
-  
-  img {
-    max-width: 160px;
-    height: auto;
-  }
-`;
-
-const PartnerDescription = styled.p`
-  color: ${theme.colors.gray300};
-  font-size: ${theme.fontSizes.md};
-  max-width: 500px;
-  margin: 0 auto;
-`;
 
 // Animation variants
 const titleVariants = {
@@ -128,18 +85,6 @@ const titleVariants = {
     y: 0,
     transition: {
       duration:.5
-    }
-  }
-};
-
-const partnerVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: {
-      duration: 0.6,
-      delay: 0.4
     }
   }
 };
@@ -173,27 +118,7 @@ const Certifications: React.FC = () => {
           />
         ))}
       </CertificationsGrid>
-      
-      <PartnerWrapper
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={partnerVariants}
-      >
-        <PartnerTitle>AWS Select Consulting Partner</PartnerTitle>
-        <PartnerBadge
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <motion.img 
-            src="https://d1.awsstatic.com/partner-network/logo/AWS_Consulting_Partner.d737d1305b4d89e13a8777bf5f304d7765913639.png" 
-            alt="AWS Consulting Partner" 
-          />
-        </PartnerBadge>
-        <PartnerDescription>
-          As an AWS Select Consulting Partner, we've demonstrated technical proficiency and proven success in helping customers migrate to and optimize their AWS environments. This partnership allows us to deliver enhanced service and support to our clients.
-        </PartnerDescription>
-      </PartnerWrapper>
+
     </Section>
   );
 };
