@@ -185,14 +185,6 @@ const ProjectInsights: React.FC = () => {
       >
         Professional Journey
       </SectionTitle>
-      <SectionSubtitle
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={titleVariants}
-      >
-        Insights into cloud infrastructure expertise, certifications, and professional growth
-      </SectionSubtitle>
       
       <SliderContainer>
         <AnimatePresence mode="wait">

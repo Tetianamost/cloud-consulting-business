@@ -76,16 +76,25 @@ const Overlay = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
+
   background: linear-gradient(
     to bottom,
     rgba(${props => props.theme.colors.primary.replace('#', '')}, 0.7),
     rgba(${props => props.theme.colors.dark.replace('#', '')}, 0.9)
   );
+  
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: ${theme.space[8]};
   color: white;
+  
+  > * {
+    background-color: rgba(62, 8, 8, 0.5); 
+    padding: ${theme.space[2]};
+    margin-bottom: ${theme.space[2]};
+    border-radius: ${theme.borderRadius.md};
+  }
 `;
 
 const IndustryTag = styled(motion.span)`
@@ -103,16 +112,18 @@ const ProjectTitle = styled.h3`
   font-size: ${theme.fontSizes['3xl']};
   font-weight: ${theme.fontWeights.bold};
   margin-bottom: ${theme.space[4]};
+  color: rgb(234, 97, 97);
 `;
 
 const ProjectDescription = styled.p`
   font-size: ${theme.fontSizes.lg};
   margin-bottom: ${theme.space[4]};
   opacity: 0.9;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 `;
 
 const Testimonial = styled(motion.div)`
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(40, 3, 3, 0.59);
   padding: ${theme.space[4]};
   border-radius: ${theme.borderRadius.lg};
   margin-top: auto;
