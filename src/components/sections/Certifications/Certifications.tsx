@@ -7,9 +7,6 @@ import CertificationBadge from './CertificationBadge';
 import { FaAward, FaCertificate } from 'react-icons/fa';
 import { SiAmazon } from 'react-icons/si';
 
-
-// AWS certification images would normally be imported from your assets folder
-// For this example, we'll use placeholders
 const certifications = [
   {
     id: 5,
