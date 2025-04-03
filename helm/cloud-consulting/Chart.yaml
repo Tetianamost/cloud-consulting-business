@@ -1,0 +1,7 @@
+# helm/cloud-consulting/Chart.yaml
+apiVersion: v2
+name: cloud-consulting
+description: A Helm chart for Cloud Consulting Business website
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

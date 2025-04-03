@@ -1,0 +1,29 @@
+replicaCount: 1
+image:
+  repository: tetianamost/cloud-consulting-business
+  tag: latest
+  pullPolicy: Always
+service:
+  type: ClusterIP
+  port: 80
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: cloudmigrate-pro.com
+      paths:
+        - path: /
+          pathType: Prefix
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
