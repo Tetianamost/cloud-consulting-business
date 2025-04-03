@@ -15,7 +15,7 @@ interface ProjectResult {
   [key: string]: string | undefined;
 }
 
-interface Testimonial {
+interface TestimonialData {
   quote: string;
   author: string;
   position: string;
@@ -29,7 +29,7 @@ interface ProjectHighlight {
   challenges: string[];
   solution: string;
   results: ProjectResult;
-  testimonial: Testimonial;
+  testimonial: TestimonialData;
   image: string;
 }
 

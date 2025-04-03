@@ -65,14 +65,6 @@ const SectionTitle = styled(motion.h2)`
   margin-bottom: ${theme.space[3]};
 `;
 
-const SectionSubtitle = styled(motion.p)`
-  text-align: center;
-  max-width: 600px;
-  margin: 0 auto ${theme.space[8]};
-  color: ${theme.colors.gray600};
-  font-size: ${theme.fontSizes.lg};
-`;
-
 const SliderContainer = styled.div`
   position: relative;
   overflow: hidden;

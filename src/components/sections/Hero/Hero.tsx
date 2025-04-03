@@ -6,7 +6,6 @@ import Button from '../../ui/Button';
 import CloudAnimation from './CloudAnimation';
 import { FiArrowRight } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
-import { Link, scroller } from 'react-scroll';
 
 const HeroContainer = styled.section`
   position: relative;
