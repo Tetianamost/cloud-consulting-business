@@ -68,29 +68,29 @@ const Description = styled.p`
   margin-bottom: ${theme.space[5]};
 `;
 
-const SocialLinks = styled.div`
-  display: flex;
-  gap: ${theme.space[4]};
-  margin-top: ${theme.space[4]};
-`;
+// const SocialLinks = styled.div`
+//   display: flex;
+//   gap: ${theme.space[4]};
+//   margin-top: ${theme.space[4]};
+// `;
 
-const SocialLink = styled(motion.a)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: ${theme.borderRadius.full};
-  background-color: rgba(255, 255, 255, 0.1);
-  color: ${theme.colors.white};
-  font-size: ${theme.fontSizes.xl};
-  transition: ${theme.transitions.normal};
+// const SocialLink = styled(motion.a)`
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   width: 40px;
+//   height: 40px;
+//   border-radius: ${theme.borderRadius.full};
+//   background-color: rgba(255, 255, 255, 0.1);
+//   color: ${theme.colors.white};
+//   font-size: ${theme.fontSizes.xl};
+//   transition: ${theme.transitions.normal};
   
-  &:hover {
-    background-color: ${theme.colors.secondary};
-    transform: translateY(-3px);
-  }
-`;
+//   &:hover {
+//     background-color: ${theme.colors.secondary};
+//     transform: translateY(-3px);
+//   }
+// `;
 
 const FooterHeading = styled.h4`
   font-size: ${theme.fontSizes.lg};
