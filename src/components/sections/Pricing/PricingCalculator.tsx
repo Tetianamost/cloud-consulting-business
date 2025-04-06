@@ -685,15 +685,35 @@ const PricingCalculator: React.FC = () => {
     };
     
     // EmailJS implementation
+    // EmailJS implementation
     emailjs.send(
       'mosttn18@gmail.com', // Your EmailJS service ID
-      'template_9lu3gzb', // Your template ID
+      'template_9lu3gzb', // Your template ID for quote requests
       emailData,
       'hz-jZI5Vs-LNtGM4T' // Your EmailJS public key
     )
     .then((result) => {
-      console.log('Email successfully sent!', result.text);
+      console.log('Quote request email successfully sent!', result.text);
       
+      // Now send the auto-reply email to the customer
+      const autoReplyData = {
+        name: sanitizedName,
+        email: sanitizedEmail,
+        serviceType: selectedService.title,
+        complexity: selectedComplexity.title,
+        totalEstimate: totalEstimate.toLocaleString(),
+        current_date: currentDate
+      };
+      
+      return emailjs.send(
+        'mosttn18@gmail.com', // Same service ID
+        'template_nknpqha', // Auto-reply template ID
+        autoReplyData,
+        'hz-jZI5Vs-LNtGM4T' // Same public key
+      );
+    })
+    .then((result) => {
+      console.log('Auto-reply email successfully sent!', result.text);
       // Reset form and close modal
       setName('');
       setEmail('');
@@ -704,7 +724,6 @@ const PricingCalculator: React.FC = () => {
       setEmailError(null);
       setIsSubmitting(false);
       setIsModalOpen(false);
-      
       // Show success message
       setSuccess(true);
       setTimeout(() => {
@@ -714,22 +733,19 @@ const PricingCalculator: React.FC = () => {
     .catch((error) => {
       console.error('Failed to send email:', error);
       setIsSubmitting(false);
-      
       // Set appropriate error message
       let errorMessage = "Failed to send your request. Please try again or contact us directly.";
       if (error.text) {
         errorMessage = `Error: ${error.text}`;
       }
-      
       // Display error to user
       setEmailError(errorMessage);
-      
       // Keep modal open to allow user to retry
       setTimeout(() => {
         setEmailError(null);
       }, 8000);
     });
-  };
+    };
   
   const handleSubmit = () => {
     if (validateForm()) {
