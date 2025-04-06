@@ -192,7 +192,7 @@ const Contact: React.FC = () => {
               <Icon icon={FiMail} size={20} />
               </ContactIcon>
               <ContactText>
-                <ContactLink href="mailto:info@cloudpartner.com">info@cloudpartner.com</ContactLink>
+                <ContactLink href="mailto:info@cloudpartner.pro">info@cloudpartner.pro</ContactLink>
               </ContactText>
             </ContactItem>
             <ContactItem>
