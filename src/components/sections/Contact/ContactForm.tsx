@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Formik, Form, Field, ErrorMessage, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
+import emailjs from '@emailjs/browser';
 import { theme } from '../../../styles/theme';
 import Button from '../../ui/Button';
 import { FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
@@ -184,9 +185,10 @@ const validationSchema = Yup.object().shape({
     .email('Invalid email format')
     .required('Email is required'),
   company: Yup.string()
-    .required('Company name is required'),
+    .optional(),
   phone: Yup.string()
-    .matches(/^[0-9+-\s()]*$/, 'Invalid phone number format'),
+    .matches(/^[0-9+-\s()]*$/, 'Invalid phone number format')
+    .optional(),
   services: Yup.array()
     .min(1, 'Please select at least one service'),
   message: Yup.string()
@@ -238,9 +240,63 @@ const ContactForm: React.FC = () => {
     values: FormValues,
     { setSubmitting, resetForm }: FormikHelpers<FormValues>
   ) => {
-    // Simulate form submission
-    setTimeout(() => {
-      console.log(values);
+    // Sanitize input data
+    const sanitizedName = values.name.trim();
+    const sanitizedEmail = values.email.trim();
+    const sanitizedCompany = values.company.trim();
+    const sanitizedPhone = values.phone.trim();
+    const sanitizedMessage = values.message.trim();
+    
+    // Format services as a comma-separated string
+    const selectedServices = values.services.map(service => {
+      const serviceOption = serviceOptions.find(option => option.id === service);
+      return serviceOption ? serviceOption.label : service;
+    }).join(', ');
+    
+    // Get current date for the email template
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    // Prepare email data
+    const emailData = {
+      name: sanitizedName,
+      email: sanitizedEmail,
+      company: sanitizedCompany || "Independent/Individual",
+      phone: sanitizedPhone || "Not provided",
+      services: selectedServices,
+      message: sanitizedMessage,
+      current_date: currentDate
+    };
+    
+    // EmailJS implementation
+    emailjs.send(
+      'info@cloudpartner.pro', // Your EmailJS service ID
+      'template_1s2rjxq', // Your template ID for contact forms
+      emailData,
+      'hz-jZI5Vs-LNtGM4T' // Your EmailJS public key
+    )
+    .then((result) => {
+      console.log('Contact form email successfully sent!', result.text);
+      
+      // Now send the auto-reply email to the customer
+      const autoReplyData = {
+        name: sanitizedName,
+        email: sanitizedEmail,
+        current_date: currentDate
+      };
+      
+      return emailjs.send(
+        'info@cloudpartner.pro', // Same service ID
+        'template_nknpqha', // Auto-reply template ID
+        autoReplyData,
+        'hz-jZI5Vs-LNtGM4T' // Same public key
+      );
+    })
+    .then((result) => {
+      console.log('Auto-reply email successfully sent!', result.text);
       setFormState('success');
       setSubmitting(false);
       resetForm();
@@ -249,7 +305,17 @@ const ContactForm: React.FC = () => {
       setTimeout(() => {
         setFormState('idle');
       }, 5000);
-    }, 1000);
+    })
+    .catch((error) => {
+      console.error('Failed to send email:', error);
+      setFormState('error');
+      setSubmitting(false);
+      
+      // Reset error message after 5 seconds
+      setTimeout(() => {
+        setFormState('idle');
+      }, 5000);
+    });
   };
   
   return (
@@ -303,12 +369,12 @@ const ContactForm: React.FC = () => {
             
             <FieldRow>
               <FormGroup>
-                <Label htmlFor="company">Company Name *</Label>
+                <Label htmlFor="company">Company Name</Label>
                 <StyledField
                   type="text"
                   id="company"
                   name="company"
-                  placeholder="Your Company"
+                  placeholder="Your Company (Optional)"
                   error={Boolean(errors.company && touched.company)}
                 />
                 <ErrorMessage name="company">
@@ -326,7 +392,7 @@ const ContactForm: React.FC = () => {
                   type="text"
                   id="phone"
                   name="phone"
-                  placeholder="+1 (555) 123-4567"
+                  placeholder="+1 (555) 123-4567 (Optional)"
                   error={Boolean(errors.phone && touched.phone)}
                 />
                 <ErrorMessage name="phone">
@@ -408,8 +474,8 @@ const ContactForm: React.FC = () => {
             exit="exit"
             variants={messageVariants}
           >
-            <Icon icon={FiAlertCircle} />
-            <div>There was an error sending your message. Please try again later.</div>
+            <Icon icon={FiAlertCircle} size={24} />
+            <div>There was an error sending your message. Please try again later or email us directly at info@cloudpartner.pro</div>
           </FormMessage>
         )}
       </AnimatePresence>

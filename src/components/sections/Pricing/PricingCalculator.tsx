@@ -633,12 +633,7 @@ const PricingCalculator: React.FC = () => {
     if (phone.trim() && !/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im.test(phone.trim())) {
       newErrors.phone = 'Please enter a valid phone number';
     }
-    
-    // Company is required
-    if (!company.trim()) {
-      newErrors.company = 'Company name is required';
-    }
-    
+        
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -1016,7 +1011,7 @@ const PricingCalculator: React.FC = () => {
                     </InputIcon>
                     <IconInput
                       type="tel"
-                      placeholder="Enter your phone number"
+                      placeholder="+1 (555) 123-4567 (Optional)"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                     />
@@ -1025,16 +1020,14 @@ const PricingCalculator: React.FC = () => {
                 </InputGroup>
                 
                 <InputGroup>
-                  <InputLabel>Company
-                  <RequiredIndicator>*</RequiredIndicator>
-                  </InputLabel>
+                  <InputLabel>Company</InputLabel>
                   <div style={{ position: 'relative' }}>
                     <InputIcon>
                       <Icon icon={FiBriefcase} size={16} />
                     </InputIcon>
                     <IconInput
                       type="text"
-                      placeholder="Enter your company name"
+                      placeholder="Enter your company name (Optional)"
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
                     />
