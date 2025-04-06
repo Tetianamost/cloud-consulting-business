@@ -171,7 +171,7 @@ const Header: React.FC = () => {
     >
       <Nav>
         <Logo>
-          Cloud<span>Migrate</span>
+          Cloud<span>Partners</span>
         </Logo>
         
         <MenuButton onClick={toggleMenu}>
