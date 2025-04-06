@@ -80,9 +80,27 @@ const StyledField = styled(Field)<{ error?: boolean }>`
   }
 `;
 
-const TextArea = styled(StyledField)`
+const TextArea = styled(Field)`
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid ${props => props.error ? theme.colors.danger : 'rgba(255, 255, 255, 0.2)'};
+  border-radius: ${theme.borderRadius.md};
+  padding: ${theme.space[3]};
+  color: ${theme.colors.white};
+  font-size: ${theme.fontSizes.md};
+  transition: ${theme.transitions.fast};
   min-height: 150px;
   resize: vertical;
+  
+  &:focus {
+    outline: none;
+    border-color: ${theme.colors.secondary};
+    box-shadow: 0 0 0 2px ${theme.colors.secondary + '40'};
+  }
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
 `;
 
 const ErrorText = styled.div`
@@ -192,7 +210,7 @@ const validationSchema = Yup.object().shape({
   services: Yup.array()
     .min(1, 'Please select at least one service'),
   message: Yup.string()
-    .min(10, 'Message is too short')
+    .min(1, 'Message is required')
     .required('Message is required'),
 });
 
@@ -274,7 +292,7 @@ const ContactForm: React.FC = () => {
     // EmailJS implementation
     emailjs.send(
       'info@cloudpartner.pro', // Your EmailJS service ID
-      'template_1s2rjxq', // Your template ID for contact forms
+      'template_ds48ui8', // Your template ID for contact forms
       emailData,
       'hz-jZI5Vs-LNtGM4T' // Your EmailJS public key
     )
@@ -290,7 +308,7 @@ const ContactForm: React.FC = () => {
       
       return emailjs.send(
         'info@cloudpartner.pro', // Same service ID
-        'template_nknpqha', // Auto-reply template ID
+        'template_04ylayh', // Auto-reply template ID
         autoReplyData,
         'hz-jZI5Vs-LNtGM4T' // Same public key
       );
@@ -431,7 +449,7 @@ const ContactForm: React.FC = () => {
             <FormGroup>
               <Label htmlFor="message">Message *</Label>
               <TextArea
-                as="textarea"
+                component="textarea"
                 id="message"
                 name="message"
                 placeholder="Tell us about your project and requirements..."
