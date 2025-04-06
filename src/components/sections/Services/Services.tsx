@@ -39,86 +39,58 @@ const ServicesGrid = styled.div`
 const services = [
   {
     id: 1,
-    title: "Cloud Assessment & Discovery",
-    description: "Comprehensive analysis of your current infrastructure to identify migration candidates, dependencies, and create a detailed roadmap.",
+    title: "Cloud Assessment & Roadmap",
+    description: "Evaluate your current infrastructure and develop a strategic roadmap for cloud adoption or optimization tailored to your specific business needs.",
     icon: "assessment",
     color: theme.colors.info,
     features: [
-      "Infrastructure audit & dependency mapping",
-      "Application portfolio analysis",
-      "Total cost of ownership calculation",
-      "Migration complexity assessment",
-      "Risk identification & mitigation strategies"
+      "Infrastructure evaluation & analysis",
+      "Cloud readiness assessment",
+      "Cost estimation & comparison",
+      "Risk identification & planning",
+      "Personalized recommendations report"
     ]
   },
   {
     id: 2,
-    title: "Migration Strategy & Planning",
-    description: "Develop a tailored migration strategy using proven methodologies to minimize disruption and maximize business value.",
+    title: "Small-Scale Migrations",
+    description: "Assist with focused, manageable cloud migrations for specific applications or servers that can be completed within our flexible availability.",
     icon: "strategy",
     color: theme.colors.accent,
     features: [
-      "6R assessment (Rehost, Replatform, Repurchase, Refactor, Retire, Retain)",
-      "Workload prioritization",
-      "Migration wave planning",
-      "Resource allocation & timeline development",
-      "Governance & compliance planning"
+      "Single-application migration planning",
+      "Small database migrations",
+      "Simple lift-and-shift operations",
+      "Step-by-step implementation guidance",
+      "Migration verification & testing"
     ]
   },
   {
     id: 3,
-    title: "Cloud Implementation",
-    description: "End-to-end migration execution with our expert team handling data transfer, application refactoring, and testing.",
-    icon: "implementation",
-    color: theme.colors.secondary,
+    title: "Cloud Optimization Consulting",
+    description: "Review your existing cloud environment to identify cost-saving opportunities and performance improvements without extensive resource commitment.",
+    icon: "optimization",
+    color: theme.colors.success,
     features: [
-      "Cloud foundation setup (landing zone)",
-      "Infrastructure as Code implementation",
-      "Data migration with minimal downtime",
-      "Application modernization & refactoring",
-      "Comprehensive testing & validation"
+      "Cost analysis & reduction planning",
+      "Resource right-sizing recommendations",
+      "Reserved instance & savings plan advice",
+      "Architecture review & improvement suggestions",
+      "Performance optimization guidance"
     ]
   },
   {
     id: 4,
-    title: "Cost Optimization",
-    description: "Continuous monitoring and optimization of your cloud environment to reduce costs while maintaining performance.",
-    icon: "optimization",
-    color: theme.colors.success,
-    features: [
-      "Right-sizing resources & eliminating waste",
-      "Reserved instance & savings plan analysis",
-      "Auto-scaling implementation",
-      "Strategic workload scheduling",
-      "Regular cost optimization reviews"
-    ]
-  },
-  {
-    id: 5,
-    title: "Security & Compliance",
-    description: "Implement robust security controls and ensure compliance with industry regulations in your cloud environment.",
+    title: "Cloud Architecture Review",
+    description: "Expert examination of your cloud architecture with actionable recommendations to improve security, reliability, performance, and cost-efficiency.",
     icon: "security",
     color: theme.colors.warning,
     features: [
-      "Security posture assessment",
-      "Identity & access management",
-      "Network security & encryption",
-      "Compliance monitoring & reporting",
-      "Security automation & remediation"
-    ]
-  },
-  {
-    id: 6,
-    title: "Managed Cloud Services",
-    description: "Ongoing management and support of your cloud infrastructure to ensure optimal performance and reliability.",
-    icon: "managed",
-    color: theme.colors.danger,
-    features: [
-      "24/7 monitoring & incident response",
-      "Patch management & updates",
-      "Performance optimization",
-      "Backup & disaster recovery",
-      "Regular health checks & reporting"
+      "Architecture best practices assessment",
+      "Security configuration review",
+      "Scalability & resilience evaluation",
+      "Compliance check & recommendations",
+      "Documentation & knowledge transfer"
     ]
   }
 ];
@@ -163,7 +135,7 @@ const Services: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        Our Cloud Migration Services
+        Our Cloud Services
       </SectionTitle>
       <SectionSubtitle
         initial="hidden"
@@ -171,7 +143,7 @@ const Services: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        Comprehensive solutions to transform your business with secure, efficient, and cost-effective cloud services
+        Focused cloud consulting services with flexible scheduling that adapts to your business needs and project timelines
       </SectionSubtitle>
       
       <ServicesGrid>

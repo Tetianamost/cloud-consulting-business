@@ -33,6 +33,7 @@ const Card = styled(motion.div)`
   &:hover {
     transform: translateY(-8px);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    border-top: 3px solid ${theme.colors.primary};
   }
 `;
 
