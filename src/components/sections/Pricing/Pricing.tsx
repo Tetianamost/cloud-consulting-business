@@ -171,7 +171,7 @@ const Pricing: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        Transparent Pricing
+        Transparent Service Pricing
       </SectionTitle>
       <SectionSubtitle
         initial="hidden"
@@ -179,7 +179,7 @@ const Pricing: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        Flexible pricing options tailored to your specific migration needs and business goals
+        Fair, transparent pricing for our part-time cloud consulting services with realistic delivery schedules
       </SectionSubtitle>
       
       <PricingContent>
@@ -197,16 +197,16 @@ const Pricing: React.FC = () => {
                 <line x1="12" y1="8" x2="12" y2="12"></line>
                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
-              How Our Pricing Works
+              Flexible Scheduling
             </InfoTitle>
             <InfoText>
-              We provide customized pricing based on the scope and complexity of your migration. 
-              Our calculator gives you an estimate, and our team provides a detailed quote after 
-              discussing your specific requirements.
+              We offer flexible scheduling that works around your business needs, with availability 
+              during weekends and weekday.
             </InfoText>
             <InfoText>
-              All our migrations include a thorough assessment, detailed planning, execution, 
-              and post-migration support to ensure a successful transition.
+              Our calculator provides transparent estimates based on our flexible schedule, with clear 
+              project timelines and milestones. We're committed to delivering quality results on a schedule 
+              that works for everyone.
             </InfoText>
           </InfoBlock>
           
@@ -225,27 +225,27 @@ const Pricing: React.FC = () => {
             </InfoTitle>
             <PricingPoint>
               <PricingIcon>✓</PricingIcon>
-              <div>Comprehensive infrastructure assessment</div>
+              <div>Focused, personalized attention to your needs</div>
             </PricingPoint>
             <PricingPoint>
               <PricingIcon>✓</PricingIcon>
-              <div>Detailed migration planning and architecture design</div>
+              <div>Clear scope that fits project timeframes</div>
             </PricingPoint>
             <PricingPoint>
               <PricingIcon>✓</PricingIcon>
-              <div>End-to-end migration execution</div>
+              <div>Professional expertise</div>
             </PricingPoint>
             <PricingPoint>
               <PricingIcon>✓</PricingIcon>
-              <div>Security and compliance implementation</div>
+              <div>Transparent delivery timeline expectations</div>
             </PricingPoint>
             <PricingPoint>
               <PricingIcon>✓</PricingIcon>
-              <div>30 days of post-migration support</div>
+              <div>Documentation and knowledge transfer</div>
             </PricingPoint>
             <PricingPoint>
               <PricingIcon>✓</PricingIcon>
-              <div>Knowledge transfer and documentation</div>
+              <div>Two weeks of follow-up email support</div>
             </PricingPoint>
           </InfoBlock>
           
@@ -256,10 +256,10 @@ const Pricing: React.FC = () => {
             variants={badgeVariants}
             whileHover="hover"
           >
-            <BadgeHeading>100% Satisfaction Guarantee</BadgeHeading>
+            <BadgeHeading>Dedicated Attention Guarantee</BadgeHeading>
             <BadgeText>
-              If we don't meet our agreed-upon migration objectives, 
-              we'll work for free until we do.
+              Our flexible schedule means your projects get our undivided attention when we're working together,
+              resulting in efficient, high-quality deliverables.
             </BadgeText>
           </SatisfactionBadge>
         </PricingInfo>

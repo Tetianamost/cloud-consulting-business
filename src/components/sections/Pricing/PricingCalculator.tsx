@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import Button from '../../ui/Button';
-import { FiInfo, FiCheckCircle } from 'react-icons/fi';
+import { FiInfo, FiCheckCircle, FiX, FiMail, FiUser, FiPhone, FiBriefcase } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
+import emailjs from '@emailjs/browser';
 
 const CalculatorContainer = styled(motion.div)`
   background-color: white;
@@ -232,6 +233,8 @@ const SuccessMessage = styled(motion.div)`
   display: flex;
   align-items: center;
   margin-top: ${theme.space[5]};
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid ${theme.colors.success};
   
   svg {
     margin-right: ${theme.space[3]};
@@ -239,28 +242,215 @@ const SuccessMessage = styled(motion.div)`
   }
 `;
 
+// Modal components
+const ModalOverlay = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: ${theme.space[4]};
+`;
+
+const ModalContainer = styled(motion.div)`
+  background-color: white;
+  border-radius: ${theme.borderRadius.lg};
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+`;
+
+const ModalHeader = styled.div`
+  padding: ${theme.space[5]};
+  border-bottom: 1px solid ${theme.colors.gray200};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ModalTitle = styled.h3`
+  font-size: ${theme.fontSizes.xl};
+  color: ${theme.colors.primary};
+  margin: 0;
+`;
+
+const CloseButton = styled.button`
+  background: transparent;
+  border: none;
+  color: ${theme.colors.gray500};
+  font-size: ${theme.fontSizes.xl};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${theme.space[1]};
+  
+  &:hover {
+    color: ${theme.colors.primary};
+  }
+`;
+
+const ModalBody = styled.div`
+  padding: ${theme.space[5]};
+`;
+
+const ModalFooter = styled.div`
+  padding: ${theme.space[5]};
+  border-top: 1px solid ${theme.colors.gray200};
+  display: flex;
+  justify-content: flex-end;
+  gap: ${theme.space[3]};
+`;
+
+const QuoteDetail = styled.div`
+  background-color: ${theme.colors.gray100};
+  border-radius: ${theme.borderRadius.md};
+  padding: ${theme.space[4]};
+  margin-bottom: ${theme.space[4]};
+`;
+
+const QuoteDetailRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${theme.space[2]};
+  font-size: ${theme.fontSizes.md};
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const QuoteDetailLabel = styled.div`
+  color: ${theme.colors.gray700};
+  font-weight: ${theme.fontWeights.medium};
+`;
+
+const QuoteDetailValue = styled.div`
+  color: ${theme.colors.primary};
+`;
+
+const QuoteDetailTotal = styled.div`
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid ${theme.colors.gray300};
+  margin-top: ${theme.space[3]};
+  padding-top: ${theme.space[3]};
+  font-weight: ${theme.fontWeights.bold};
+  font-size: ${theme.fontSizes.lg};
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: ${theme.space[3]};
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: ${theme.borderRadius.md};
+  font-size: ${theme.fontSizes.md};
+  margin-bottom: ${theme.space[4]};
+  transition: ${theme.transitions.fast};
+  
+  &:focus {
+    outline: none;
+    border-color: ${theme.colors.primary};
+    box-shadow: 0 0 0 3px ${theme.colors.primary}20;
+  }
+`;
+
+const Textarea = styled.textarea`
+  width: 100%;
+  padding: ${theme.space[3]};
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: ${theme.borderRadius.md};
+  font-size: ${theme.fontSizes.md};
+  margin-bottom: ${theme.space[4]};
+  min-height: 100px;
+  resize: vertical;
+  transition: ${theme.transitions.fast};
+  
+  &:focus {
+    outline: none;
+    border-color: ${theme.colors.primary};
+    box-shadow: 0 0 0 3px ${theme.colors.primary}20;
+  }
+`;
+
+const InputGroup = styled.div`
+  position: relative;
+  margin-bottom: ${theme.space[4]};
+`;
+
+const InputIcon = styled.div`
+  position: absolute;
+  left: ${theme.space[3]};
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${theme.colors.gray500};
+`;
+
+const IconInput = styled.input`
+  width: 100%;
+  padding: ${theme.space[3]};
+  padding-left: ${theme.space[8]};
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: ${theme.borderRadius.md};
+  font-size: ${theme.fontSizes.md};
+  transition: ${theme.transitions.fast};
+  
+  &:focus {
+    outline: none;
+    border-color: ${theme.colors.primary};
+    box-shadow: 0 0 0 3px ${theme.colors.primary}20;
+  }
+`;
+
+const InputLabel = styled.label`
+  display: block;
+  margin-bottom: ${theme.space[2]};
+  font-weight: ${theme.fontWeights.medium};
+  color: ${theme.colors.gray700};
+`;
+
+const ErrorMessage = styled.div`
+  color: ${theme.colors.danger};
+  font-size: ${theme.fontSizes.sm};
+  margin-top: ${theme.space[1]};
+`;
+
 // Define the pricing calculator parameters
-const migrationTypes = [
+const serviceTypes = [
   {
-    id: 'rehost',
-    title: 'Rehost (Lift & Shift)',
-    description: 'Move applications to the cloud with minimal changes',
-    basePrice: 5000,
-    pricePerServer: 500,
+    id: 'assessment',
+    title: 'Initial Assessment',
+    description: 'Comprehensive cloud readiness evaluation and recommendations',
+    basePrice: 750,
+    pricePerServer: 50,
   },
   {
-    id: 'replatform',
-    title: 'Replatform (Lift & Reshape)',
-    description: 'Optimize applications for cloud while retaining core architecture',
-    basePrice: 10000,
-    pricePerServer: 800,
+    id: 'migration',
+    title: 'Migration Planning',
+    description: 'Detailed planning for moving specific applications to the cloud',
+    basePrice: 500,
+    pricePerServer: 150,
   },
   {
-    id: 'refactor',
-    title: 'Refactor/Rearchitect',
-    description: 'Modify applications to take full advantage of cloud-native features',
-    basePrice: 15000,
-    pricePerServer: 1200,
+    id: 'architecture',
+    title: 'Cloud Architecture Review',
+    description: 'Expert review of existing or planned cloud architecture',
+    basePrice: 600,
+    pricePerServer: 75,
+  },
+  {
+    id: 'optimization',
+    title: 'Implementation Assistance',
+    description: 'Hands-on help implementing cloud solutions (hourly rate)',
+    basePrice: 0,
+    pricePerServer: 125, // Per hour rate
   },
 ];
 
@@ -268,19 +458,19 @@ const complexityLevels = [
   {
     id: 'simple',
     title: 'Simple',
-    description: 'Basic applications with minimal dependencies',
+    description: 'Basic setup with minimal dependencies',
     multiplier: 1,
   },
   {
     id: 'moderate',
     title: 'Moderate',
-    description: 'Multiple integrations and medium complexity',
+    description: 'Multiple services with some integrations',
     multiplier: 1.5,
   },
   {
     id: 'complex',
     title: 'Complex',
-    description: 'Legacy systems, many dependencies, strict requirements',
+    description: 'Multiple environments, many dependencies',
     multiplier: 2,
   },
 ];
@@ -325,27 +515,206 @@ const successVariants = {
   }
 };
 
+const modalOverlayVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: {
+      duration: 0.2
+    }
+  },
+  exit: { 
+    opacity: 0,
+    transition: {
+      duration: 0.2
+    }
+  }
+};
+
+const modalContainerVariants = {
+  hidden: { opacity: 0, y: 50, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      ease: 'easeOut'
+    }
+  },
+  exit: { 
+    opacity: 0,
+    y: 50,
+    scale: 0.95,
+    transition: {
+      duration: 0.2
+    }
+  }
+};
+
 const PricingCalculator: React.FC = () => {
-  const [migrationType, setMigrationType] = useState('rehost');
+  const [serviceType, setServiceType] = useState('assessment');
   const [complexity, setComplexity] = useState('moderate');
-  const [serverCount, setServerCount] = useState(10);
+  const [count, setCount] = useState(5);
   const [success, setSuccess] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const selectedMigrationType = migrationTypes.find(type => type.id === migrationType)!;
+  // Form state
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [company, setCompany] = useState('');
+  const [requirements, setRequirements] = useState('');
+  
+  // Form validation
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const selectedService = serviceTypes.find(type => type.id === serviceType)!;
   const selectedComplexity = complexityLevels.find(level => level.id === complexity)!;
   
-  const basePrice = selectedMigrationType.basePrice;
-  const serverPrice = selectedMigrationType.pricePerServer * serverCount;
+  const basePrice = selectedService.basePrice;
+  const variablePrice = serviceType === 'optimization' 
+    ? selectedService.pricePerServer * count // For optimization, count = hours
+    : selectedService.pricePerServer * count; // For others, count = servers/apps
   const complexityMultiplier = selectedComplexity.multiplier;
   
-  const totalEstimate = Math.round((basePrice + serverPrice) * complexityMultiplier);
+  const totalEstimate = Math.round((basePrice + variablePrice) * complexityMultiplier);
+  
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+  
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+  
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+    
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+      newErrors.email = 'Invalid email address';
+    }
+    
+    if (!phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    }
+    
+    if (!company.trim()) {
+      newErrors.company = 'Company name is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  
+  const sendEmail = () => {
+    setIsSubmitting(true);
+    
+    // Get current date for the email template
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    // Prepare email data with all fields matching the template
+    const emailData = {
+      // Contact Information
+      name,
+      email,
+      phone,
+      company,
+      
+      // Service Details
+      serviceType: selectedService.title,
+      complexity: selectedComplexity.title,
+      count,
+      
+      // Pricing Breakdown
+      basePrice: basePrice.toLocaleString(),
+      variablePrice: variablePrice.toLocaleString(),
+      complexityMultiplier,
+      totalEstimate: totalEstimate.toLocaleString(),
+      
+      // Additional Fields
+      requirements: requirements || "No additional requirements specified.",
+      current_date: currentDate,
+      
+      // These are conditional fields used in the template
+      // The actual template will handle the conditional display with Handlebars
+      isHourly: serviceType === 'optimization'
+    };
+    
+    // FOR TESTING - Simulate EmailJS send
+    // Remove this block and uncomment the EmailJS code below when ready to deploy
+    // setTimeout(() => {
+    //   console.log('Email data for template:', emailData);
+      
+    //   // Reset form and close modal
+    //   setName('');
+    //   setEmail('');
+    //   setPhone('');
+    //   setCompany('');
+    //   setRequirements('');
+    //   setErrors({});
+    //   setIsSubmitting(false);
+    //   setIsModalOpen(false);
+      
+    //   // Show success message
+    //   setSuccess(true);
+    //   setTimeout(() => {
+    //     setSuccess(false);
+    //   }, 5000);
+    // }, 1000);
+    
+    // REAL IMPLEMENTATION WITH EMAILJS
+    // Uncomment this block when ready to use EmailJS
+    emailjs.send(
+      'mosttn18@gmail.com', // Replace with your EmailJS service ID
+      'template_9lu3gzb', // Replace with your template ID that uses the HTML you provided
+      emailData,
+      'hz-jZI5Vs-LNtGM4T' // Replace with your EmailJS public key
+    )
+    .then((result) => {
+      console.log('Email successfully sent!', result.text);
+      
+      // Reset form and close modal
+      setName('');
+      setEmail('');
+      setPhone('');
+      setCompany('');
+      setRequirements('');
+      setErrors({});
+      setIsSubmitting(false);
+      setIsModalOpen(false);
+      
+      // Show success message
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+      }, 5000);
+    })
+    .catch((error) => {
+      console.error('Failed to send email:', error);
+      setIsSubmitting(false);
+    });
+  };
   
   const handleSubmit = () => {
-    // Simulate form submission
-    setSuccess(true);
-    setTimeout(() => {
-      setSuccess(false);
-    }, 5000);
+    if (validateForm()) {
+      sendEmail();
+    }
+  };
+  
+  const handleRequestQuote = () => {
+    openModal();
   };
   
   return (
@@ -354,31 +723,31 @@ const PricingCalculator: React.FC = () => {
       animate="visible"
       variants={calculatorVariants}
     >
-      <CalculatorTitle>Estimate Your Migration Cost</CalculatorTitle>
+      <CalculatorTitle>Estimate Your Service Cost</CalculatorTitle>
       
       <FormGroup>
         <Label>
-          Migration Type
+          Service Type
           <InfoIcon 
-            data-tooltip="Choose the migration approach that best fits your goals"
+            data-tooltip="Select the specific service you need"
           >
             <Icon icon={FiInfo} size={16} />
           </InfoIcon>
         </Label>
         <OptionGrid>
-          {migrationTypes.map(type => (
+          {serviceTypes.map(type => (
             <OptionCard 
               key={type.id} 
-              selected={migrationType === type.id}
+              selected={serviceType === type.id}
             >
               <RadioInput
                 type="radio"
-                name="migrationType"
+                name="serviceType"
                 value={type.id}
-                checked={migrationType === type.id}
-                onChange={() => setMigrationType(type.id)}
+                checked={serviceType === type.id}
+                onChange={() => setServiceType(type.id)}
               />
-              <OptionTitle selected={migrationType === type.id}>
+              <OptionTitle selected={serviceType === type.id}>
                 {type.title}
               </OptionTitle>
               <OptionDescription>
@@ -424,26 +793,28 @@ const PricingCalculator: React.FC = () => {
       
       <FormGroup>
         <Label>
-          Number of Servers/Applications
+          {serviceType === 'optimization' ? 'Estimated Hours' : 'Number of Servers/Applications'}
           <InfoIcon 
-            data-tooltip="How many servers or applications will be migrated"
+            data-tooltip={serviceType === 'optimization' ? 
+              "Estimated hours of implementation assistance needed" : 
+              "How many servers or applications are included in your project"}
           >
             <Icon icon={FiInfo} size={16} />
           </InfoIcon>
         </Label>
         <RangeContainer>
-          <RangeValue>{serverCount}</RangeValue>
+          <RangeValue>{count}</RangeValue>
           <RangeInput
             type="range"
             min="1"
-            max="50"
-            value={serverCount}
-            onChange={(e) => setServerCount(parseInt(e.target.value))}
+            max={serviceType === 'optimization' ? "20" : "10"}
+            value={count}
+            onChange={(e) => setCount(parseInt(e.target.value))}
           />
           <RangeLabels>
             <span>1</span>
-            <span>25</span>
-            <span>50+</span>
+            <span>{serviceType === 'optimization' ? "10" : "5"}</span>
+            <span>{serviceType === 'optimization' ? "20" : "10"}</span>
           </RangeLabels>
         </RangeContainer>
       </FormGroup>
@@ -457,12 +828,12 @@ const PricingCalculator: React.FC = () => {
       >
         <EstimateTitle>Your Cost Estimate</EstimateTitle>
         <EstimateRow>
-          <EstimateLabel>Base Migration Cost:</EstimateLabel>
+          <EstimateLabel>Base Service Fee:</EstimateLabel>
           <EstimateValue>${basePrice.toLocaleString()}</EstimateValue>
         </EstimateRow>
         <EstimateRow>
-          <EstimateLabel>Server/Application Cost:</EstimateLabel>
-          <EstimateValue>${serverPrice.toLocaleString()}</EstimateValue>
+          <EstimateLabel>{serviceType === 'optimization' ? 'Hourly Rate Cost:' : 'Per-Server/App Cost:'}</EstimateLabel>
+          <EstimateValue>${variablePrice.toLocaleString()}</EstimateValue>
         </EstimateRow>
         <EstimateRow>
           <EstimateLabel>Complexity Multiplier:</EstimateLabel>
@@ -475,7 +846,7 @@ const PricingCalculator: React.FC = () => {
       </EstimateContainer>
       
       <ButtonContainer>
-        <Button onClick={handleSubmit} size="lg">
+        <Button onClick={handleRequestQuote} size="lg">
           Request Detailed Quote
         </Button>
       </ButtonContainer>
@@ -488,9 +859,157 @@ const PricingCalculator: React.FC = () => {
           variants={successVariants}
         >
           <Icon icon={FiCheckCircle} size={16} />
-          <div>Your request has been submitted. Our team will contact you shortly!</div>
+          <div>Your detailed quote request has been submitted successfully. We'll review it and get back to you within 24-48 hours.</div>
         </SuccessMessage>
       )}
+      
+      <AnimatePresence>
+        {isModalOpen && (
+          <ModalOverlay
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={modalOverlayVariants}
+            onClick={closeModal}
+          >
+            <ModalContainer
+              variants={modalContainerVariants}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ModalHeader>
+                <ModalTitle>Request a Detailed Quote</ModalTitle>
+                <CloseButton onClick={closeModal}>
+                  <Icon icon={FiX} size={24} />
+                </CloseButton>
+              </ModalHeader>
+              
+              <ModalBody>
+                <QuoteDetail>
+                  <QuoteDetailRow>
+                    <QuoteDetailLabel>Service:</QuoteDetailLabel>
+                    <QuoteDetailValue>{selectedService.title}</QuoteDetailValue>
+                  </QuoteDetailRow>
+                  <QuoteDetailRow>
+                    <QuoteDetailLabel>Complexity:</QuoteDetailLabel>
+                    <QuoteDetailValue>{selectedComplexity.title}</QuoteDetailValue>
+                  </QuoteDetailRow>
+                  <QuoteDetailRow>
+                    <QuoteDetailLabel>
+                      {serviceType === 'optimization' ? 'Hours:' : 'Servers/Applications:'}
+                    </QuoteDetailLabel>
+                    <QuoteDetailValue>{count}</QuoteDetailValue>
+                  </QuoteDetailRow>
+                  <QuoteDetailRow>
+                    <QuoteDetailLabel>Base Fee:</QuoteDetailLabel>
+                    <QuoteDetailValue>${basePrice.toLocaleString()}</QuoteDetailValue>
+                  </QuoteDetailRow>
+                  <QuoteDetailRow>
+                    <QuoteDetailLabel>
+                      {serviceType === 'optimization' ? 'Hourly Rate Cost:' : 'Per-Server/App Cost:'}
+                    </QuoteDetailLabel>
+                    <QuoteDetailValue>${variablePrice.toLocaleString()}</QuoteDetailValue>
+                  </QuoteDetailRow>
+                  <QuoteDetailRow>
+                    <QuoteDetailLabel>Complexity Multiplier:</QuoteDetailLabel>
+                    <QuoteDetailValue>{complexityMultiplier}x</QuoteDetailValue>
+                  </QuoteDetailRow>
+                  <QuoteDetailTotal>
+                    <div>Total Estimate:</div>
+                    <div>${totalEstimate.toLocaleString()}</div>
+                  </QuoteDetailTotal>
+                </QuoteDetail>
+                
+                <InputGroup>
+                  <InputLabel>Your Name</InputLabel>
+                  <div style={{ position: 'relative' }}>
+                    <InputIcon>
+                      <Icon icon={FiUser} size={16} />
+                    </InputIcon>
+                    <IconInput
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                  {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
+                </InputGroup>
+                
+                <InputGroup>
+                  <InputLabel>Email Address</InputLabel>
+                  <div style={{ position: 'relative' }}>
+                    <InputIcon>
+                      <Icon icon={FiMail} size={16} />
+                    </InputIcon>
+                    <IconInput
+                      type="email"
+                      placeholder="Enter your email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
+                </InputGroup>
+                
+                <InputGroup>
+                  <InputLabel>Phone Number</InputLabel>
+                  <div style={{ position: 'relative' }}>
+                    <InputIcon>
+                      <Icon icon={FiPhone} size={16} />
+                    </InputIcon>
+                    <IconInput
+                      type="tel"
+                      placeholder="Enter your phone number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+                  {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
+                </InputGroup>
+                
+                <InputGroup>
+                  <InputLabel>Company</InputLabel>
+                  <div style={{ position: 'relative' }}>
+                    <InputIcon>
+                      <Icon icon={FiBriefcase} size={16} />
+                    </InputIcon>
+                    <IconInput
+                      type="text"
+                      placeholder="Enter your company name"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                    />
+                  </div>
+                  {errors.company && <ErrorMessage>{errors.company}</ErrorMessage>}
+                </InputGroup>
+                
+                <InputLabel>Additional Requirements</InputLabel>
+                <Textarea
+                  placeholder="Please provide any additional requirements or questions..."
+                  value={requirements}
+                  onChange={(e) => setRequirements(e.target.value)}
+                />
+              </ModalBody>
+              
+              <ModalFooter>
+                <Button
+                  variant="outline"
+                  onClick={closeModal}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Sending...' : 'Submit Quote Request'}
+                </Button>
+              </ModalFooter>
+            </ModalContainer>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
     </CalculatorContainer>
   );
 };
