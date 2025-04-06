@@ -346,22 +346,6 @@ const QuoteDetailTotal = styled.div`
   font-size: ${theme.fontSizes.lg};
 `;
 
-const Input = styled.input`
-  width: 100%;
-  padding: ${theme.space[3]};
-  border: 1px solid ${theme.colors.gray300};
-  border-radius: ${theme.borderRadius.md};
-  font-size: ${theme.fontSizes.md};
-  margin-bottom: ${theme.space[4]};
-  transition: ${theme.transitions.fast};
-  
-  &:focus {
-    outline: none;
-    border-color: ${theme.colors.primary};
-    box-shadow: 0 0 0 3px ${theme.colors.primary}20;
-  }
-`;
-
 const Textarea = styled.textarea`
   width: 100%;
   padding: ${theme.space[3]};

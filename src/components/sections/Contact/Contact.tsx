@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import Section from '../../ui/Section';
 import ContactForm from './ContactForm';
-import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
+import { FiMapPin, FiMail, FiClock } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
 
 const SectionTitle = styled(motion.h2)`
