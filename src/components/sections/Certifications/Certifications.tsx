@@ -95,7 +95,7 @@ const Certifications: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        AWS Certified Professionals
+        Our AWS Certifications
       </SectionTitle>
       <SectionSubtitle
         initial="hidden"
@@ -103,7 +103,7 @@ const Certifications: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        Our team holds industry-leading certifications, ensuring you receive expert-level cloud migration services
+        We bring our professional AWS cloud expertise to deliver high quality consulting services
       </SectionSubtitle>
       
       <CertificationsGrid>
