@@ -1,277 +1,658 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { Link } from 'react-scroll';
 import { theme } from '../../../styles/theme';
+import { 
+  FiMapPin, FiCloudSnow, FiDollarSign, FiShield, 
+  FiDatabase, FiServer, FiCloudOff, FiCloud
+} from 'react-icons/fi';
+import type { IconType } from 'react-icons';
+import type { ComponentType } from 'react';
 
+/**
+ * Enhanced Cloud Animation Component
+ * 
+ * Improvements:
+ * 1. Repositioned icons to be visible on all screen sizes
+ * 2. Updated icons to match service types
+ * 3. Made all elements interactive with appropriate service links
+ * 4. Added responsive styling for mobile compatibility
+ * 5. Enhanced visual feedback for better user experience
+ */
+
+// Main container with responsive height - optimized for better layout and mobile positioning
 const AnimationContainer = styled.div`
   position: relative;
   width: 100%;
-  height: 400px;
-  max-width: 500px;
+  height: 300px;
+  max-width: 480px;
   margin: 0 auto;
+  overflow: visible;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    height: 240px;
+    max-height: 30vh; /* Limit height on mobile to prevent overlapping with text */
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    height: 220px;
+    max-height: 28vh;
+    margin-top: -15px; /* Push up slightly to make more room for text content */
+  }
+  
+  /* Extra small screens get a more compact layout */
+  @media (max-width: 375px) {
+    height: 200px;
+    max-height: 25vh;
+    margin-top: -25px;
+  }
 `;
 
+// Tooltip component for interactive elements
+const Tooltip = styled.span`
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: ${theme.colors.primary};
+  color: white;
+  padding: ${theme.space[2]} ${theme.space[3]};
+  border-radius: ${theme.borderRadius.md};
+  font-size: ${theme.fontSizes.sm};
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 20;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: ${theme.colors.primary} transparent transparent transparent;
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.fontSizes.xs};
+    padding: ${theme.space[1]} ${theme.space[2]};
+    top: -30px;
+  }
+`;
+
+// Cloud elements with hover effects
 const Cloud = styled(motion.div)`
   position: absolute;
   background-color: #fff;
-  border-radius: 20px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-`;
-
-const MainCloud = styled(Cloud)`
-  width: 70%;
-  height: 180px;
-  top: 30%;
-  left: 15%;
-  z-index: 2;
-`;
-
-const SecondaryCloud1 = styled(Cloud)`
-  width: 40%;
-  height: 100px;
-  top: 15%;
-  left: 5%;
-  z-index: 1;
-`;
-
-const SecondaryCloud2 = styled(Cloud)`
-  width: 30%;
-  height: 80px;
-  bottom: 20%;
-  right: 10%;
-  z-index: 1;
-`;
-
-const CloudLogo = styled.div`
-  color: ${theme.colors.primary};
-  font-size: 40px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  z-index: 3;
   
-  span {
-    color: ${theme.colors.secondary};
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    
+    ${Tooltip} {
+      opacity: 1;
+    }
   }
 `;
 
-const Server = styled(motion.div)`
-  width: 60px;
-  height: 90px;
-  background: linear-gradient(145deg, #e6e6e6, #ffffff);
-  border-radius: 5px;
-  position: absolute;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+// DB Cloud styling
+const DbCloud = styled(Cloud)`
+  width: 28%;
+  height: 60px;
+  top: 15%;
+  left: 20%;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    height: 55px;
+    top: 18%;
+    left: 15%;
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    height: 50px;
+    top: 15%;
+    left: 10%;
+  }
+  
+  @media (max-width: 375px) {
+    height: 45px;
+    top: 12%;
+    left: 8%;
+  }
+`;
+
+// S3 Cloud styling
+const S3Cloud = styled(Cloud)`
+  width: 22%;
+  height: 55px;
+  top: 65%;
+  right: 15%;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    height: 50px;
+    top: 68%;
+    right: 12%;
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    height: 45px;
+    top: 70%;
+    right: 10%;
+  }
+  
+  @media (max-width: 375px) {
+    height: 40px;
+    top: 68%;
+    right: 8%;
+    /* Ensure S3 doesn't overlap with text on small screens */
+    z-index: 2;
+  }
+`;
+
+// Logo styling for cloud elements
+const CloudLogo = styled.div`
+  color: ${theme.colors.primary};
+  font-size: 24px;
+  font-weight: bold;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px;
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: 20px;
+  }
+  
+  @media (max-width: 375px) {
+    font-size: 18px;
+  }
 `;
 
-const ServerLight = styled(motion.div)`
-  width: 10px;
-  height: 10px;
+// New central lines container
+const FlowingLines = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+`;
+
+// Network nodes styling
+const Node = styled(motion.div)`
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(145deg, #ffffff, #f5f5f5);
+  border-radius: 10px;
+  position: absolute;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  
+  &:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    
+    ${Tooltip} {
+      opacity: 1;
+    }
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    width: 40px;
+    height: 40px;
+  }
+  
+  @media (max-width: 375px) {
+    width: 36px;
+    height: 36px;
+  }
+`;
+
+// Status indicator
+const StatusIndicator = styled(motion.div)`
+  position: absolute;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: ${props => props.color || theme.colors.success};
-  margin-bottom: 5px;
+  top: 6px;
+  right: 6px;
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    width: 6px;
+    height: 6px;
+    top: 5px;
+    right: 5px;
+  }
 `;
 
-const ServerLine = styled.div`
-  width: 40px;
-  height: 2px;
-  background-color: ${theme.colors.gray300};
-  margin: 5px 0;
-`;
-
+// Connection paths between elements
 const Connection = styled(motion.path)`
   stroke: ${theme.colors.secondary};
   stroke-width: 2;
   stroke-dasharray: 5;
   fill: none;
+  z-index: 1;
 `;
 
+// Main connection (central network)
+const MainConnection = styled(Connection)`
+  stroke-width: 2.5;
+  opacity: 0.8;
+`;
+
+// Data packet animations
 const DataPacket = styled(motion.circle)`
   fill: ${theme.colors.accent};
-  r: 6;
+  r: 5;
+  filter: drop-shadow(0 0 2px ${theme.colors.accent});
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    r: 4;
+  }
+  
+  @media (max-width: 375px) {
+    r: 3;
+  }
 `;
 
-const CloudIcon = styled(motion.div)`
+// Service icon styling
+const ServiceIcon = styled(motion.div)`
   position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   background-color: #fff;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   color: ${theme.colors.primary};
-  font-size: 20px;
-  z-index: 10;
+  font-size: 17px;
+  z-index: 3;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-5px) scale(1.1) !important;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    
+    ${Tooltip} {
+      opacity: 1;
+    }
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+  }
+  
+  @media (max-width: 375px) {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
 `;
 
-// Server positions
-const servers = [
-  { top: '60%', left: '20%', delay: 0 },
-  { top: '50%', left: '60%', delay: 0.1 },
-  { top: '70%', left: '40%', delay: 0.2 },
+// Type definitions for our services and icons
+interface ServiceInfo {
+  id: number;
+  name: string;
+  element: string;
+  tooltip: string;
+}
+
+interface ServerInfo {
+  top: string;
+  left: string;
+  delay: number;
+  serviceId: string;
+  element: string;
+  tooltip: string;
+  iconComponent: ComponentType<any>;
+}
+
+interface ServiceIconInfo {
+  top: string;
+  left: string;
+  serviceId: string;
+  element: string;
+  tooltip: string;
+  iconComponent: ComponentType<any>;
+  animate: any;
+}
+
+// Define services based on your provided list
+const serviceData: ServiceInfo[] = [
+  {
+    id: 1,
+    name: "Cloud Assessment & Roadmap",
+    element: "#service-1",
+    tooltip: "Cloud Assessment & Roadmap"
+  },
+  {
+    id: 2,
+    name: "Small-Scale Migrations",
+    element: "#service-2",
+    tooltip: "Small-Scale Migrations"
+  },
+  {
+    id: 3,
+    name: "Cloud Optimization Consulting",
+    element: "#service-3",
+    tooltip: "Cloud Optimization"
+  },
+  {
+    id: 4,
+    name: "Cloud Architecture Review",
+    element: "#service-4",
+    tooltip: "Architecture Review"
+  }
 ];
 
-// Cloud icons
-const cloudIcons = [
+// Network nodes with links to services - arranged around the central connections
+const nodes: ServerInfo[] = [
   { 
-    top: '25%', 
-    left: '70%', 
-    content: '⚙️', 
+    top: '28%',
+    left: '35%',
+    delay: 0,
+    serviceId: 'services',   
+    element: "#service-1",   // Cloud Assessment & Roadmap
+    tooltip: 'Cloud Assessment',
+    iconComponent: FiCloudOff as unknown as ComponentType<any>
+  },
+  { 
+    top: '25%',
+    left: '65%',
+    delay: 0.2,
+    serviceId: 'services',
+    element: "#service-2",   // Small-Scale Migrations
+    tooltip: 'Cloud Migration',
+    iconComponent: FiCloud as unknown as ComponentType<any>
+  },
+  { 
+    top: '60%',
+    left: '48%',
+    delay: 0.1,
+    serviceId: 'services',
+    element: "#service-3",   // Cloud Optimization
+    tooltip: 'Cost Optimization',
+    iconComponent: FiServer as unknown as ComponentType<any>
+  },
+];
+
+// Service icons positioned around the central flowing lines
+const serviceIcons: ServiceIconInfo[] = [
+  { 
+    top: '20%',
+    left: '50%',
+    serviceId: 'services',
+    element: "#service-1",   // Cloud Assessment & Roadmap
+    tooltip: 'Assessment & Roadmap',
+    iconComponent: FiMapPin as unknown as ComponentType<any>,
     animate: { 
-      rotate: [0, 360], 
-      transition: { repeat: Infinity, duration: 10, ease: "linear" } 
+      rotate: [0, 8, 0, -8, 0], 
+      transition: { repeat: Infinity, duration: 4, ease: "easeInOut" } 
     } 
   },
   { 
-    top: '60%', 
-    left: '75%', 
-    content: '🔒',
+    top: '40%',
+    left: '75%',
+    serviceId: 'services',
+    element: "#service-4",   // Cloud Architecture Review
+    tooltip: 'Architecture & Security',
+    iconComponent: FiShield as unknown as ComponentType<any>,
     animate: {
-      scale: [1, 1.1, 1],
+      scale: [1, 1.15, 1],
       transition: { repeat: Infinity, duration: 2, ease: "easeInOut" }
     }
   },
   { 
-    top: '35%', 
-    left: '25%', 
-    content: '📊',
+    top: '70%',
+    left: '25%',
+    serviceId: 'services',
+    element: "#service-3",   // Cloud Optimization Consulting
+    tooltip: 'Cost Optimization',
+    iconComponent: FiDollarSign as unknown as ComponentType<any>,
     animate: {
       y: [0, -5, 0],
       transition: { repeat: Infinity, duration: 3, ease: "easeInOut" }
     }
   },
+  { 
+    top: '45%',
+    left: '15%',
+    serviceId: 'services',
+    element: "#service-2",   // Small-Scale Migrations
+    tooltip: 'Database Migration',
+    iconComponent: FiDatabase as unknown as ComponentType<any>,
+    animate: {
+      scale: [1, 0.85, 1],
+      transition: { repeat: Infinity, duration: 2.5, ease: "easeInOut" }
+    }
+  }
+];
+
+// Central connection paths for the flowing network effect
+const centralPaths = [
+  {
+    path: "M 150,140 Q 250,100 350,140",
+    direction: -1,
+    duration: 4,
+    delay: 0
+  },
+  {
+    path: "M 120,160 Q 250,190 380,160",
+    direction: 1,
+    duration: 5,
+    delay: 0.5
+  },
+  {
+    path: "M 140,200 Q 250,150 360,200",
+    direction: -1,
+    duration: 3.5,
+    delay: 1
+  },
+  {
+    path: "M 130,120 Q 240,180 350,120",
+    direction: 1,
+    duration: 6,
+    delay: 0.2
+  },
+  {
+    path: "M 140,220 Q 240,240 340,220",
+    direction: -1,
+    duration: 4.5,
+    delay: 0.7
+  }
 ];
 
 const CloudAnimation: React.FC = () => {
   return (
     <AnimationContainer>
-      <motion.svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 500 400"
-        style={{ position: 'absolute', top: 0, left: 0 }}
-      >
-        {/* Animated connection paths */}
-        <Connection
-          d="M 150,200 Q 250,150 350,200"
-          animate={{
-            strokeDashoffset: [0, -100],
-            transition: { repeat: Infinity, duration: 3, ease: "linear" }
-          }}
-        />
-        
-        <Connection
-          d="M 120,280 Q 250,320 380,280"
-          animate={{
-            strokeDashoffset: [0, 100],
-            transition: { repeat: Infinity, duration: 4, ease: "linear" }
-          }}
-        />
-        
-        {/* Data packet animations */}
-        <DataPacket
-          animate={{
-            cx: [150, 250, 350],
-            cy: [200, 150, 200],
-            transition: { repeat: Infinity, duration: 3, ease: "easeInOut" }
-          }}
-        />
-        
-        <DataPacket
-          animate={{
-            cx: [380, 250, 120],
-            cy: [280, 320, 280],
-            transition: { repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.5 }
-          }}
-        />
-      </motion.svg>
-      
-      <SecondaryCloud1
-        animate={{ 
-          y: [0, -10, 0],
-          transition: { 
-            repeat: Infinity, 
-            duration: 4,
-            ease: "easeInOut"
-          }
-        }}
-      >
-        <CloudLogo style={{ fontSize: '20px' }}>DB</CloudLogo>
-      </SecondaryCloud1>
-      
-      <SecondaryCloud2
-        animate={{ 
-          y: [0, -8, 0],
-          transition: { 
-            repeat: Infinity, 
-            duration: 5,
-            ease: "easeInOut"
-          }
-        }}
-      >
-        <CloudLogo style={{ fontSize: '18px' }}>S3</CloudLogo>
-      </SecondaryCloud2>
-      
-      <MainCloud
-        animate={{ 
-          y: [0, -15, 0],
-          transition: { 
-            repeat: Infinity, 
-            duration: 6,
-            ease: "easeInOut"
-          }
-        }}
-      >
-        <CloudLogo>
-          AWS<span>Cloud</span>
-        </CloudLogo>
-      </MainCloud>
-      
-      {servers.map((server, index) => (
-        <Server
-          key={index}
-          style={{ top: server.top, left: server.left }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: server.delay + 0.5 }}
+      {/* Central network flowing lines - replaces the previous central cloud element */}
+      <FlowingLines>
+        <motion.svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 480 300"
+          style={{ position: 'absolute', top: 0, left: 0 }}
         >
-          <ServerLight 
-            color={theme.colors.success}
-            animate={{ 
-              opacity: [1, 0.5, 1],
-              transition: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
+          {/* Multiple flowing connection paths in the center */}
+          {centralPaths.map((path, index) => (
+            <MainConnection
+              key={`path-${index}`}
+              d={path.path}
+              animate={{
+                strokeDashoffset: [0, path.direction * 80],
+                transition: { 
+                  repeat: Infinity, 
+                  duration: path.duration, 
+                  ease: "linear",
+                  delay: path.delay
+                }
+              }}
+            />
+          ))}
+          
+          {/* Data packets flowing along the connections */}
+          <DataPacket
+            animate={{
+              cx: [150, 250, 350],
+              cy: [140, 100, 140],
+              transition: { repeat: Infinity, duration: 4, ease: "easeInOut" }
             }}
           />
-          <ServerLine />
-          <ServerLine />
-          <ServerLine />
-        </Server>
+          
+          <DataPacket
+            animate={{
+              cx: [380, 250, 120],
+              cy: [160, 190, 160],
+              transition: { repeat: Infinity, duration: 5, ease: "easeInOut", delay: 0.5 }
+            }}
+          />
+          
+          <DataPacket
+            animate={{
+              cx: [140, 250, 360],
+              cy: [200, 150, 200],
+              transition: { repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 1 }
+            }}
+          />
+          
+          <DataPacket
+            animate={{
+              cx: [350, 240, 130],
+              cy: [120, 180, 120],
+              transition: { repeat: Infinity, duration: 6, ease: "easeInOut", delay: 0.2 }
+            }}
+          />
+          
+          <DataPacket
+            animate={{
+              cx: [140, 240, 340],
+              cy: [220, 240, 220],
+              transition: { repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 0.7 }
+            }}
+          />
+        </motion.svg>
+      </FlowingLines>
+      
+      {/* DB Cloud element */}
+      <Link to="services" smooth={true} offset={-70} duration={500} href="#service-2">
+        <DbCloud
+          animate={{ 
+            y: [0, -8, 0],
+            transition: { 
+              repeat: Infinity, 
+              duration: 4,
+              ease: "easeInOut"
+            }
+          }}
+          aria-label="Go to Database Migration Service"
+        >
+          <Tooltip>Database Migrations</Tooltip>
+          <CloudLogo>DB</CloudLogo>
+        </DbCloud>
+      </Link>
+      
+      {/* S3 Cloud element */}
+      <Link to="services" smooth={true} offset={-70} duration={500} href="#service-2">
+        <S3Cloud
+          animate={{ 
+            y: [0, -6, 0],
+            transition: { 
+              repeat: Infinity, 
+              duration: 5,
+              ease: "easeInOut"
+            }
+          }}
+          aria-label="Go to Storage Migration Service"
+        >
+          <Tooltip>Storage Migrations</Tooltip>
+          <CloudLogo>S3</CloudLogo>
+        </S3Cloud>
+      </Link>
+      
+      {/* Network nodes placed around the central connections */}
+      {nodes.map((node, index) => (
+        <Link 
+          key={`node-${index}`}
+          to={node.serviceId} 
+          smooth={true} 
+          offset={-70} 
+          duration={500}
+          spy={true}
+          href={node.element}
+        >
+          <Node
+            style={{ top: node.top, left: node.left }}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: node.delay + 0.3 }}
+            aria-label={`Go to ${node.tooltip}`}
+            whileHover={{ y: -5, boxShadow: '0 8px 16px rgba(0, 0, 0, 0.15)' }}
+          >
+            <Tooltip>{node.tooltip}</Tooltip>
+            <StatusIndicator 
+              color={theme.colors.success}
+              animate={{ 
+                opacity: [1, 0.5, 1],
+                transition: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
+              }}
+            />
+            <div style={{ color: theme.colors.primary, fontSize: '18px' }}>
+              {node.iconComponent && React.createElement(node.iconComponent)}
+            </div>
+          </Node>
+        </Link>
       ))}
       
-      {cloudIcons.map((icon, index) => (
-        <CloudIcon
-          key={index}
-          style={{ top: icon.top, left: icon.left }}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ 
-            opacity: 1, 
-            scale: 1,
-            ...icon.animate
-          }}
-          transition={{ duration: 0.5, delay: index * 0.2 + 1 }}
+      {/* Service icons arranged around the central connections */}
+      {serviceIcons.map((icon, index) => (
+        <Link 
+          key={`icon-${index}`}
+          to={icon.serviceId} 
+          smooth={true} 
+          offset={-70} 
+          duration={500}
+          spy={true}
+          href={icon.element}
         >
-          {icon.content}
-        </CloudIcon>
+          <ServiceIcon
+            style={{ top: icon.top, left: icon.left }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              ...icon.animate
+            }}
+            transition={{ duration: 0.5, delay: index * 0.15 + 0.8 }}
+            aria-label={`Go to ${icon.tooltip}`}
+            whileHover={{ y: -5, scale: 1.1, boxShadow: '0 8px 16px rgba(0, 0, 0, 0.15)' }}
+          >
+            <Tooltip>{icon.tooltip}</Tooltip>
+            {React.createElement(icon.iconComponent)}
+          </ServiceIcon>
+        </Link>
       ))}
     </AnimationContainer>
   );

@@ -303,10 +303,10 @@ const Footer: React.FC = () => {
       
       <Copyright>
         <div>&copy; {currentYear} Cloud Partner. All rights reserved.</div>
-        <FooterLinks>
+        {/* <FooterLinks>
           <a href="/privacy-policy">Privacy Policy</a>
           <a href="/terms-of-service">Terms of Service</a>
-        </FooterLinks>
+        </FooterLinks> */}
       </Copyright>
     </FooterContainer>
   );

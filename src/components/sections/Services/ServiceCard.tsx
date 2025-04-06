@@ -159,6 +159,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
       custom={index}
       layoutId={`service-card-${service.id}`}
       onClick={toggleExpand}
+      id={`service-${service.id}`}
     >
       <IconWrapper color={service.color}>
         {service.icon}
