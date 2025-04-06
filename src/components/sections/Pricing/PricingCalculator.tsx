@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import Button from '../../ui/Button';
-import { FiInfo, FiCheckCircle, FiX, FiMail, FiUser, FiPhone, FiBriefcase } from 'react-icons/fi';
+import { FiInfo, FiCheckCircle, FiX, FiMail, FiUser, FiPhone, FiBriefcase, FiAlertCircle } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
 import emailjs from '@emailjs/browser';
 
@@ -416,10 +416,31 @@ const InputLabel = styled.label`
   color: ${theme.colors.gray700};
 `;
 
+const RequiredIndicator = styled.span`
+  color: ${theme.colors.danger};
+  margin-left: ${theme.space[1]};
+`;
+
 const ErrorMessage = styled.div`
   color: ${theme.colors.danger};
   font-size: ${theme.fontSizes.sm};
   margin-top: ${theme.space[1]};
+`;
+
+const EmailErrorMessage = styled(motion.div)`
+  background-color: ${theme.colors.danger}20;
+  color: ${theme.colors.danger};
+  padding: ${theme.space[3]};
+  border-radius: ${theme.borderRadius.md};
+  margin-bottom: ${theme.space[4]};
+  display: flex;
+  align-items: center;
+  border-left: 3px solid ${theme.colors.danger};
+  
+  svg {
+    margin-right: ${theme.space[2]};
+    flex-shrink: 0;
+  }
 `;
 
 // Define the pricing calculator parameters
@@ -482,6 +503,26 @@ const calculatorVariants = {
     opacity: 1,
     transition: {
       duration: 0.5
+    }
+  }
+};
+
+const errorMessageVariants = {
+  hidden: { opacity: 0, y: -10, height: 0 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    height: 'auto',
+    transition: {
+      duration: 0.3
+    }
+  },
+  exit: { 
+    opacity: 0, 
+    y: -10,
+    height: 0,
+    transition: {
+      duration: 0.2
     }
   }
 };
@@ -566,9 +607,10 @@ const PricingCalculator: React.FC = () => {
   const [company, setCompany] = useState('');
   const [requirements, setRequirements] = useState('');
   
-  // Form validation
+  // Form validation and status
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   
   const selectedService = serviceTypes.find(type => type.id === serviceType)!;
   const selectedComplexity = complexityLevels.find(level => level.id === complexity)!;
@@ -592,20 +634,23 @@ const PricingCalculator: React.FC = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
+    // Required fields
     if (!name.trim()) {
       newErrors.name = 'Name is required';
     }
     
     if (!email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
-      newErrors.email = 'Invalid email address';
+    } else if (!/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
     }
     
-    if (!phone.trim()) {
-      newErrors.phone = 'Phone number is required';
+    // Phone is optional but validate format if provided
+    if (phone.trim() && !/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im.test(phone.trim())) {
+      newErrors.phone = 'Please enter a valid phone number';
     }
     
+    // Company is required
     if (!company.trim()) {
       newErrors.company = 'Company name is required';
     }
@@ -624,63 +669,43 @@ const PricingCalculator: React.FC = () => {
       day: 'numeric'
     });
     
-    // Prepare email data with all fields matching the template
+    // Sanitize input data
+    const sanitizedName = name.trim();
+    const sanitizedEmail = email.trim();
+    const sanitizedPhone = phone.trim();
+    const sanitizedCompany = company.trim();
+    const sanitizedRequirements = requirements.trim();
+    
+    // Prepare email data with all fields matching the template and proper defaults
     const emailData = {
       // Contact Information
-      name,
-      email,
-      phone,
-      company,
+      name: sanitizedName,
+      email: sanitizedEmail,
+      phone: sanitizedPhone || "Not provided",
+      company: sanitizedCompany || "Independent/Individual",
       
       // Service Details
-      serviceType: selectedService.title,
-      complexity: selectedComplexity.title,
-      count,
+      serviceType: selectedService.title || "Service not selected",
+      complexity: selectedComplexity.title || "Moderate",
+      count: String(count) || "0", // Convert to string to avoid undefined
       
       // Pricing Breakdown
-      basePrice: basePrice.toLocaleString(),
-      variablePrice: variablePrice.toLocaleString(),
-      complexityMultiplier,
-      totalEstimate: totalEstimate.toLocaleString(),
+      basePrice: basePrice.toLocaleString() || "0",
+      variablePrice: variablePrice.toLocaleString() || "0",
+      complexityMultiplier: String(complexityMultiplier) || "1", // Convert to string to avoid undefined
+      totalEstimate: totalEstimate.toLocaleString() || "0",
       
       // Additional Fields
-      requirements: requirements || "No additional requirements specified.",
+      requirements: sanitizedRequirements || "No additional requirements specified.",
       current_date: currentDate,
-      
-      // These are conditional fields used in the template
-      // The actual template will handle the conditional display with Handlebars
-      isHourly: serviceType === 'optimization'
     };
     
-    // FOR TESTING - Simulate EmailJS send
-    // Remove this block and uncomment the EmailJS code below when ready to deploy
-    // setTimeout(() => {
-    //   console.log('Email data for template:', emailData);
-      
-    //   // Reset form and close modal
-    //   setName('');
-    //   setEmail('');
-    //   setPhone('');
-    //   setCompany('');
-    //   setRequirements('');
-    //   setErrors({});
-    //   setIsSubmitting(false);
-    //   setIsModalOpen(false);
-      
-    //   // Show success message
-    //   setSuccess(true);
-    //   setTimeout(() => {
-    //     setSuccess(false);
-    //   }, 5000);
-    // }, 1000);
-    
-    // REAL IMPLEMENTATION WITH EMAILJS
-    // Uncomment this block when ready to use EmailJS
+    // EmailJS implementation
     emailjs.send(
-      'mosttn18@gmail.com', // Replace with your EmailJS service ID
-      'template_9lu3gzb', // Replace with your template ID that uses the HTML you provided
+      'mosttn18@gmail.com', // Your EmailJS service ID
+      'template_9lu3gzb', // Your template ID
       emailData,
-      'hz-jZI5Vs-LNtGM4T' // Replace with your EmailJS public key
+      'hz-jZI5Vs-LNtGM4T' // Your EmailJS public key
     )
     .then((result) => {
       console.log('Email successfully sent!', result.text);
@@ -692,6 +717,7 @@ const PricingCalculator: React.FC = () => {
       setCompany('');
       setRequirements('');
       setErrors({});
+      setEmailError(null);
       setIsSubmitting(false);
       setIsModalOpen(false);
       
@@ -704,6 +730,20 @@ const PricingCalculator: React.FC = () => {
     .catch((error) => {
       console.error('Failed to send email:', error);
       setIsSubmitting(false);
+      
+      // Set appropriate error message
+      let errorMessage = "Failed to send your request. Please try again or contact us directly.";
+      if (error.text) {
+        errorMessage = `Error: ${error.text}`;
+      }
+      
+      // Display error to user
+      setEmailError(errorMessage);
+      
+      // Keep modal open to allow user to retry
+      setTimeout(() => {
+        setEmailError(null);
+      }, 8000);
     });
   };
   
@@ -884,6 +924,20 @@ const PricingCalculator: React.FC = () => {
               </ModalHeader>
               
               <ModalBody>
+                <AnimatePresence>
+                  {emailError && (
+                    <EmailErrorMessage
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      variants={errorMessageVariants}
+                    >
+                      <Icon icon={FiAlertCircle} size={20} />
+                      <div>{emailError}</div>
+                    </EmailErrorMessage>
+                  )}
+                </AnimatePresence>
+                
                 <QuoteDetail>
                   <QuoteDetailRow>
                     <QuoteDetailLabel>Service:</QuoteDetailLabel>
@@ -920,7 +974,9 @@ const PricingCalculator: React.FC = () => {
                 </QuoteDetail>
                 
                 <InputGroup>
-                  <InputLabel>Your Name</InputLabel>
+                  <InputLabel>Your Name
+                  <RequiredIndicator>*</RequiredIndicator>
+                  </InputLabel>
                   <div style={{ position: 'relative' }}>
                     <InputIcon>
                       <Icon icon={FiUser} size={16} />
@@ -936,7 +992,9 @@ const PricingCalculator: React.FC = () => {
                 </InputGroup>
                 
                 <InputGroup>
-                  <InputLabel>Email Address</InputLabel>
+                  <InputLabel>Email Address
+                  <RequiredIndicator>*</RequiredIndicator>
+                  </InputLabel>
                   <div style={{ position: 'relative' }}>
                     <InputIcon>
                       <Icon icon={FiMail} size={16} />
@@ -968,7 +1026,9 @@ const PricingCalculator: React.FC = () => {
                 </InputGroup>
                 
                 <InputGroup>
-                  <InputLabel>Company</InputLabel>
+                  <InputLabel>Company
+                  <RequiredIndicator>*</RequiredIndicator>
+                  </InputLabel>
                   <div style={{ position: 'relative' }}>
                     <InputIcon>
                       <Icon icon={FiBriefcase} size={16} />
