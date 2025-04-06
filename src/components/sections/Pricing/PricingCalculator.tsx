@@ -685,9 +685,8 @@ const PricingCalculator: React.FC = () => {
     };
     
     // EmailJS implementation
-    // EmailJS implementation
     emailjs.send(
-      'into@cloudpartner.pro', // Your EmailJS service ID
+      'info@cloudpartner.pro', // Your EmailJS service ID
       'template_9lu3gzb', // Your template ID for quote requests
       emailData,
       'hz-jZI5Vs-LNtGM4T' // Your EmailJS public key
@@ -706,7 +705,7 @@ const PricingCalculator: React.FC = () => {
       };
       
       return emailjs.send(
-        'into@cloudpartner.pro', // Same service ID
+        'info@cloudpartner.pro', // Same service ID
         'template_nknpqha', // Auto-reply template ID
         autoReplyData,
         'hz-jZI5Vs-LNtGM4T' // Same public key
