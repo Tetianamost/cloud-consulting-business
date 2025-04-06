@@ -169,6 +169,15 @@ const Contact: React.FC = () => {
         Ready to discuss your cloud needs? Reach out for a free initial consultation. We'll respond promptly to set up a meeting.
       </SectionSubtitle>
       
+      <FormContainer
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={formVariants}
+        >
+          <ContactForm />
+        </FormContainer>
+        
       <ContactContainer>
         <ContactInfo
           initial="hidden"
@@ -206,7 +215,7 @@ const Contact: React.FC = () => {
             </ContactItem>
           </InfoBlock>
           
-          <InfoBlock>
+          {/* <InfoBlock>
             <InfoTitle>Connect With Us</InfoTitle>
             <SocialLinks>
               <SocialLink 
@@ -258,7 +267,7 @@ const Contact: React.FC = () => {
                 </svg>
               </SocialLink>
             </SocialLinks>
-          </InfoBlock>
+          </InfoBlock> */}
           
           <GoogleMap>
             <iframe
@@ -270,15 +279,6 @@ const Contact: React.FC = () => {
             ></iframe>
           </GoogleMap>
         </ContactInfo>
-        
-        <FormContainer
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={formVariants}
-        >
-          <ContactForm />
-        </FormContainer>
       </ContactContainer>
     </Section>
   );

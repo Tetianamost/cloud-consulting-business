@@ -16,9 +16,10 @@ import type { ComponentType } from 'react';
  * Improvements:
  * 1. Repositioned icons to be visible on all screen sizes
  * 2. Updated icons to match service types
- * 3. Made all elements interactive with appropriate service links
+ * 3. Made all elements interactive with appropriate service links to SPECIFIC services
  * 4. Added responsive styling for mobile compatibility
  * 5. Enhanced visual feedback for better user experience
+ * 6. Fixed TypeScript errors with icon component types
  */
 
 // Main container with responsive height - optimized for better layout and mobile positioning
@@ -312,102 +313,98 @@ const ServiceIcon = styled(motion.div)`
   }
 `;
 
-// Type definitions for our services and icons
-interface ServiceInfo {
+// Interface for service data
+interface ServiceData {
   id: number;
   name: string;
   element: string;
   tooltip: string;
 }
 
-interface ServerInfo {
+// Interface for node data with proper typing for IconType
+interface NodeInfo {
   top: string;
   left: string;
   delay: number;
   serviceId: string;
-  element: string;
   tooltip: string;
   iconComponent: ComponentType<any>;
 }
 
-interface ServiceIconInfo {
+// Interface for service icon data
+interface IconInfo {
   top: string;
   left: string;
   serviceId: string;
-  element: string;
   tooltip: string;
   iconComponent: ComponentType<any>;
-  animate: any;
+  animate: object;
 }
 
 // Define services based on your provided list
-const serviceData: ServiceInfo[] = [
+const services: ServiceData[] = [
   {
     id: 1,
     name: "Cloud Assessment & Roadmap",
-    element: "#service-1",
+    element: "service-1",
     tooltip: "Cloud Assessment & Roadmap"
   },
   {
     id: 2,
     name: "Small-Scale Migrations",
-    element: "#service-2",
+    element: "service-2",
     tooltip: "Small-Scale Migrations"
   },
   {
     id: 3,
     name: "Cloud Optimization Consulting",
-    element: "#service-3",
+    element: "service-3",
     tooltip: "Cloud Optimization"
   },
   {
     id: 4,
     name: "Cloud Architecture Review",
-    element: "#service-4",
+    element: "service-4",
     tooltip: "Architecture Review"
   }
 ];
 
 // Network nodes with links to services - arranged around the central connections
-const nodes: ServerInfo[] = [
+const nodes: NodeInfo[] = [
   { 
     top: '28%',
     left: '35%',
     delay: 0,
-    serviceId: 'services',   
-    element: "#service-1",   // Cloud Assessment & Roadmap
+    serviceId: services[0].element,  // Cloud Assessment
     tooltip: 'Cloud Assessment',
-    iconComponent: FiCloudOff as unknown as ComponentType<any>
+    iconComponent: FiCloudOff as ComponentType<any>
   },
   { 
     top: '25%',
     left: '65%',
     delay: 0.2,
-    serviceId: 'services',
-    element: "#service-2",   // Small-Scale Migrations
+    serviceId: services[1].element,  // Small-Scale Migrations
     tooltip: 'Cloud Migration',
-    iconComponent: FiCloud as unknown as ComponentType<any>
+    iconComponent: FiCloud as ComponentType<any>
   },
   { 
     top: '60%',
     left: '48%',
     delay: 0.1,
-    serviceId: 'services',
-    element: "#service-3",   // Cloud Optimization
+    serviceId: services[2].element,  // Cloud Optimization
     tooltip: 'Cost Optimization',
-    iconComponent: FiServer as unknown as ComponentType<any>
+    iconComponent: FiServer as ComponentType<any>
   },
 ];
 
 // Service icons positioned around the central flowing lines
-const serviceIcons: ServiceIconInfo[] = [
+const serviceIcons: IconInfo[] = [
   { 
     top: '20%',
     left: '50%',
-    serviceId: 'services',
-    element: "#service-1",   // Cloud Assessment & Roadmap
+    serviceId: services[0].element,  // Cloud Assessment
     tooltip: 'Assessment & Roadmap',
-    iconComponent: FiMapPin as unknown as ComponentType<any>,
+    iconComponent: FiMapPin as ComponentType<any>,
     animate: { 
       rotate: [0, 8, 0, -8, 0], 
       transition: { repeat: Infinity, duration: 4, ease: "easeInOut" } 
@@ -416,10 +413,9 @@ const serviceIcons: ServiceIconInfo[] = [
   { 
     top: '40%',
     left: '75%',
-    serviceId: 'services',
-    element: "#service-4",   // Cloud Architecture Review
+    serviceId: services[3].element,  // Cloud Architecture Review
     tooltip: 'Architecture & Security',
-    iconComponent: FiShield as unknown as ComponentType<any>,
+    iconComponent: FiShield as ComponentType<any>,
     animate: {
       scale: [1, 1.15, 1],
       transition: { repeat: Infinity, duration: 2, ease: "easeInOut" }
@@ -428,10 +424,9 @@ const serviceIcons: ServiceIconInfo[] = [
   { 
     top: '70%',
     left: '25%',
-    serviceId: 'services',
-    element: "#service-3",   // Cloud Optimization Consulting
+    serviceId: services[2].element,  // Cloud Optimization
     tooltip: 'Cost Optimization',
-    iconComponent: FiDollarSign as unknown as ComponentType<any>,
+    iconComponent: FiDollarSign as ComponentType<any>,
     animate: {
       y: [0, -5, 0],
       transition: { repeat: Infinity, duration: 3, ease: "easeInOut" }
@@ -440,10 +435,9 @@ const serviceIcons: ServiceIconInfo[] = [
   { 
     top: '45%',
     left: '15%',
-    serviceId: 'services',
-    element: "#service-2",   // Small-Scale Migrations
+    serviceId: services[1].element,  // Small-Scale Migrations
     tooltip: 'Database Migration',
-    iconComponent: FiDatabase as unknown as ComponentType<any>,
+    iconComponent: FiDatabase as ComponentType<any>,
     animate: {
       scale: [1, 0.85, 1],
       transition: { repeat: Infinity, duration: 2.5, ease: "easeInOut" }
@@ -556,8 +550,14 @@ const CloudAnimation: React.FC = () => {
         </motion.svg>
       </FlowingLines>
       
-      {/* DB Cloud element */}
-      <Link to="services" smooth={true} offset={-70} duration={500} href="#service-2">
+      {/* DB Cloud element - link to Small-Scale Migrations */}
+      <Link 
+        to={services[1].element}  // Link to Small-Scale Migrations
+        smooth={true} 
+        offset={-70} 
+        duration={500} 
+        spy={true}
+      >
         <DbCloud
           animate={{ 
             y: [0, -8, 0],
@@ -574,8 +574,14 @@ const CloudAnimation: React.FC = () => {
         </DbCloud>
       </Link>
       
-      {/* S3 Cloud element */}
-      <Link to="services" smooth={true} offset={-70} duration={500} href="#service-2">
+      {/* S3 Cloud element - link to Small-Scale Migrations */}
+      <Link 
+        to={services[1].element}  // Link to Small-Scale Migrations
+        smooth={true} 
+        offset={-70} 
+        duration={500}
+        spy={true}
+      >
         <S3Cloud
           animate={{ 
             y: [0, -6, 0],
@@ -596,12 +602,11 @@ const CloudAnimation: React.FC = () => {
       {nodes.map((node, index) => (
         <Link 
           key={`node-${index}`}
-          to={node.serviceId} 
+          to={node.serviceId}  // Link to specific service
           smooth={true} 
           offset={-70} 
           duration={500}
           spy={true}
-          href={node.element}
         >
           <Node
             style={{ top: node.top, left: node.left }}
@@ -620,7 +625,8 @@ const CloudAnimation: React.FC = () => {
               }}
             />
             <div style={{ color: theme.colors.primary, fontSize: '18px' }}>
-              {node.iconComponent && React.createElement(node.iconComponent)}
+              {/* Use JSX element syntax with properly typed component */}
+              <node.iconComponent />
             </div>
           </Node>
         </Link>
@@ -630,12 +636,11 @@ const CloudAnimation: React.FC = () => {
       {serviceIcons.map((icon, index) => (
         <Link 
           key={`icon-${index}`}
-          to={icon.serviceId} 
+          to={icon.serviceId}  // Link to specific service
           smooth={true} 
           offset={-70} 
           duration={500}
           spy={true}
-          href={icon.element}
         >
           <ServiceIcon
             style={{ top: icon.top, left: icon.left }}
@@ -650,7 +655,8 @@ const CloudAnimation: React.FC = () => {
             whileHover={{ y: -5, scale: 1.1, boxShadow: '0 8px 16px rgba(0, 0, 0, 0.15)' }}
           >
             <Tooltip>{icon.tooltip}</Tooltip>
-            {React.createElement(icon.iconComponent)}
+            {/* Use JSX element syntax with properly typed component */}
+            <icon.iconComponent />
           </ServiceIcon>
         </Link>
       ))}

@@ -171,7 +171,16 @@ const Header: React.FC = () => {
     >
       <Nav>
         <Logo>
+        <NavLink
+            to="home"
+            spy={true}
+            smooth={true}
+            offset={-80}
+            duration={500}
+            onClick={closeMenu}
+          >
           Cloud<span>Partner</span>
+          </NavLink>
         </Logo>
         
         <MenuButton onClick={toggleMenu}>
