@@ -81,11 +81,24 @@ const SliderContainer = styled.div`
   @media (max-width: ${theme.breakpoints.lg}) {
     padding: ${theme.space[3]} ${theme.space[3]};
   }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding: ${theme.space[2]};
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+  }
 `;
 
 const SliderWrapper = styled(motion.div)`
   display: flex;
   width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding: 0;
+  }
 `;
 
 const SliderControls = styled.div`

@@ -37,10 +37,18 @@ const SectionWrapper = styled(motion.section)<SectionProps>`
   padding-bottom: ${props => theme.space[props.paddingBottom || 10]};
   position: relative;
   overflow: hidden;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
   
   @media (min-width: ${theme.breakpoints.md}) {
     padding-top: ${props => theme.space[props.paddingTop ? (Number(props.paddingTop) + 2) as keyof typeof theme.space : 12]};
     padding-bottom: ${props => theme.space[props.paddingBottom ? (Number(props.paddingBottom) + 2) as keyof typeof theme.space : 12]};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding-top: ${props => theme.space[props.paddingTop ? (Number(props.paddingTop) - 2) as keyof typeof theme.space : 8]};
+    padding-bottom: ${props => theme.space[props.paddingBottom ? (Number(props.paddingBottom) - 2) as keyof typeof theme.space : 8]};
   }
 `;
 
@@ -51,10 +59,17 @@ const SectionContainer = styled.div<{ fullWidth?: boolean }>`
   margin-right: auto;
   padding-left: ${props => (props.fullWidth ? '0' : theme.space[4])};
   padding-right: ${props => (props.fullWidth ? '0' : theme.space[4])};
+  box-sizing: border-box;
+  overflow-x: hidden;
   
   @media (min-width: ${theme.breakpoints.lg}) {
     padding-left: ${props => (props.fullWidth ? '0' : theme.space[6])};
     padding-right: ${props => (props.fullWidth ? '0' : theme.space[6])};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding-left: ${props => (props.fullWidth ? '0' : theme.space[2])};
+    padding-right: ${props => (props.fullWidth ? '0' : theme.space[2])};
   }
 `;
 

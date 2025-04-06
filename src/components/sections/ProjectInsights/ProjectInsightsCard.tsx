@@ -46,15 +46,22 @@ const CardContainer = styled.div`
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   width: 100%;
+  max-width: 100%;
   
   @media (max-width: ${theme.breakpoints.lg}) {
     grid-template-columns: 1fr;
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    border-radius: ${theme.borderRadius.lg};
   }
 `;
 
 const ImageContainer = styled.div`
   position: relative;
   min-height: 400px;
+  width: 100%;
+  box-sizing: border-box;
   
   @media (max-width: ${theme.breakpoints.lg}) {
     min-height: 350px;
@@ -66,6 +73,8 @@ const ImageContainer = styled.div`
   
   @media (max-width: ${theme.breakpoints.sm}) {
     min-height: 250px;
+    max-height: 400px;
+    overflow-y: auto;
   }
 `;
 
@@ -84,6 +93,7 @@ const Overlay = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
+  overflow: auto;
 
   background: linear-gradient(
     to bottom,
@@ -96,6 +106,7 @@ const Overlay = styled.div`
   justify-content: center;
   padding: ${theme.space[8]};
   color: white;
+  box-sizing: border-box;
   
   @media (max-width: ${theme.breakpoints.md}) {
     padding: ${theme.space[5]};
@@ -103,6 +114,8 @@ const Overlay = styled.div`
   
   @media (max-width: ${theme.breakpoints.sm}) {
     padding: ${theme.space[4]};
+    justify-content: flex-start;
+    overflow-y: auto;
   }
 `;
 
@@ -118,27 +131,43 @@ const IndustryTag = styled(motion.span)`
 `;
 
 const ProjectTitle = styled.h3`
-  font-size: clamp(${theme.fontSizes.xl}, 5vw, ${theme.fontSizes['3xl']});
+  font-size: clamp(${theme.fontSizes.lg}, 5vw, ${theme.fontSizes['3xl']});
   font-weight: ${theme.fontWeights.bold};
   margin-bottom: ${theme.space[4]};
   color: ${theme.colors.white};
   text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  word-wrap: break-word;
   
   @media (max-width: ${theme.breakpoints.md}) {
     font-size: ${theme.fontSizes.xl};
+    margin-bottom: ${theme.space[3]};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.fontSizes.lg};
+    margin-bottom: ${theme.space[2]};
+    margin-top: ${theme.space[3]};
   }
 `;
 
 const ProjectDescription = styled.p`
-  font-size: clamp(${theme.fontSizes.md}, 4vw, ${theme.fontSizes.lg});
+  font-size: clamp(${theme.fontSizes.sm}, 4vw, ${theme.fontSizes.lg});
   margin-bottom: ${theme.space[4]};
   opacity: 0.95;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
   line-height: 1.6;
+  word-wrap: break-word;
   
   @media (max-width: ${theme.breakpoints.md}) {
     font-size: ${theme.fontSizes.md};
     margin-bottom: ${theme.space[3]};
+    line-height: 1.5;
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.fontSizes.sm};
+    margin-bottom: ${theme.space[3]};
+    line-height: 1.4;
   }
 `;
 
@@ -147,9 +176,19 @@ const Testimonial = styled(motion.div)`
   padding: ${theme.space[4]};
   border-radius: ${theme.borderRadius.lg};
   margin-top: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
   
   @media (max-width: ${theme.breakpoints.md}) {
     padding: ${theme.space[3]};
+    margin-top: ${theme.space[3]};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding: ${theme.space[3]};
+    margin-top: ${theme.space[2]};
+    border-radius: ${theme.borderRadius.md};
   }
 `;
 
@@ -158,18 +197,32 @@ const Quote = styled.blockquote`
   margin-bottom: ${theme.space[3]};
   font-size: clamp(${theme.fontSizes.sm}, 3vw, ${theme.fontSizes.md});
   line-height: 1.5;
+  word-wrap: break-word;
+  margin: 0 0 ${theme.space[3]} 0;
   
   @media (max-width: ${theme.breakpoints.md}) {
     margin-bottom: ${theme.space[2]};
+    font-size: ${theme.fontSizes.sm};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.fontSizes.xs};
+    line-height: 1.4;
   }
 `;
 
 const Author = styled.p`
   font-weight: ${theme.fontWeights.medium};
   font-size: ${theme.fontSizes.sm};
+  margin: 0;
+  word-wrap: break-word;
   
   span {
     color: ${theme.colors.secondary};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.fontSizes.xs};
   }
 `;
 
@@ -256,10 +309,13 @@ const ResultsGrid = styled.div`
   grid-template-columns: repeat(2, 1fr);
   gap: ${theme.space[4]};
   margin-top: ${theme.space[4]};
+  width: 100%;
+  box-sizing: border-box;
   
   @media (max-width: ${theme.breakpoints.sm}) {
-    gap: ${theme.space[3]};
+    gap: ${theme.space[2]};
     margin-top: ${theme.space[3]};
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -270,6 +326,8 @@ const ResultItem = styled(motion.div)`
   text-align: center;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
   
   &:hover {
     transform: translateY(-5px);
@@ -279,6 +337,15 @@ const ResultItem = styled(motion.div)`
   @media (max-width: ${theme.breakpoints.md}) {
     padding: ${theme.space[3]};
   }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding: ${theme.space[3]};
+    margin-bottom: ${theme.space[2]};
+    
+    &:hover {
+      transform: translateY(-3px);
+    }
+  }
 `;
 
 const ResultValue = styled.div`
@@ -286,8 +353,13 @@ const ResultValue = styled.div`
   font-weight: ${theme.fontWeights.bold};
   color: ${theme.colors.accent};
   margin-bottom: ${theme.space[1]};
+  word-break: break-word;
   
   @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.fontSizes.lg};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
     font-size: ${theme.fontSizes.lg};
   }
 `;
@@ -297,6 +369,11 @@ const ResultLabel = styled.div`
   color: ${theme.colors.gray700};
   font-weight: ${theme.fontWeights.medium};
   line-height: 1.4;
+  word-break: break-word;
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.fontSizes.xs};
+  }
 `;
 
 // Animation variants
@@ -360,16 +437,18 @@ const ProjectHighlightCard: React.FC<ProjectHighlightCardProps> = ({ projectHigh
           </IndustryTag>
           <ProjectTitle>{projectHighlight.title}</ProjectTitle>
           <ProjectDescription>{projectHighlight.description}</ProjectDescription>
-          <Testimonial
-            variants={testimonialVariants}
-            initial="initial"
-            animate="animate"
-          >
-            <Quote>"{projectHighlight.testimonial.quote}"</Quote>
-            <Author>
-              {projectHighlight.testimonial.author} • <span>{projectHighlight.testimonial.position}</span>
-            </Author>
-          </Testimonial>
+          <div style={{ marginTop: 'auto', width: '100%', maxWidth: '100%' }}>
+            <Testimonial
+              variants={testimonialVariants}
+              initial="initial"
+              animate="animate"
+            >
+              <Quote>"{projectHighlight.testimonial.quote}"</Quote>
+              <Author>
+                {projectHighlight.testimonial.author} • <span>{projectHighlight.testimonial.position}</span>
+              </Author>
+            </Testimonial>
+          </div>
         </Overlay>
       </ImageContainer>
       
