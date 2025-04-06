@@ -239,11 +239,11 @@ const Hero: React.FC = () => {
           variants={textVariants}
         >
           <Heading>
-            Seamless <span>Cloud Migration</span> Solutions for Your Business
+            Expert-led <span>Cloud Consulting</span> for Your Business Needs
           </Heading>
           <Subheading>
-            Transform your infrastructure with our expert-led cloud migration services.
-            AWS certified specialists ensuring security, efficiency, and cost optimization.
+            Personalized cloud solutions from AWS certified professionals working part-time to help your business succeed.
+            Professional expertise at a pace that works for your project timeline.
           </Subheading>
           
           <CTAButtons>
@@ -278,16 +278,16 @@ const Hero: React.FC = () => {
           
           <Stats variants={statsVariants}>
             <StatItem variants={statItemVariants}>
-              <StatNumber>100+</StatNumber>
-              <StatLabel>Successful Migrations</StatLabel>
+              <StatNumber>5+</StatNumber>
+              <StatLabel>AWS Certifications</StatLabel>
             </StatItem>
             <StatItem variants={statItemVariants}>
-              <StatNumber>40%</StatNumber>
-              <StatLabel>Avg. Cost Reduction</StatLabel>
+              <StatNumber>Flexible</StatNumber>
+              <StatLabel>Scheduling</StatLabel>
             </StatItem>
             <StatItem variants={statItemVariants}>
-              <StatNumber>24/7</StatNumber>
-              <StatLabel>Expert Support</StatLabel>
+              <StatNumber>100%</StatNumber>
+              <StatLabel>Dedicated Attention</StatLabel>
             </StatItem>
           </Stats>
         </TextContent>
