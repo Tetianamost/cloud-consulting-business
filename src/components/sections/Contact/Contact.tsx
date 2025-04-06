@@ -158,7 +158,7 @@ const Contact: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        Get In Touch
+        Contact Us
       </SectionTitle>
       <SectionSubtitle
         initial="hidden"
@@ -166,7 +166,7 @@ const Contact: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        Ready to start your cloud journey? Contact us for a free consultation
+        Ready to discuss your cloud needs? Reach out for a free initial consultation. We'll respond promptly to set up a meeting.
       </SectionSubtitle>
       
       <ContactContainer>
@@ -183,17 +183,8 @@ const Contact: React.FC = () => {
               <Icon icon={FiMapPin} size={20} />
               </ContactIcon>
               <ContactText>
-                123 Cloud Street, Suite 456<br />
-                San Francisco, CA 94107<br />
+                Denver, Colorado<br />
                 United States
-              </ContactText>
-            </ContactItem>
-            <ContactItem>
-              <ContactIcon>
-              <Icon icon={FiPhone} size={20} />
-              </ContactIcon>
-              <ContactText>
-                <ContactLink href="tel:+15551234567">+1 (555) 123-4567</ContactLink>
               </ContactText>
             </ContactItem>
             <ContactItem>
@@ -201,7 +192,7 @@ const Contact: React.FC = () => {
               <Icon icon={FiMail} size={20} />
               </ContactIcon>
               <ContactText>
-                <ContactLink href="mailto:info@cloudmigrate.com">info@cloudmigrate.com</ContactLink>
+                <ContactLink href="mailto:info@cloudpartners.com">info@cloudpartners.com</ContactLink>
               </ContactText>
             </ContactItem>
             <ContactItem>
@@ -209,8 +200,8 @@ const Contact: React.FC = () => {
               <Icon icon={FiClock} size={20} />
               </ContactIcon>
               <ContactText>
-                Monday - Friday: 9:00 AM - 6:00 PM PST<br />
-                Saturday - Sunday: Closed
+                Weekends: 9:00 AM - 5:00 PM MST<br />
+                Weekdays: 9:00 AM - 7:00 PM MST
               </ContactText>
             </ContactItem>
           </InfoBlock>
@@ -270,10 +261,9 @@ const Contact: React.FC = () => {
           </InfoBlock>
           
           <GoogleMap>
-            {/* This would typically be a real Google Maps embed */}
             <iframe
-              title="Office Location"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.1034021349707!2d-122.40092368468204!3d37.78425507975649!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8085807ded297e89%3A0xd9e8mineralsed93ca0!2s123%20Main%20St%2C%20San%20Francisco%2C%20CA%2094105!5e0!3m2!1sen!2sus!4v1650000000000!5m2!1sen!2sus"
+              title="Denver, Colorado"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d196281.52551861728!2d-105.02026170555556!3d39.76435075!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x876b80aa231f17cf%3A0x118ef4f8278a36d6!2sDenver%2C%20CO!5e0!3m2!1sen!2sus!4v1650000000000!5m2!1sen!2sus"
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
