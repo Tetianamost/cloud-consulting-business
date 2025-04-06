@@ -189,10 +189,10 @@ const Footer: React.FC = () => {
       <FooterContent>
         <LogoColumn>
           <Logo>
-            Cloud<span>Migrate</span>
+            Cloud<span>Partners</span>
           </Logo>
           <Description>
-            Expert cloud migration services to help your business seamlessly transition to the cloud with confidence. AWS certified professionals with proven results.
+            Part-time cloud consulting services to help your business navigate cloud solutions with confidence. AWS certified professionals delivering personalized advice and assistance on your timeline.
           </Description>
           <SocialLinks>
             <SocialLink 
@@ -275,8 +275,8 @@ const Footer: React.FC = () => {
                 </svg>
               </ContactIcon>
               <div>
-                123 Tech Street, Suite 456<br />
-                San Francisco, CA 94107
+                Denver, Colorado<br />
+                United States
               </div>
             </ContactItem>
             <ContactItem>
@@ -294,7 +294,7 @@ const Footer: React.FC = () => {
                   <polyline points="22,6 12,13 2,6"></polyline>
                 </svg>
               </ContactIcon>
-              <div>info@cloudmigrate.com</div>
+              <div>info@cloudpartners.com</div>
             </ContactItem>
           </ContactInfo>
         </ContactColumn>
@@ -303,7 +303,7 @@ const Footer: React.FC = () => {
       <Divider />
       
       <Copyright>
-        <div>&copy; {currentYear} CloudMigrate. All rights reserved.</div>
+        <div>&copy; {currentYear} Cloud Partners. All rights reserved.</div>
         <FooterLinks>
           <a href="/privacy-policy">Privacy Policy</a>
           <a href="/terms-of-service">Terms of Service</a>
