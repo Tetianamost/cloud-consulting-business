@@ -192,7 +192,7 @@ const Footer: React.FC = () => {
             Cloud<span>Partners</span>
           </Logo>
           <Description>
-            Part-time cloud consulting services to help your business navigate cloud solutions with confidence. AWS certified professionals delivering personalized advice and assistance on your timeline.
+            Flexible cloud consulting services to help your business navigate cloud solutions with confidence. AWS certified professionals delivering personalized advice and assistance on your timeline.
           </Description>
           <SocialLinks>
             <SocialLink 

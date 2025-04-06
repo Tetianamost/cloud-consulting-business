@@ -242,7 +242,7 @@ const Hero: React.FC = () => {
             Expert-led <span>Cloud Consulting</span> for Your Business Needs
           </Heading>
           <Subheading>
-            Personalized cloud solutions from AWS certified professionals working part-time to help your business succeed.
+            Personalized cloud solutions from AWS certified professionals to help your business succeed.
             Professional expertise at a pace that works for your project timeline.
           </Subheading>
           

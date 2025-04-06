@@ -179,7 +179,7 @@ const Pricing: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        Fair, transparent pricing for our part-time cloud consulting services with realistic delivery schedules
+        Fair, transparent pricing for our cloud consulting services with realistic delivery schedules
       </SectionSubtitle>
       
       <PricingContent>
