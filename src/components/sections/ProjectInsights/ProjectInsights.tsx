@@ -10,65 +10,77 @@ import Icon from '../../ui/Icon';
 const projectHighlights = [
   {
     id: 1,
-    title: 'Cloud Architecture Learning Journey',
-    industry: 'Professional Development',
-    description: 'Deep dive into AWS cloud infrastructure, focusing on EKS, database design, and scalable solutions through hands-on professional experience.',
+    title: 'Our Professional Background',
+    industry: 'Cloud Expertise',
+    description: 'Learn about our professional experience and AWS certifications that form the foundation of our cloud consulting services.',
     challenges: [
-      'Understanding complex kubernetes architectures',
-      'Mastering multi-tier database designs',
-      'Implementing scalable cloud solutions',
-      'Keeping up with rapidly evolving cloud technologies'
+      'Providing enterprise-level expertise to small businesses',
+      'Delivering personalized, focused cloud solutions',
+      'Creating flexible project timelines that work for clients',
+      'Bringing professional cloud experience to each project'
     ],
-    solution: 'Pursued and obtained 5 AWS certifications, gaining in-depth knowledge through professional work experience. Focused on hands-on learning in EKS environments, relational databases, and cloud infrastructure design.',
+    solution: 'We bring our 5+ combined AWS certifications and years of professional cloud experience to help businesses with targeted cloud solutions. Our flexible scheduling means we can adapt to your specific timeline needs.',
     results: {
-      certifications: '5 AWS Certifications',
-      professionalExperience: '2 Years',
-      technologiesMastered: '10+',
-      continuousLearning: 'Ongoing',
+      certifications: '5+ AWS Certifications',
+      professionalExperience: 'Day Job Expertise',
+      approach: 'Personalized Service',
+      availability: 'Flexible Schedule'
     },
     testimonial: {
-      quote: "Continuous learning and practical experience are the keys to mastering cloud technologies. Each certification and project brings new insights.",
-      author: "Tetiana Mostova",
-      position: "Cloud Infrastructure Consultant"
+      quote: "We're passionate about cloud technology and love helping businesses leverage it effectively with our flexible schedule that adapts to your needs.",
+      author: "Cloud Partners Team",
+      position: "Cloud Partners Founders"
     },
     image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
   {
     id: 2,
-    title: 'Professional Cloud Infrastructure Expertise',
-    industry: 'Cloud Consulting',
-    description: 'Developed comprehensive understanding of AWS cloud infrastructure through professional work and continuous learning.',
+    title: 'Cloud Architecture Expertise',
+    industry: 'Technical Specialization',
+    description: "Our deep knowledge of AWS architecture and infrastructure design helps businesses build scalable, secure, and cost-effective cloud environments.",
     challenges: [
-      'Navigating complex cloud environments',
-      'Understanding enterprise-level infrastructure needs',
-      'Balancing performance and cost-effectiveness',
-      'Staying current with cloud innovations'
+      "Complex infrastructure requirements",
+      "Cost optimization across multiple services",
+      "Security and compliance implementation",
+      "Performance and scalability planning"
     ],
-    solution: 'Leveraged professional experience in a cloud-focused role to gain hands-on expertise with EKS, database management, and infrastructure design. Continuously expanded knowledge through certifications and practical application.',
+    solution: "We leverage our extensive AWS certification knowledge and practical experience to design robust cloud architectures tailored to your specific business requirements and growth plans.",
     results: {
-      technicalSkills: 'Advanced',
-      infrastructureKnowledge: 'Comprehensive',
-      certificationLevel: 'Professional',
-      problemSolvingApproach: 'Strategic',
+      architectureReview: "30% Cost Savings",
+      securityAssessment: "Compliance Ready",
+      performanceTuning: "2x Faster Apps",
+      cloudStrategy: "Future-Proof Design"
     },
     testimonial: {
-      quote: "True expertise comes from a combination of formal learning and real-world problem-solving.",
-      author: "Tetiana Mostova",
-      position: "Cloud Developer"
+      quote: "Our approach combines technical expertise with a practical understanding of business needs, resulting in cloud solutions that deliver real value for your organization.",
+      author: "Cloud Partners Team",
+      position: "AWS Certified Professionals"
     },
-    image: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
+    image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
   }
 ];
 
 const SectionTitle = styled(motion.h2)`
   text-align: center;
-  margin-bottom: ${theme.space[3]};
+  margin-bottom: ${theme.space[4]};
+  font-size: clamp(${theme.fontSizes['2xl']}, 5vw, ${theme.fontSizes['4xl']});
+  color: ${theme.colors.primary};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    margin-bottom: ${theme.space[3]};
+  }
 `;
 
 const SliderContainer = styled.div`
   position: relative;
   overflow: hidden;
   padding: ${theme.space[4]} 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  
+  @media (max-width: ${theme.breakpoints.lg}) {
+    padding: ${theme.space[3]} ${theme.space[3]};
+  }
 `;
 
 const SliderWrapper = styled(motion.div)`
@@ -81,6 +93,10 @@ const SliderControls = styled.div`
   justify-content: center;
   margin-top: ${theme.space[6]};
   gap: ${theme.space[3]};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    margin-top: ${theme.space[4]};
+  }
 `;
 
 const SliderButton = styled(motion.button)`
@@ -95,11 +111,13 @@ const SliderButton = styled(motion.button)`
   justify-content: center;
   cursor: pointer;
   transition: ${theme.transitions.normal};
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   
   &:hover {
-    background-color: ${theme.colors.primary};
+    background-color: ${theme.colors.accent};
     color: white;
-    border-color: ${theme.colors.primary};
+    border-color: ${theme.colors.accent};
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
   
   &:disabled {
@@ -110,7 +128,13 @@ const SliderButton = styled(motion.button)`
       background-color: transparent;
       color: ${theme.colors.primary};
       border-color: ${theme.colors.gray300};
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
+  }
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    width: 40px;
+    height: 40px;
   }
 `;
 
@@ -125,13 +149,15 @@ const SliderDot = styled.button<{ active: boolean }>`
   width: 12px;
   height: 12px;
   border-radius: ${theme.borderRadius.full};
-  background-color: ${props => props.active ? theme.colors.primary : theme.colors.gray300};
+  background-color: ${props => props.active ? theme.colors.accent : theme.colors.gray300};
   border: none;
   cursor: pointer;
   transition: ${theme.transitions.normal};
+  box-shadow: ${props => props.active ? '0 2px 4px rgba(0, 115, 187, 0.3)' : 'none'};
   
   &:hover {
-    background-color: ${props => props.active ? theme.colors.primary : theme.colors.gray500};
+    background-color: ${props => props.active ? theme.colors.accent : theme.colors.primary};
+    transform: ${props => props.active ? 'scale(1.2)' : 'scale(1.1)'};
   }
 `;
 
@@ -142,7 +168,8 @@ const titleVariants = {
     opacity: 1, 
     y: 0,
     transition: {
-      duration: 0.5
+      duration: 0.5,
+      ease: "easeOut"
     }
   }
 };
@@ -175,17 +202,17 @@ const ProjectInsights: React.FC = () => {
         viewport={{ once: true }}
         variants={titleVariants}
       >
-        Professional Journey
+        Our Professional Expertise
       </SectionTitle>
       
       <SliderContainer>
         <AnimatePresence mode="wait">
           <SliderWrapper
             key={currentSlide}
-            initial={{ opacity: 0, x: 100 }}
+            initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.5 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <ProjectHighlightCard projectHighlight={projectHighlights[currentSlide]} />
           </SliderWrapper>

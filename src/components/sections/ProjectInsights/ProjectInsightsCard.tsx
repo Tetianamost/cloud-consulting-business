@@ -57,7 +57,15 @@ const ImageContainer = styled.div`
   min-height: 400px;
   
   @media (max-width: ${theme.breakpoints.lg}) {
+    min-height: 350px;
+  }
+  
+  @media (max-width: ${theme.breakpoints.md}) {
     min-height: 300px;
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    min-height: 250px;
   }
 `;
 
@@ -79,8 +87,8 @@ const Overlay = styled.div`
 
   background: linear-gradient(
     to bottom,
-    rgba(${props => props.theme.colors.primary.replace('#', '')}, 0.7),
-    rgba(${props => props.theme.colors.dark.replace('#', '')}, 0.9)
+    rgba(35, 47, 62, 0.8),
+    rgba(22, 30, 45, 0.95)
   );
   
   display: flex;
@@ -89,11 +97,12 @@ const Overlay = styled.div`
   padding: ${theme.space[8]};
   color: white;
   
-  > * {
-    background-color: rgba(62, 8, 8, 0.5); 
-    padding: ${theme.space[2]};
-    margin-bottom: ${theme.space[2]};
-    border-radius: ${theme.borderRadius.md};
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.space[5]};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding: ${theme.space[4]};
   }
 `;
 
@@ -109,30 +118,50 @@ const IndustryTag = styled(motion.span)`
 `;
 
 const ProjectTitle = styled.h3`
-  font-size: ${theme.fontSizes['3xl']};
+  font-size: clamp(${theme.fontSizes.xl}, 5vw, ${theme.fontSizes['3xl']});
   font-weight: ${theme.fontWeights.bold};
   margin-bottom: ${theme.space[4]};
-  color: rgb(234, 97, 97);
+  color: ${theme.colors.white};
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.fontSizes.xl};
+  }
 `;
 
 const ProjectDescription = styled.p`
-  font-size: ${theme.fontSizes.lg};
+  font-size: clamp(${theme.fontSizes.md}, 4vw, ${theme.fontSizes.lg});
   margin-bottom: ${theme.space[4]};
-  opacity: 0.9;
+  opacity: 0.95;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  line-height: 1.6;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.fontSizes.md};
+    margin-bottom: ${theme.space[3]};
+  }
 `;
 
 const Testimonial = styled(motion.div)`
-  background-color: rgba(40, 3, 3, 0.59);
+  background-color: rgba(0, 0, 0, 0.5);
   padding: ${theme.space[4]};
   border-radius: ${theme.borderRadius.lg};
   margin-top: auto;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.space[3]};
+  }
 `;
 
 const Quote = styled.blockquote`
   font-style: italic;
   margin-bottom: ${theme.space[3]};
-  font-size: ${theme.fontSizes.md};
+  font-size: clamp(${theme.fontSizes.sm}, 3vw, ${theme.fontSizes.md});
+  line-height: 1.5;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    margin-bottom: ${theme.space[2]};
+  }
 `;
 
 const Author = styled.p`
@@ -152,12 +181,16 @@ const ContentContainer = styled.div`
   @media (max-width: ${theme.breakpoints.md}) {
     padding: ${theme.space[5]};
   }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding: ${theme.space[4]};
+  }
 `;
 
 const SectionTitle = styled.h4`
-  font-size: ${theme.fontSizes.lg};
+  font-size: clamp(${theme.fontSizes.md}, 4vw, ${theme.fontSizes.lg});
   font-weight: ${theme.fontWeights.bold};
-  color: ${theme.colors.primary};
+  color: ${theme.colors.accent};
   margin-bottom: ${theme.space[3]};
   display: flex;
   align-items: center;
@@ -171,11 +204,26 @@ const SectionTitle = styled.h4`
     margin-right: ${theme.space[3]};
     border-radius: ${theme.borderRadius.md};
   }
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.fontSizes.md};
+    margin-bottom: ${theme.space[2]};
+    
+    &::before {
+      height: 16px;
+      margin-right: ${theme.space[2]};
+    }
+  }
 `;
 
 const ChallengesList = styled.ul`
   margin-bottom: ${theme.space[5]};
   padding-left: ${theme.space[5]};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    margin-bottom: ${theme.space[4]};
+    padding-left: ${theme.space[4]};
+  }
 `;
 
 const ChallengeItem = styled(motion.li)`
@@ -196,6 +244,11 @@ const Solution = styled.p`
   color: ${theme.colors.gray700};
   margin-bottom: ${theme.space[5]};
   line-height: 1.6;
+  font-size: clamp(${theme.fontSizes.sm}, 3vw, ${theme.fontSizes.md});
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    margin-bottom: ${theme.space[4]};
+  }
 `;
 
 const ResultsGrid = styled.div`
@@ -203,25 +256,47 @@ const ResultsGrid = styled.div`
   grid-template-columns: repeat(2, 1fr);
   gap: ${theme.space[4]};
   margin-top: ${theme.space[4]};
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    gap: ${theme.space[3]};
+    margin-top: ${theme.space[3]};
+  }
 `;
 
 const ResultItem = styled(motion.div)`
-  background-color: ${theme.colors.gray100};
+  background-color: ${theme.colors.info}15;
   padding: ${theme.space[4]};
   border-radius: ${theme.borderRadius.lg};
   text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.space[3]};
+  }
 `;
 
 const ResultValue = styled.div`
-  font-size: ${theme.fontSizes['2xl']};
+  font-size: clamp(${theme.fontSizes.xl}, 5vw, ${theme.fontSizes['2xl']});
   font-weight: ${theme.fontWeights.bold};
   color: ${theme.colors.accent};
   margin-bottom: ${theme.space[1]};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.fontSizes.lg};
+  }
 `;
 
 const ResultLabel = styled.div`
   font-size: ${theme.fontSizes.sm};
-  color: ${theme.colors.gray600};
+  color: ${theme.colors.gray700};
+  font-weight: ${theme.fontWeights.medium};
+  line-height: 1.4;
 `;
 
 // Animation variants
