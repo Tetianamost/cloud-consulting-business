@@ -28,8 +28,8 @@ const projectHighlights = [
     },
     testimonial: {
       quote: "We're passionate about cloud technology and love helping businesses leverage it effectively with our flexible schedule that adapts to your needs.",
-      author: "Cloud Partner Team",
-      position: "Cloud Partner Founders"
+      author: "Cloud Partner Pro Team",
+      position: "Cloud Partner Pro Founders"
     },
     image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
@@ -53,7 +53,7 @@ const projectHighlights = [
     },
     testimonial: {
       quote: "Our approach combines technical expertise with a practical understanding of business needs, resulting in cloud solutions that deliver real value for your organization.",
-      author: "Cloud Partner Team",
+      author: "Cloud Partner Pro Team",
       position: "AWS Certified Professionals"
     },
     image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"

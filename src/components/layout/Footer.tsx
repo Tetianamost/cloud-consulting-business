@@ -188,7 +188,7 @@ const Footer: React.FC = () => {
       <FooterContent>
         <LogoColumn>
           <Logo>
-            Cloud<span>Partner</span>
+            Cloud<span>Partner Pro</span>
           </Logo>
           <Description>
             Flexible cloud consulting services to help your business navigate cloud solutions with confidence. AWS certified professionals delivering personalized advice and assistance on your timeline.
@@ -302,7 +302,7 @@ const Footer: React.FC = () => {
       <Divider />
       
       <Copyright>
-        <div>&copy; {currentYear} Cloud Partner. All rights reserved.</div>
+        <div>&copy; {currentYear} Cloud Partner Pro. All rights reserved.</div>
         {/* <FooterLinks>
           <a href="/privacy-policy">Privacy Policy</a>
           <a href="/terms-of-service">Terms of Service</a>
