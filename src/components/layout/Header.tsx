@@ -179,7 +179,7 @@ const Header: React.FC = () => {
             duration={500}
             onClick={closeMenu}
           >
-          Cloud<span>Partner Pro</span>
+          Cloud<span>Partner</span><span style={{ color: theme.colors.accent }}>Pro</span>
           </NavLink>
         </Logo>
         

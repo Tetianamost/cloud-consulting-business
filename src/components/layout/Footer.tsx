@@ -55,9 +55,14 @@ const Logo = styled.div`
   font-weight: ${theme.fontWeights.bold};
   font-size: ${theme.fontSizes['3xl']};
   margin-bottom: ${theme.space[4]};
+  color: ${theme.colors.primary};
   
-  span {
+  span.orange {
     color: ${theme.colors.secondary};
+  }
+  
+  span.blue {
+    color: ${theme.colors.accent};
   }
 `;
 
@@ -188,7 +193,7 @@ const Footer: React.FC = () => {
       <FooterContent>
         <LogoColumn>
           <Logo>
-            Cloud<span>Partner Pro</span>
+            <span className="blue">Cloud</span><span className="orange">Partner</span><span className="blue">Pro</span>
           </Logo>
           <Description>
             Flexible cloud consulting services to help your business navigate cloud solutions with confidence. AWS certified professionals delivering personalized advice and assistance on your timeline.
@@ -302,7 +307,7 @@ const Footer: React.FC = () => {
       <Divider />
       
       <Copyright>
-        <div>&copy; {currentYear} Cloud Partner Pro. All rights reserved.</div>
+        <div>&copy; {currentYear} CloudPartnerPro. All rights reserved.</div>
         {/* <FooterLinks>
           <a href="/privacy-policy">Privacy Policy</a>
           <a href="/terms-of-service">Terms of Service</a>
