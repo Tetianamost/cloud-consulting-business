@@ -31,10 +31,6 @@ const GlobalStyles = createGlobalStyle`
   html {
     font-size: 16px;
     scroll-behavior: smooth;
-    height: 100%;
-    /* Critical for mobile browsers - ensures momentum scrolling works properly */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   body {
@@ -49,11 +45,6 @@ const GlobalStyles = createGlobalStyle`
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    /* Make sure body never has overflow:hidden from React-Scroll */
-    overflow-y: auto !important;
-    /* Fix iOS momentum scrolling issues */
-    -webkit-overflow-scrolling: touch; 
-    position: relative;
   }
 
   /* Better typography */
@@ -169,29 +160,6 @@ const GlobalStyles = createGlobalStyle`
     
     @media (min-width: ${theme.breakpoints.md}) {
       padding: ${theme.space[16]} 0;
-    }
-  }
-  
-  /* Mobile specific fixes for React-Scroll */
-  @media (max-width: ${theme.breakpoints.md}), (pointer: coarse) {
-    /* Fix for first scroll after programmatic scrolling */
-    html, body {
-      overscroll-behavior-y: auto;
-      touch-action: pan-y;
-      -webkit-overflow-scrolling: touch;
-    }
-    
-    /* Force all elements to allow scrolling events */
-    * {
-      -webkit-touch-callout: none;
-      touch-action: pan-y;
-    }
-    
-    /* Ensure scrolling container is never hidden */
-    #root, main {
-      overflow-y: visible !important;
-      min-height: 100%;
-      position: relative;
     }
   }
 `;
