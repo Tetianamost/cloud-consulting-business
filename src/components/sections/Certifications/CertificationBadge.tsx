@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { motion, useAnimation } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { IconBaseProps, IconType } from 'react-icons';
 
@@ -96,8 +96,17 @@ const BadgeDescription = styled.p`
 
 // Animation variants
 const badgeVariants = {
-  hidden: { opacity: 0, x: 30 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.5 } }
+  hidden: { opacity: 0, x: 30, scale: 0.96 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: {
+      duration: 0.6,
+      delay: i * 0.13,
+      ease: 'easeOut',
+    }
+  })
 };
 
 const imageVariants = {
@@ -129,21 +138,14 @@ const glowVariants = {
 
 const CertificationBadge: React.FC<CertificationBadgeProps> = ({ certification, index }) => {
   const IconComponent = certification.image as React.ComponentType<IconBaseProps>;
-  const controls = useAnimation();
-  const hasAnimated = useRef(false);
-
   return (
     <Badge
+      as={motion.div}
       initial="hidden"
-      animate={controls}
+      whileInView="visible"
+      viewport={{ once: true }}
       variants={badgeVariants}
       custom={index}
-      onViewportEnter={() => {
-        if (!hasAnimated.current) {
-          controls.start('visible');
-          hasAnimated.current = true;
-        }
-      }}
     >
       <BadgeImage>
         <motion.div variants={imageVariants}>

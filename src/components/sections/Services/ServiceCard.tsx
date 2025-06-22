@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { FiChevronDown } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
@@ -108,28 +108,31 @@ const Bullet = styled.span<{ color: string }>`
 
 // Animation variants
 const cardVariants = {
-  hidden: { opacity: 0, x: 30 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.5 } }
+  hidden: { opacity: 0, y: 30, scale: 0.96 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.6,
+      delay: i * 0.13,
+      ease: 'easeOut',
+    }
+  })
 };
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
-  const controls = useAnimation();
-  const hasAnimated = useRef(false);
-
+  const [expanded, setExpanded] = useState(false);
   return (
     <Card
+      as={motion.div}
       initial="hidden"
-      animate={controls}
+      whileInView="visible"
+      viewport={{ once: true }}
       variants={cardVariants}
       custom={index}
       layoutId={`service-card-${service.id}`}
       id={`service-${service.id}`}
-      onViewportEnter={() => {
-        if (!hasAnimated.current) {
-          controls.start('visible');
-          hasAnimated.current = true;
-        }
-      }}
     >
       <IconWrapper color={service.color}>
         {service.icon}
@@ -137,14 +140,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
       <Title>{service.title}</Title>
       <Description>{service.description}</Description>
       <ExpandButton 
-        onClick={e => { e.stopPropagation(); }}
-        $isExpanded={false}
+        onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
+        $isExpanded={expanded}
+        as={motion.button}
+        aria-expanded={expanded}
       >
         Learn more <Icon icon={FiChevronDown} size={16} />
       </ExpandButton>
-      
       <AnimatePresence>
-        {false && ( // Replace false with the condition to show/hide features
+        {expanded && (
           <FeatureList
             initial="hidden"
             animate="visible"
@@ -157,7 +161,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
                 transition: {
                   duration: 0.3,
                   when: "beforeChildren",
-                  staggerChildren: 0.1
+                  staggerChildren: 0.08
                 }
               }
             }}
