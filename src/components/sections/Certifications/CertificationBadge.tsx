@@ -97,14 +97,7 @@ const BadgeDescription = styled.p`
 // Animation variants
 const badgeVariants = {
   hidden: { opacity: 0, x: 30 },
-  visible: (index: number) => ({
-    opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.5,
-      delay: 0.1 * index
-    }
-  })
+  visible: { opacity: 1, x: 0, transition: { duration: 0.5 } }
 };
 
 const imageVariants = {
@@ -135,14 +128,12 @@ const glowVariants = {
 };
 
 const CertificationBadge: React.FC<CertificationBadgeProps> = ({ certification, index }) => {
-  // Explicitly type the icon with IconType and additional props
   const IconComponent = certification.image as React.ComponentType<IconBaseProps>;
-
   return (
     <Badge
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true}}
+      viewport={{ once: true }}
       variants={badgeVariants}
       custom={index}
       whileHover="hover"
@@ -151,10 +142,7 @@ const CertificationBadge: React.FC<CertificationBadgeProps> = ({ certification, 
         <motion.div variants={imageVariants}>
           <IconComponent size={120} color={certification.color} />
         </motion.div>
-        <Glow
-          color={certification.color}
-          variants={glowVariants}
-        />
+        <Glow color={certification.color} variants={glowVariants} />
       </BadgeImage>
       <BadgeTitle>{certification.title}</BadgeTitle>
       <BadgeDescription>{certification.description}</BadgeDescription>

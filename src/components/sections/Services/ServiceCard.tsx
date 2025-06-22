@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { theme } from '../../../styles/theme';
@@ -109,47 +109,10 @@ const Bullet = styled.span<{ color: string }>`
 // Animation variants
 const cardVariants = {
   hidden: { opacity: 0, x: 30 },
-  visible: (index: number) => ({
-    opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.5,
-      delay: 0.1 * index
-    }
-  })
-};
-
-const featureListVariants = {
-  hidden: { opacity: 0, height: 0 },
-  visible: { 
-    opacity: 1, 
-    height: 'auto',
-    transition: {
-      duration: 0.3,
-      when: "beforeChildren",
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const featureItemVariants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { 
-    opacity: 1, 
-    x: 0,
-    transition: {
-      duration: 0.3
-    }
-  }
+  visible: { opacity: 1, x: 0, transition: { duration: 0.5 } }
 };
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  
-  const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
-  };
-  
   return (
     <Card
       initial="hidden"
@@ -158,7 +121,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
       variants={cardVariants}
       custom={index}
       layoutId={`service-card-${service.id}`}
-      onClick={toggleExpand}
       id={`service-${service.id}`}
     >
       <IconWrapper color={service.color}>
@@ -166,27 +128,43 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
       </IconWrapper>
       <Title>{service.title}</Title>
       <Description>{service.description}</Description>
-      
       <ExpandButton 
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleExpand();
-        }}
-        $isExpanded={isExpanded}
+        onClick={e => { e.stopPropagation(); }}
+        $isExpanded={false}
       >
-        {isExpanded ? 'Show less' : 'Learn more'} <Icon icon={FiChevronDown} size={16} />
+        Learn more <Icon icon={FiChevronDown} size={16} />
       </ExpandButton>
       
       <AnimatePresence>
-        {isExpanded && (
+        {false && ( // Replace false with the condition to show/hide features
           <FeatureList
             initial="hidden"
             animate="visible"
             exit="hidden"
-            variants={featureListVariants}
+            variants={{ 
+              hidden: { opacity: 0, height: 0 },
+              visible: { 
+                opacity: 1, 
+                height: 'auto',
+                transition: {
+                  duration: 0.3,
+                  when: "beforeChildren",
+                  staggerChildren: 0.1
+                }
+              }
+            }}
           >
             {service.features.map((feature, idx) => (
-              <FeatureItem key={idx} variants={featureItemVariants}>
+              <FeatureItem key={idx} variants={{ 
+                hidden: { opacity: 0, x: -20 },
+                visible: { 
+                  opacity: 1, 
+                  x: 0,
+                  transition: {
+                    duration: 0.3
+                  }
+                }
+              }}>
                 <Bullet color={service.color} />
                 {feature}
               </FeatureItem>
