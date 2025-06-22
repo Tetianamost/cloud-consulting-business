@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { FiChevronDown } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
@@ -113,15 +113,23 @@ const cardVariants = {
 };
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
+  const controls = useAnimation();
+  const hasAnimated = useRef(false);
+
   return (
     <Card
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
+      animate={controls}
       variants={cardVariants}
       custom={index}
       layoutId={`service-card-${service.id}`}
       id={`service-${service.id}`}
+      onViewportEnter={() => {
+        if (!hasAnimated.current) {
+          controls.start('visible');
+          hasAnimated.current = true;
+        }
+      }}
     >
       <IconWrapper color={service.color}>
         {service.icon}

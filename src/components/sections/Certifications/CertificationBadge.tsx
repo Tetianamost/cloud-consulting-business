@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { IconBaseProps, IconType } from 'react-icons';
 
@@ -129,14 +129,21 @@ const glowVariants = {
 
 const CertificationBadge: React.FC<CertificationBadgeProps> = ({ certification, index }) => {
   const IconComponent = certification.image as React.ComponentType<IconBaseProps>;
+  const controls = useAnimation();
+  const hasAnimated = useRef(false);
+
   return (
     <Badge
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
+      animate={controls}
       variants={badgeVariants}
       custom={index}
-      whileHover="hover"
+      onViewportEnter={() => {
+        if (!hasAnimated.current) {
+          controls.start('visible');
+          hasAnimated.current = true;
+        }
+      }}
     >
       <BadgeImage>
         <motion.div variants={imageVariants}>
