@@ -504,6 +504,7 @@ const CloudAnimation: React.FC = () => {
                   delay: path.delay
                 }
               }}
+              viewport={{ once: true }}
             />
           ))}
           
@@ -514,6 +515,7 @@ const CloudAnimation: React.FC = () => {
               cy: [140, 100, 140],
               transition: { repeat: Infinity, duration: 4, ease: "easeInOut" }
             }}
+            viewport={{ once: true }}
           />
           
           <DataPacket
@@ -522,6 +524,7 @@ const CloudAnimation: React.FC = () => {
               cy: [160, 190, 160],
               transition: { repeat: Infinity, duration: 5, ease: "easeInOut", delay: 0.5 }
             }}
+            viewport={{ once: true }}
           />
           
           <DataPacket
@@ -530,6 +533,7 @@ const CloudAnimation: React.FC = () => {
               cy: [200, 150, 200],
               transition: { repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 1 }
             }}
+            viewport={{ once: true }}
           />
           
           <DataPacket
@@ -538,6 +542,7 @@ const CloudAnimation: React.FC = () => {
               cy: [120, 180, 120],
               transition: { repeat: Infinity, duration: 6, ease: "easeInOut", delay: 0.2 }
             }}
+            viewport={{ once: true }}
           />
           
           <DataPacket
@@ -546,6 +551,7 @@ const CloudAnimation: React.FC = () => {
               cy: [220, 240, 220],
               transition: { repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 0.7 }
             }}
+            viewport={{ once: true }}
           />
         </motion.svg>
       </FlowingLines>
@@ -664,4 +670,6 @@ const CloudAnimation: React.FC = () => {
   );
 };
 
-export default CloudAnimation;
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedCloudAnimation = React.memo(CloudAnimation);
+export default MemoizedCloudAnimation;

@@ -304,4 +304,6 @@ const Hero: React.FC = () => {
   );
 };
 
-export default Hero;
+// Wrap Hero with React.memo for optimization
+const MemoizedHero = React.memo(Hero);
+export default MemoizedHero;

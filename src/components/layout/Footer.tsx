@@ -317,4 +317,5 @@ const Footer: React.FC = () => {
   );
 };
 
-export default Footer;
+const MemoizedFooter = React.memo(Footer);
+export default MemoizedFooter;

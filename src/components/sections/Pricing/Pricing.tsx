@@ -277,4 +277,5 @@ const Pricing: React.FC = () => {
   );
 };
 
-export default Pricing;
+const MemoizedPricing = React.memo(Pricing);
+export default MemoizedPricing;

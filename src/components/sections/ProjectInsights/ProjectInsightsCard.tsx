@@ -432,6 +432,7 @@ const ProjectHighlightCard: React.FC<ProjectHighlightCardProps> = ({ projectHigh
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
           >
             {projectHighlight.industry}
           </IndustryTag>
@@ -442,6 +443,7 @@ const ProjectHighlightCard: React.FC<ProjectHighlightCardProps> = ({ projectHigh
               variants={testimonialVariants}
               initial="initial"
               animate="animate"
+              viewport={{ once: true }}
             >
               <Quote>"{projectHighlight.testimonial.quote}"</Quote>
               <Author>
@@ -462,6 +464,7 @@ const ProjectHighlightCard: React.FC<ProjectHighlightCardProps> = ({ projectHigh
               initial="initial"
               animate="animate"
               custom={index}
+              viewport={{ once: true }}
             >
               {challenge}
             </ChallengeItem>
@@ -480,6 +483,7 @@ const ProjectHighlightCard: React.FC<ProjectHighlightCardProps> = ({ projectHigh
               initial="initial"
               animate="animate"
               custom={index}
+              viewport={{ once: true }}
             >
               <ResultValue>{result.value}</ResultValue>
               <ResultLabel>{result.label}</ResultLabel>
@@ -491,4 +495,5 @@ const ProjectHighlightCard: React.FC<ProjectHighlightCardProps> = ({ projectHigh
   );
 };
 
-export default ProjectHighlightCard;
+const MemoizedProjectHighlightCard = React.memo(ProjectHighlightCard);
+export default MemoizedProjectHighlightCard;

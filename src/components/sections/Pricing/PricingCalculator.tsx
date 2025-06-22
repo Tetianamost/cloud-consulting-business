@@ -1066,4 +1066,6 @@ const PricingCalculator: React.FC = () => {
   );
 };
 
-export default PricingCalculator;
+
+const MemoizedPricingCalculator = React.memo(PricingCalculator);
+export default MemoizedPricingCalculator;

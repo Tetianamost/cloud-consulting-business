@@ -284,4 +284,5 @@ const Contact: React.FC = () => {
   );
 };
 
-export default Contact;
+const MemoizedContact = React.memo(Contact);
+export default MemoizedContact;

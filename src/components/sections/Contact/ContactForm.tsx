@@ -479,6 +479,7 @@ const ContactForm: React.FC = () => {
             animate="visible"
             exit="exit"
             variants={messageVariants}
+            viewport={{ once: true }}
           >
             <CheckCircleIcon />
             <div>Your message has been sent successfully. We'll get back to you as soon as possible!</div>
@@ -491,6 +492,7 @@ const ContactForm: React.FC = () => {
             animate="visible"
             exit="exit"
             variants={messageVariants}
+            viewport={{ once: true }}
           >
             <Icon icon={FiAlertCircle} size={24} />
             <div>There was an error sending your message. Please try again later or email us directly at info@cloudpartner.pro</div>
@@ -501,4 +503,6 @@ const ContactForm: React.FC = () => {
   );
 };
 
-export default ContactForm;
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedContactForm = React.memo(ContactForm);
+export default MemoizedContactForm;

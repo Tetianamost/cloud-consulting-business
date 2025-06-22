@@ -154,7 +154,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
     <Card
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: "-100px" }}
+      viewport={{ once: true }}
       variants={cardVariants}
       custom={index}
       layoutId={`service-card-${service.id}`}
@@ -198,4 +198,5 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
   );
 };
 
-export default ServiceCard;
+const MemoizedServiceCard = React.memo(ServiceCard);
+export default MemoizedServiceCard;

@@ -159,4 +159,5 @@ const Services: React.FC = () => {
   );
 };
 
-export default Services;
+const MemoizedServices = React.memo(Services);
+export default MemoizedServices;
