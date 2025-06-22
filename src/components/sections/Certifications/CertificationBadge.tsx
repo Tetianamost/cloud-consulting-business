@@ -142,7 +142,7 @@ const CertificationBadge: React.FC<CertificationBadgeProps> = ({ certification, 
     <Badge
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: "-100px" }}
+      viewport={{ once: true}}
       variants={badgeVariants}
       custom={index}
       whileHover="hover"

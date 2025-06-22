@@ -102,7 +102,7 @@ const Section: React.FC<SectionProps> = ({
       paddingBottom={paddingBottom}
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, amount: 0.1 }}
+      viewport={{ once: true }}
       variants={sectionVariants}
     >
       <SectionContainer fullWidth={fullWidth}>{children}</SectionContainer>

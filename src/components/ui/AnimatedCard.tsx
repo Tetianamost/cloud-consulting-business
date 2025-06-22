@@ -78,7 +78,7 @@ const AnimatedCard: React.FC<CardProps> = ({
       whileInView="visible"
       whileHover={interactive ? 'hover' : undefined}
       whileTap={interactive ? 'tap' : undefined}
-      viewport={{ once: true, amount: 0.1 }}
+      viewport={{ once: true }}
       {...rest}
     >
       {children}
