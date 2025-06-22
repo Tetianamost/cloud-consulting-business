@@ -224,6 +224,13 @@ const shapeVariants = {
 };
 
 const Hero: React.FC = () => {
+  // Memoize animation props to prevent double animation
+  const animationProps = React.useMemo(() => ({
+    initial: { opacity: 0, scale: 0.9 },
+    animate: { opacity: 1, scale: 1 },
+    transition: { duration: 0.8, delay: 0.2 }
+  }), []);
+
   return (
     <HeroContainer id="home">
       <BackgroundShapes>
@@ -292,11 +299,7 @@ const Hero: React.FC = () => {
           </Stats>
         </TextContent>
         
-        <AnimationContent
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
+        <AnimationContent {...animationProps}>
           <CloudAnimation />
         </AnimationContent>
       </HeroContent>

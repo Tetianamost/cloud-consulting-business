@@ -480,6 +480,8 @@ const centralPaths = [
 ];
 
 const CloudAnimation: React.FC = () => {
+  const memoizedServiceIcons = React.useMemo(() => serviceIcons, []);
+
   return (
     <AnimationContainer>
       {/* Central network flowing lines - replaces the previous central cloud element */}
@@ -639,12 +641,12 @@ const CloudAnimation: React.FC = () => {
       ))}
       
       {/* Service icons arranged around the central connections */}
-      {serviceIcons.map((icon, index) => (
+      {memoizedServiceIcons.map((icon, index) => (
         <Link 
           key={`icon-${index}`}
-          to={icon.serviceId}  // Link to specific service
-          smooth={true} 
-          offset={-70} 
+          to={icon.serviceId}
+          smooth={true}
+          offset={-70}
           duration={500}
           spy={true}
         >
