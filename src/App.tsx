@@ -10,12 +10,8 @@ import Certifications from './components/sections/Certifications/Certifications'
 import ProjectHighlights from './components/sections/ProjectInsights/ProjectInsights';
 import Pricing from './components/sections/Pricing/Pricing';
 import Contact from './components/sections/Contact/Contact';
-import { useScrollManager } from './components/ui/ScrollingHelper';
 
 function App() {
-  // Initialize our scrolling manager with the React hook
-  useScrollManager();
-  
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />

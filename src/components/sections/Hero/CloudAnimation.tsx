@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import SmartScrollLink from '../../../components/ui/ScrollingHelper';
+import { Link } from 'react-scroll';
 import { theme } from '../../../styles/theme';
 import { 
   FiMapPin, FiCloudSnow, FiDollarSign, FiShield, 
@@ -446,8 +446,6 @@ const serviceIcons: IconInfo[] = [
 ];
 
 // Central connection paths for the flowing network effect
-// Use our SmartScrollLink component for smooth scrolling without interference
-
 const centralPaths = [
   {
     path: "M 150,140 Q 250,100 350,140",
@@ -553,7 +551,7 @@ const CloudAnimation: React.FC = () => {
       </FlowingLines>
       
       {/* DB Cloud element - link to Small-Scale Migrations */}
-      <SmartScrollLink 
+      <Link 
         to={services[1].element}  // Link to Small-Scale Migrations
         smooth={true} 
         offset={-70} 
@@ -574,10 +572,10 @@ const CloudAnimation: React.FC = () => {
           <Tooltip>Database Migrations</Tooltip>
           <CloudLogo>DB</CloudLogo>
         </DbCloud>
-      </SmartScrollLink>
+      </Link>
       
       {/* S3 Cloud element - link to Small-Scale Migrations */}
-      <SmartScrollLink 
+      <Link 
         to={services[1].element}  // Link to Small-Scale Migrations
         smooth={true} 
         offset={-70} 
@@ -598,11 +596,11 @@ const CloudAnimation: React.FC = () => {
           <Tooltip>Storage Migrations</Tooltip>
           <CloudLogo>S3</CloudLogo>
         </S3Cloud>
-      </SmartScrollLink>
+      </Link>
       
       {/* Network nodes placed around the central connections */}
       {nodes.map((node, index) => (
-        <SmartScrollLink 
+        <Link 
           key={`node-${index}`}
           to={node.serviceId}  // Link to specific service
           smooth={true} 
@@ -631,12 +629,12 @@ const CloudAnimation: React.FC = () => {
               <node.iconComponent />
             </div>
           </Node>
-        </SmartScrollLink>
+        </Link>
       ))}
       
       {/* Service icons arranged around the central connections */}
       {serviceIcons.map((icon, index) => (
-        <SmartScrollLink 
+        <Link 
           key={`icon-${index}`}
           to={icon.serviceId}  // Link to specific service
           smooth={true} 
@@ -660,7 +658,7 @@ const CloudAnimation: React.FC = () => {
             {/* Use JSX element syntax with properly typed component */}
             <icon.iconComponent />
           </ServiceIcon>
-        </SmartScrollLink>
+        </Link>
       ))}
     </AnimationContainer>
   );
