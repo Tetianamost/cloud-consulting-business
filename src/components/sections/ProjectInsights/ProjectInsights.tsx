@@ -166,24 +166,24 @@ const SliderDots = styled.div`
 	margin-top: ${theme.space[4]};
 `;
 
-const SliderDot = styled.button<{ active: boolean }>`
+const SliderDot = styled.button<{ $active: boolean }>`
 	width: 12px;
 	height: 12px;
 	border-radius: ${theme.borderRadius.full};
 	background-color: ${(props) =>
-		props.active ? theme.colors.accent : theme.colors.gray300};
+		props.$active ? theme.colors.accent : theme.colors.gray300};
 	border: none;
 	cursor: pointer;
 	transition: ${theme.transitions.normal};
 	box-shadow: ${(props) =>
-		props.active
+		props.$active
 			? '0 2px 4px rgba(0, 115, 187, 0.3)'
 			: 'none'};
 
 	&:hover {
 		background-color: ${(props) =>
-			props.active ? theme.colors.accent : theme.colors.primary};
-		transform: ${(props) => (props.active ? 'scale(1.2)' : 'scale(1.1)')};
+			props.$active ? theme.colors.accent : theme.colors.primary};
+		transform: ${(props) => (props.$active ? 'scale(1.2)' : 'scale(1.1)')};
 	}
 `;
 
@@ -271,7 +271,7 @@ const ProjectInsights: React.FC = () => {
 					{projectHighlights.map((highlight, index) => (
 						<SliderDot
 							key={highlight.id}
-							active={index === currentSlide}
+							$active={index === currentSlide}
 							onClick={() => goToSlide(index)}
 						/>
 					))}

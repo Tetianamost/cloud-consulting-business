@@ -59,10 +59,10 @@ const Label = styled.label`
   color: ${theme.colors.gray200};
 `;
 
-const StyledField = styled(Field)<{ error?: boolean }>`
+const StyledField = styled(Field)<{ $error?: boolean }>`
   width: 100%;
   background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid ${props => props.error ? theme.colors.danger : 'rgba(255, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.$error ? theme.colors.danger : 'rgba(255, 255, 255, 0.2)'};
   border-radius: ${theme.borderRadius.md};
   padding: ${theme.space[3]};
   color: ${theme.colors.white};
@@ -355,7 +355,7 @@ const ContactForm: React.FC = () => {
                   id="name"
                   name="name"
                   placeholder="John Doe"
-                  error={Boolean(errors.name && touched.name)}
+                  $error={Boolean(errors.name && touched.name) || undefined}
                 />
                 <ErrorMessage name="name">
                   {(msg) => (
@@ -373,7 +373,7 @@ const ContactForm: React.FC = () => {
                   id="email"
                   name="email"
                   placeholder="john@company.com"
-                  error={Boolean(errors.email && touched.email)}
+                  $error={Boolean(errors.email && touched.email) || undefined}
                 />
                 <ErrorMessage name="email">
                   {(msg) => (
@@ -393,7 +393,7 @@ const ContactForm: React.FC = () => {
                   id="company"
                   name="company"
                   placeholder="Your Company (Optional)"
-                  error={Boolean(errors.company && touched.company)}
+                  $error={Boolean(errors.company && touched.company)}
                 />
                 <ErrorMessage name="company">
                   {(msg) => (
@@ -411,7 +411,7 @@ const ContactForm: React.FC = () => {
                   id="phone"
                   name="phone"
                   placeholder="+1 (555) 123-4567 (Optional)"
-                  error={Boolean(errors.phone && touched.phone)}
+                  $error={Boolean(errors.phone && touched.phone)}
                 />
                 <ErrorMessage name="phone">
                   {(msg) => (

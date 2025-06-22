@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-scroll';
@@ -7,17 +7,20 @@ import { theme } from '../../styles/theme';
 import Button from '../ui/Button';
 import Icon from '../ui/Icon';
 
-const HeaderContainer = styled(motion.header)<{ isScrolled: boolean }>`
+const HeaderContainer = styled(motion.header)<{ $isScrolled: boolean; $isHidden: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   z-index: ${theme.zIndices.sticky};
-  background: ${props => props.isScrolled ? 'rgba(255, 255, 255, 0.9)' : 'transparent'};
-  backdrop-filter: ${props => props.isScrolled ? 'blur(10px)' : 'none'};
-  border-bottom: ${props => props.isScrolled ? `1px solid ${theme.colors.gray200}` : 'none'};
-  padding: ${props => props.isScrolled ? theme.space[3] : theme.space[4]} 0;
-  transition: ${theme.transitions.normal};
+  background: ${props => props.$isScrolled ? 'rgba(255, 255, 255, 0.95)' : 'transparent'};
+  backdrop-filter: ${props => props.$isScrolled ? 'blur(10px)' : 'none'};
+  border-bottom: ${props => props.$isScrolled ? `1px solid ${theme.colors.gray200}` : 'none'};
+  padding: ${props => props.$isScrolled ? theme.space[3] : theme.space[4]} 0;
+  transition: ${theme.transitions.normal}, transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: ${props => props.$isScrolled ? '0 4px 24px rgba(0,0,0,0.07)' : 'none'};
+  transform: translateY(${props => props.$isHidden ? '-110%' : '0'});
+  will-change: transform;
 `;
 
 const Nav = styled.nav`
@@ -46,7 +49,7 @@ const Logo = styled.div`
   }
 `;
 
-const NavLinks = styled.div<{ isOpen: boolean }>`
+const NavLinks = styled.div<{ $isOpen: boolean }>`
   display: flex;
   align-items: center;
   
@@ -62,7 +65,7 @@ const NavLinks = styled.div<{ isOpen: boolean }>`
     padding: ${theme.space[8]} ${theme.space[4]};
     z-index: ${theme.zIndices.modal};
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
-    transform: ${props => props.isOpen ? 'translateX(0)' : 'translateX(100%)'};
+    transform: ${props => props.$isOpen ? 'translateX(0)' : 'translateX(100%)'};
     transition: transform 0.3s ease-in-out;
   }
 `;
@@ -130,16 +133,44 @@ const Overlay = styled(motion.div)`
 const Header: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  
-  // Handle scroll event to change header style
+  const [isHidden, setIsHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  // Improved scroll handler: hide on scroll down, show on scroll up
   useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentY = window.scrollY;
+          setIsScrolled(currentY > 50);
+          if (currentY > lastY && currentY > 100) {
+            setIsHidden(true); // Hide header
+          } else {
+            setIsHidden(false); // Show header
+          }
+          lastY = currentY;
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Prevent background scroll when mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
   
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -164,7 +195,8 @@ const Header: React.FC = () => {
   
   return (
     <HeaderContainer
-      isScrolled={isScrolled}
+      $isScrolled={isScrolled}
+      $isHidden={isHidden}
       initial="hidden"
       animate="visible"
       variants={navVariants}
@@ -182,11 +214,9 @@ const Header: React.FC = () => {
           Cloud<span>Partner</span><span style={{ color: theme.colors.accent }}>Pro</span>
           </NavLink>
         </Logo>
-        
         <MenuButton onClick={toggleMenu}>
         {isOpen ? <Icon icon={FiX} size={24} /> : <Icon icon={FiMenu} size={24} />}
       </MenuButton>
-        
         <AnimatePresence>
           {isOpen && (
             <Overlay
@@ -197,8 +227,7 @@ const Header: React.FC = () => {
             />
           )}
         </AnimatePresence>
-        
-        <NavLinks isOpen={isOpen}>
+        <NavLinks $isOpen={isOpen}>
           <NavLink
             to="home"
             spy={true}

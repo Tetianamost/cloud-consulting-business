@@ -63,7 +63,7 @@ const Description = styled.p`
   font-size: ${theme.fontSizes.md};
 `;
 
-const ExpandButton = styled(motion.button)<{ isExpanded: boolean }>`
+const ExpandButton = styled(motion.button)<{ $isExpanded: boolean }>`
   background: transparent;
   border: none;
   color: ${theme.colors.accent};
@@ -77,7 +77,7 @@ const ExpandButton = styled(motion.button)<{ isExpanded: boolean }>`
   
   svg {
     margin-left: ${theme.space[2]};
-    transform: ${props => props.isExpanded ? 'rotate(180deg)' : 'rotate(0)'};
+    transform: ${props => props.$isExpanded ? 'rotate(180deg)' : 'rotate(0)'};
     transition: transform 0.3s ease;
   }
 `;
@@ -172,7 +172,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
           e.stopPropagation();
           toggleExpand();
         }}
-        isExpanded={isExpanded}
+        $isExpanded={isExpanded}
       >
         {isExpanded ? 'Show less' : 'Learn more'} <Icon icon={FiChevronDown} size={16} />
       </ExpandButton>
