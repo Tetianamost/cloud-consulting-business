@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { theme } from '../../../styles/theme';
@@ -125,21 +125,36 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
   const [expanded, setExpanded] = useState(false);
   const controls = useAnimation();
   const hasAnimated = useRef(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!cardRef.current) return;
+    const node = cardRef.current;
+    if (hasAnimated.current) return;
+    const observer = new window.IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          controls.start('visible');
+          hasAnimated.current = true;
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.2 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [controls]);
+
   return (
     <Card
       as={motion.div}
+      ref={cardRef}
       initial="hidden"
       animate={controls}
       variants={cardVariants}
       custom={index}
       layoutId={`service-card-${service.id}`}
       id={`service-${service.id}`}
-      onViewportEnter={() => {
-        if (!hasAnimated.current) {
-          controls.start('visible');
-          hasAnimated.current = true;
-        }
-      }}
     >
       <IconWrapper color={service.color}>
         {service.icon}
