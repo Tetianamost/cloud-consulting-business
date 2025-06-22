@@ -1,6 +1,6 @@
-import React, { useRef, useLayoutEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { motion, useAnimation } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { IconBaseProps, IconType } from 'react-icons';
 
@@ -138,34 +138,11 @@ const glowVariants = {
 
 const CertificationBadge: React.FC<CertificationBadgeProps> = ({ certification, index }) => {
   const IconComponent = certification.image as React.ComponentType<IconBaseProps>;
-  const controls = useAnimation();
-  const hasAnimated = useRef(false);
-  const badgeRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    if (!badgeRef.current) return;
-    const node = badgeRef.current;
-    if (hasAnimated.current) return;
-    const observer = new window.IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          controls.start('visible');
-          hasAnimated.current = true;
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.2 }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [controls]);
-
   return (
     <Badge
       as={motion.div}
-      ref={badgeRef}
       initial="hidden"
-      animate={controls}
+      animate="visible"
       variants={badgeVariants}
       custom={index}
     >

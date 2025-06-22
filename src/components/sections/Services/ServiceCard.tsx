@@ -1,6 +1,6 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { FiChevronDown } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
@@ -123,34 +123,12 @@ const cardVariants = {
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
   const [expanded, setExpanded] = useState(false);
-  const controls = useAnimation();
-  const hasAnimated = useRef(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    if (!cardRef.current) return;
-    const node = cardRef.current;
-    if (hasAnimated.current) return;
-    const observer = new window.IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          controls.start('visible');
-          hasAnimated.current = true;
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.2 }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [controls]);
 
   return (
     <Card
       as={motion.div}
-      ref={cardRef}
       initial="hidden"
-      animate={controls}
+      animate="visible"
       variants={cardVariants}
       custom={index}
       layoutId={`service-card-${service.id}`}
