@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { theme } from '../../styles/theme';
@@ -52,24 +52,24 @@ const SectionWrapper = styled(motion.section)<SectionProps>`
   }
 `;
 
-const SectionContainer = styled.div<{ fullWidth?: boolean }>`
+const SectionContainer = styled.div<{ $fullWidth?: boolean }>`
   width: 100%;
-  max-width: ${props => (props.fullWidth ? '100%' : theme.sizes.container.xl)};
+  max-width: ${props => (props.$fullWidth ? '100%' : theme.sizes.container.xl)};
   margin-left: auto;
   margin-right: auto;
-  padding-left: ${props => (props.fullWidth ? '0' : theme.space[4])};
-  padding-right: ${props => (props.fullWidth ? '0' : theme.space[4])};
+  padding-left: ${props => (props.$fullWidth ? '0' : theme.space[4])};
+  padding-right: ${props => (props.$fullWidth ? '0' : theme.space[4])};
   box-sizing: border-box;
   overflow-x: hidden;
   
   @media (min-width: ${theme.breakpoints.lg}) {
-    padding-left: ${props => (props.fullWidth ? '0' : theme.space[6])};
-    padding-right: ${props => (props.fullWidth ? '0' : theme.space[6])};
+    padding-left: ${props => (props.$fullWidth ? '0' : theme.space[6])};
+    padding-right: ${props => (props.$fullWidth ? '0' : theme.space[6])};
   }
   
   @media (max-width: ${theme.breakpoints.sm}) {
-    padding-left: ${props => (props.fullWidth ? '0' : theme.space[2])};
-    padding-right: ${props => (props.fullWidth ? '0' : theme.space[2])};
+    padding-left: ${props => (props.$fullWidth ? '0' : theme.space[2])};
+    padding-right: ${props => (props.$fullWidth ? '0' : theme.space[2])};
   }
 `;
 
@@ -94,6 +94,8 @@ const Section: React.FC<SectionProps> = ({
   children,
   fullWidth = false,
 }) => {
+  // Memoize viewport prop to prevent unnecessary observer re-attachments
+  const viewport = useMemo(() => ({ once: true }), []);
   return (
     <SectionWrapper
       id={id}
@@ -102,10 +104,10 @@ const Section: React.FC<SectionProps> = ({
       paddingBottom={paddingBottom}
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true }}
+      viewport={viewport}
       variants={sectionVariants}
     >
-      <SectionContainer fullWidth={fullWidth}>{children}</SectionContainer>
+      <SectionContainer $fullWidth={fullWidth}>{children}</SectionContainer>
     </SectionWrapper>
   );
 };

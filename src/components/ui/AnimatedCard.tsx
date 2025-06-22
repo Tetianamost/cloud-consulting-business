@@ -21,6 +21,7 @@ const CardContainer = styled(motion.div)<CardProps>`
   transition: ${theme.transitions.normal};
   height: 100%;
   overflow: hidden;
+  min-height: 200px;
   
   ${props =>
     props.interactive &&
@@ -57,7 +58,7 @@ const cardVariants = {
   }
 };
 
-const AnimatedCard: React.FC<CardProps> = ({
+const AnimatedCard = React.forwardRef<HTMLDivElement, CardProps>(({
   elevation = 'md',
   interactive = true,
   padding = '5',
@@ -65,25 +66,22 @@ const AnimatedCard: React.FC<CardProps> = ({
   background,
   children,
   ...rest
-}) => {
+}, ref) => {
   return (
     <CardContainer
+      ref={ref}
       elevation={elevation}
       interactive={interactive}
       padding={padding as keyof typeof theme.space}
       borderRadius={borderRadius}
       background={background}
-      variants={cardVariants}
-      initial="hidden"
-      whileInView="visible"
       whileHover={interactive ? 'hover' : undefined}
       whileTap={interactive ? 'tap' : undefined}
-      viewport={{ once: true }}
       {...rest}
     >
       {children}
     </CardContainer>
   );
-};
+});
 
 export default AnimatedCard;

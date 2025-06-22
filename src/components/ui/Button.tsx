@@ -79,7 +79,12 @@ const variantStyles = {
   `,
 };
 
-const StyledButton = styled(motion.button)<ButtonProps>`
+const ButtonContainer = styled(motion.button)<{
+  $fullWidth?: boolean;
+  $iconPosition?: 'left' | 'right';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+}>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -88,24 +93,21 @@ const StyledButton = styled(motion.button)<ButtonProps>`
   transition: ${theme.transitions.normal};
   white-space: nowrap;
   position: relative;
-  width: ${props => (props.fullWidth ? '100%' : 'auto')};
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
 
   // Apply variant styling
   ${props => variantStyles[props.variant || 'primary']}
-  
   // Apply size styling
   ${props => sizeStyles[props.size || 'md']}
-  
-  // Loading state
+
   &:disabled {
     cursor: not-allowed;
     opacity: 0.6;
   }
-  
-  // Icon spacing
+
   & > svg {
-    ${props => props.iconPosition === 'left' && `margin-right: ${theme.space[2]};`}
-    ${props => props.iconPosition === 'right' && `margin-left: ${theme.space[2]};`}
+    ${props => props.$iconPosition === 'left' && `margin-right: ${theme.space[2]};`}
+    ${props => props.$iconPosition === 'right' && `margin-left: ${theme.space[2]};`}
   }
 `;
 
@@ -142,27 +144,25 @@ const Button: React.FC<ButtonProps> = ({
   disabled,
   type = 'button',
   ...rest
-}) => {
-  return (
-    <StyledButton
-      type={type}
-      variant={variant}
-      size={size}
-      fullWidth={fullWidth}
-      iconPosition={iconPosition}
-      disabled={disabled || isLoading}
-      whileHover="hover"
-      whileTap="tap"
-      initial="rest"
-      variants={buttonVariants}
-      {...rest}
-    >
-      {isLoading && <LoadingSpinner />}
-      {!isLoading && icon && iconPosition === 'left' && icon}
-      {children}
-      {!isLoading && icon && iconPosition === 'right' && icon}
-    </StyledButton>
-  );
-};
+}) => (
+  <ButtonContainer
+    $fullWidth={fullWidth}
+    $iconPosition={iconPosition}
+    variant={variant}
+    size={size}
+    type={type}
+    disabled={disabled || isLoading}
+    whileHover="hover"
+    whileTap="tap"
+    initial="rest"
+    variants={buttonVariants}
+    {...rest}
+  >
+    {isLoading && <LoadingSpinner />}
+    {!isLoading && icon && iconPosition === 'left' && icon}
+    {children}
+    {!isLoading && icon && iconPosition === 'right' && icon}
+  </ButtonContainer>
+);
 
 export default Button;
