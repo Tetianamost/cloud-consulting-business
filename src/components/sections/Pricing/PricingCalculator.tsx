@@ -5,7 +5,6 @@ import { theme } from '../../../styles/theme';
 import Button from '../../ui/Button';
 import { FiInfo, FiCheckCircle, FiX, FiMail, FiUser, FiPhone, FiBriefcase, FiAlertCircle } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
-import emailjs from '@emailjs/browser';
 
 const CalculatorContainer = styled(motion.div)`
   background-color: white;
@@ -638,15 +637,8 @@ const PricingCalculator: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
   
-  const sendEmail = () => {
+  const sendEmail = async () => {
     setIsSubmitting(true);
-    
-    // Get current date for the email template
-    const currentDate = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
     
     // Sanitize input data
     const sanitizedName = name.trim();
@@ -655,91 +647,62 @@ const PricingCalculator: React.FC = () => {
     const sanitizedCompany = company.trim();
     const sanitizedRequirements = requirements.trim();
     
-    // Prepare email data with all fields matching the template and proper defaults
-    const emailData = {
-      // Contact Information
-      name: sanitizedName,
-      email: sanitizedEmail,
-      phone: sanitizedPhone || "Not provided",
-      company: sanitizedCompany || "Independent/Individual",
-      
-      // Service Details
-      serviceType: selectedService.title || "Service not selected",
-      complexity: selectedComplexity.title || "Moderate",
-      count: String(count) || "0", // Convert to string to avoid undefined
-      
-      // Pricing Breakdown
-      basePrice: basePrice.toLocaleString() || "0",
-      variablePrice: variablePrice.toLocaleString() || "0",
-      complexityMultiplier: String(complexityMultiplier) || "1", // Convert to string to avoid undefined
-      totalEstimate: totalEstimate.toLocaleString() || "0",
-      
-      // Additional Fields
-      requirements: sanitizedRequirements || "No additional requirements specified.",
-      current_date: currentDate,
-    };
+    // Prepare form data for Netlify
+    const formData = new FormData();
+    formData.append('form-name', 'quote-request-form');
+    formData.append('name', sanitizedName);
+    formData.append('email', sanitizedEmail);
+    formData.append('phone', sanitizedPhone || 'Not provided');
+    formData.append('company', sanitizedCompany || 'Independent/Individual');
+    formData.append('serviceType', selectedService.title);
+    formData.append('complexity', selectedComplexity.title);
+    formData.append('count', String(count));
+    formData.append('basePrice', basePrice.toLocaleString());
+    formData.append('variablePrice', variablePrice.toLocaleString());
+    formData.append('complexityMultiplier', String(complexityMultiplier));
+    formData.append('totalEstimate', totalEstimate.toLocaleString());
+    formData.append('requirements', sanitizedRequirements || 'No additional requirements specified.');
     
-    // EmailJS implementation
-    emailjs.send(
-      'info@cloudpartner.pro', // Your EmailJS service ID
-      'template_9lu3gzb', // Your template ID for quote requests
-      emailData,
-      'hz-jZI5Vs-LNtGM4T' // Your EmailJS public key
-    )
-    .then((result) => {
-      console.log('Quote request email successfully sent!', result.text);
+    try {
+      const response = await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData as any).toString()
+      });
       
-      // Now send the auto-reply email to the customer
-      const autoReplyData = {
-        name: sanitizedName,
-        email: sanitizedEmail,
-        serviceType: selectedService.title,
-        complexity: selectedComplexity.title,
-        totalEstimate: totalEstimate.toLocaleString(),
-        current_date: currentDate
-      };
-      
-      return emailjs.send(
-        'info@cloudpartner.pro', // Same service ID
-        'template_nknpqha', // Auto-reply template ID
-        autoReplyData,
-        'hz-jZI5Vs-LNtGM4T' // Same public key
-      );
-    })
-    .then((result) => {
-      console.log('Auto-reply email successfully sent!', result.text);
-      // Reset form and close modal
-      setName('');
-      setEmail('');
-      setPhone('');
-      setCompany('');
-      setRequirements('');
-      setErrors({});
-      setEmailError(null);
-      setIsSubmitting(false);
-      setIsModalOpen(false);
-      // Show success message
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-      }, 5000);
-    })
-    .catch((error) => {
-      console.error('Failed to send email:', error);
+      if (response.ok) {
+        console.log('Quote request submitted successfully!');
+        // Reset form and close modal
+        setName('');
+        setEmail('');
+        setPhone('');
+        setCompany('');
+        setRequirements('');
+        setErrors({});
+        setEmailError(null);
+        setIsSubmitting(false);
+        setIsModalOpen(false);
+        // Show success message
+        setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+        }, 5000);
+      } else {
+        throw new Error('Form submission failed');
+      }
+    } catch (error) {
+      console.error('Failed to submit form:', error);
       setIsSubmitting(false);
       // Set appropriate error message
       let errorMessage = "Failed to send your request. Please try again or contact us directly.";
-      if (error.text) {
-        errorMessage = `Error: ${error.text}`;
-      }
       // Display error to user
       setEmailError(errorMessage);
       // Keep modal open to allow user to retry
       setTimeout(() => {
         setEmailError(null);
       }, 8000);
-    });
-    };
+    }
+  };
   
   const handleSubmit = () => {
     if (validateForm()) {
@@ -918,6 +881,23 @@ const PricingCalculator: React.FC = () => {
               </ModalHeader>
               
               <ModalBody>
+                <form data-netlify="true" data-netlify-honeypot="bot-field" method="POST" name="quote-request-form" style={{ display: 'none' }}>
+                  <input type="hidden" name="form-name" value="quote-request-form" />
+                  <input name="bot-field" />
+                  <input name="name" />
+                  <input name="email" />
+                  <input name="phone" />
+                  <input name="company" />
+                  <input name="serviceType" />
+                  <input name="complexity" />
+                  <input name="count" />
+                  <input name="basePrice" />
+                  <input name="variablePrice" />
+                  <input name="complexityMultiplier" />
+                  <input name="totalEstimate" />
+                  <textarea name="requirements"></textarea>
+                </form>
+                
                 <AnimatePresence>
                   {emailError && (
                     <EmailErrorMessage

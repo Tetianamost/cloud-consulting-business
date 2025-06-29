@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Formik, Form, Field, ErrorMessage, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
-import emailjs from '@emailjs/browser';
 import { theme } from '../../../styles/theme';
 import Button from '../../ui/Button';
 import { FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
@@ -254,7 +253,7 @@ const ContactForm: React.FC = () => {
     message: '',
   };
   
-  const handleSubmit = (
+  const handleSubmit = async (
     values: FormValues,
     { setSubmitting, resetForm }: FormikHelpers<FormValues>
   ) => {
@@ -271,61 +270,38 @@ const ContactForm: React.FC = () => {
       return serviceOption ? serviceOption.label : service;
     }).join(', ');
     
-    // Get current date for the email template
-    const currentDate = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    // Prepare form data for Netlify
+    const formData = new FormData();
+    formData.append('form-name', 'contact-form');
+    formData.append('name', sanitizedName);
+    formData.append('email', sanitizedEmail);
+    formData.append('company', sanitizedCompany || 'Independent/Individual');
+    formData.append('phone', sanitizedPhone || 'Not provided');
+    formData.append('services', selectedServices);
+    formData.append('message', sanitizedMessage);
     
-    // Prepare email data
-    const emailData = {
-      name: sanitizedName,
-      email: sanitizedEmail,
-      company: sanitizedCompany || "Independent/Individual",
-      phone: sanitizedPhone || "Not provided",
-      services: selectedServices,
-      message: sanitizedMessage,
-      current_date: currentDate
-    };
-    
-    // EmailJS implementation
-    emailjs.send(
-      'info@cloudpartner.pro', // Your EmailJS service ID
-      'template_ds48ui8', // Your template ID for contact forms
-      emailData,
-      'hz-jZI5Vs-LNtGM4T' // Your EmailJS public key
-    )
-    .then((result) => {
-      console.log('Contact form email successfully sent!', result.text);
+    try {
+      const response = await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData as any).toString()
+      });
       
-      // Now send the auto-reply email to the customer
-      const autoReplyData = {
-        name: sanitizedName,
-        email: sanitizedEmail,
-        current_date: currentDate
-      };
-      
-      return emailjs.send(
-        'info@cloudpartner.pro', // Same service ID
-        'template_04ylayh', // Auto-reply template ID
-        autoReplyData,
-        'hz-jZI5Vs-LNtGM4T' // Same public key
-      );
-    })
-    .then((result) => {
-      console.log('Auto-reply email successfully sent!', result.text);
-      setFormState('success');
-      setSubmitting(false);
-      resetForm();
-      
-      // Reset success message after 5 seconds
-      setTimeout(() => {
-        setFormState('idle');
-      }, 5000);
-    })
-    .catch((error) => {
-      console.error('Failed to send email:', error);
+      if (response.ok) {
+        console.log('Contact form submitted successfully!');
+        setFormState('success');
+        setSubmitting(false);
+        resetForm();
+        
+        // Reset success message after 5 seconds
+        setTimeout(() => {
+          setFormState('idle');
+        }, 5000);
+      } else {
+        throw new Error('Form submission failed');
+      }
+    } catch (error) {
+      console.error('Failed to submit form:', error);
       setFormState('error');
       setSubmitting(false);
       
@@ -333,7 +309,7 @@ const ContactForm: React.FC = () => {
       setTimeout(() => {
         setFormState('idle');
       }, 5000);
-    });
+    }
   };
   
   return (
@@ -346,7 +322,13 @@ const ContactForm: React.FC = () => {
         onSubmit={handleSubmit}
       >
         {({ isSubmitting, errors, touched }) => (
-          <Form>
+          <Form data-netlify="true" data-netlify-honeypot="bot-field" method="POST" name="contact-form">
+            <input type="hidden" name="form-name" value="contact-form" />
+            <div style={{ display: 'none' }}>
+              <label>
+                Don't fill this out if you're human: <input name="bot-field" />
+              </label>
+            </div>
             <FieldRow>
               <FormGroup>
                 <Label htmlFor="name">Full Name *</Label>
