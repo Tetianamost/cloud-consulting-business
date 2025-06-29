@@ -2,8 +2,6 @@
   publish = "build"
   command = "npm run build"
 
-[[plugins]]
-  package = "@netlify/plugin-functions"
 
 
 # Headers for security
