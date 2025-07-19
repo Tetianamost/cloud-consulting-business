@@ -215,11 +215,11 @@ const Contact: React.FC = () => {
             </ContactItem>
           </InfoBlock>
           
-          {/* <InfoBlock>
+          { <InfoBlock>
             <InfoTitle>Connect With Us</InfoTitle>
             <SocialLinks>
               <SocialLink 
-                href="https://linkedin.com"
+                href="https://linkedin.com/cloudpartner-pro"
                 target="_blank"
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.1 }}
@@ -254,7 +254,7 @@ const Contact: React.FC = () => {
                 </svg>
               </SocialLink>
               <SocialLink 
-                href="https://instagram.com"
+                href="https://instagram.com/cloudpartner.pro/"
                 target="_blank"
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.1 }}
@@ -267,7 +267,7 @@ const Contact: React.FC = () => {
                 </svg>
               </SocialLink>
             </SocialLinks>
-          </InfoBlock> */}
+          </InfoBlock> }
           
           <GoogleMap>
             <iframe
