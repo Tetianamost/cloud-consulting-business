@@ -19,14 +19,16 @@ This feature implements a comprehensive Go backend system for processing and cat
 
 ### Requirement 2
 
-**User Story:** As a consultant, I want the system to automatically generate draft reports for new inquiries so that I can quickly review and respond to client requests.
+**User Story:** As a consultant, I want the system to automatically generate draft reports for new inquiries using Amazon Bedrock AI so that I can quickly review and respond to client requests.
 
 #### Acceptance Criteria
 
-1. WHEN a new inquiry is processed THEN the system SHALL automatically trigger an agent hook to generate a draft report
-2. WHEN generating a draft report THEN the system SHALL use plain text format compatible with LLM processing
-3. WHEN a draft report is generated THEN the system SHALL store it with the inquiry record
-4. IF report generation fails THEN the system SHALL log the error and continue processing the inquiry
+1. WHEN a new inquiry is processed THEN the system SHALL automatically call Amazon Bedrock API to generate a draft report
+2. WHEN generating a draft report THEN the system SHALL use Amazon Bedrock Nova model with API key authentication
+3. WHEN calling Bedrock THEN the system SHALL send inquiry details as context to generate relevant draft content
+4. WHEN a draft report is generated THEN the system SHALL store it with the inquiry record in plain text format
+5. IF Bedrock API call fails THEN the system SHALL log the error and continue processing the inquiry without blocking
+6. WHEN authenticating with Bedrock THEN the system SHALL use AWS_BEARER_TOKEN_BEDROCK environment variable
 
 ### Requirement 3
 

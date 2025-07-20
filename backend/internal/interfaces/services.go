@@ -52,6 +52,13 @@ type ActivityService interface {
 	GetRecentActivities(ctx context.Context, limit int) ([]*domain.Activity, error)
 }
 
+// BedrockService defines the interface for Amazon Bedrock AI service
+type BedrockService interface {
+	GenerateText(ctx context.Context, prompt string, options *BedrockOptions) (*BedrockResponse, error)
+	GetModelInfo() BedrockModelInfo
+	IsHealthy() bool
+}
+
 // Supporting types for services
 
 // ReportTemplate represents a template for report generation
@@ -146,4 +153,34 @@ type HookStatus struct {
 	ExecutionCount int64  `json:"execution_count"`
 	SuccessCount   int64  `json:"success_count"`
 	ErrorCount     int64  `json:"error_count"`
+}
+
+// BedrockOptions represents options for Bedrock API calls
+type BedrockOptions struct {
+	ModelID     string  `json:"modelId"`
+	MaxTokens   int     `json:"maxTokens"`
+	Temperature float64 `json:"temperature"`
+	TopP        float64 `json:"topP"`
+}
+
+// BedrockResponse represents the response from Bedrock API
+type BedrockResponse struct {
+	Content   string            `json:"content"`
+	Usage     BedrockUsage      `json:"usage"`
+	Metadata  map[string]string `json:"metadata"`
+}
+
+// BedrockUsage represents token usage information from Bedrock
+type BedrockUsage struct {
+	InputTokens  int `json:"inputTokens"`
+	OutputTokens int `json:"outputTokens"`
+}
+
+// BedrockModelInfo represents information about the Bedrock model
+type BedrockModelInfo struct {
+	ModelID     string `json:"modelId"`
+	ModelName   string `json:"modelName"`
+	Provider    string `json:"provider"`
+	MaxTokens   int    `json:"maxTokens"`
+	IsAvailable bool   `json:"isAvailable"`
 }

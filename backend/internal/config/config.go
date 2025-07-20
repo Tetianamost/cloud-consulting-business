@@ -14,6 +14,16 @@ type Config struct {
 	LogLevel           int
 	GinMode            string
 	CORSAllowedOrigins []string
+	Bedrock            BedrockConfig
+}
+
+// BedrockConfig holds Amazon Bedrock configuration
+type BedrockConfig struct {
+	APIKey    string
+	Region    string
+	ModelID   string
+	BaseURL   string
+	Timeout   int
 }
 
 // Load loads basic configuration from environment variables without validation
@@ -26,6 +36,13 @@ func Load() (*Config, error) {
 		LogLevel:           getEnvAsInt("LOG_LEVEL", 4), // Info level
 		GinMode:            getEnv("GIN_MODE", "debug"),
 		CORSAllowedOrigins: getEnvAsSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+		Bedrock: BedrockConfig{
+			APIKey:  getEnv("AWS_BEARER_TOKEN_BEDROCK", ""),
+			Region:  getEnv("BEDROCK_REGION", "us-east-1"),
+			ModelID: getEnv("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0"),
+			BaseURL: getEnv("BEDROCK_BASE_URL", "https://bedrock-runtime.us-east-1.amazonaws.com"),
+			Timeout: getEnvAsInt("BEDROCK_TIMEOUT_SECONDS", 30),
+		},
 	}
 	
 	return cfg, nil

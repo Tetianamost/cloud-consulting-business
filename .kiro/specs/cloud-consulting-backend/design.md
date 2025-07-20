@@ -62,12 +62,13 @@ The backend follows a layered architecture pattern:
 
 - **Runtime**: Go 1.21+
 - **Web Framework**: Gin (lightweight, high-performance)
-- **Database**: PostgreSQL with GORM ORM
-- **Caching**: Redis for session management and caching
-- **Message Queue**: AWS SQS for async processing
-- **Storage**: AWS S3 for document storage
-- **Monitoring**: Prometheus metrics + CloudWatch
-- **Deployment**: Docker containers on AWS ECS/EKS
+- **AI Service**: Amazon Bedrock Nova model with API key authentication
+- **Database**: PostgreSQL with GORM ORM (future iteration)
+- **Storage**: In-memory storage (current), AWS S3 for document storage (future)
+- **HTTP Client**: Standard Go net/http for Bedrock API calls
+- **Configuration**: Environment variables for API keys and settings
+- **Monitoring**: Basic logging (current), Prometheus metrics + CloudWatch (future)
+- **Deployment**: Local development (current), Docker containers on AWS ECS/EKS (future)
 
 ## Components and Interfaces
 
@@ -135,7 +136,7 @@ type NotificationChannel interface {
 ```
 
 #### 4. Report Generator
-AI-powered draft report generation.
+AI-powered draft report generation using Amazon Bedrock.
 
 ```go
 type ReportGenerator interface {
@@ -144,9 +145,28 @@ type ReportGenerator interface {
     ValidateReport(report *Report) error
 }
 
-type LLMService interface {
-    GenerateText(ctx context.Context, prompt string, options *GenerationOptions) (*GenerationResult, error)
-    GetModelInfo() ModelInfo
+type BedrockService interface {
+    GenerateText(ctx context.Context, prompt string, options *BedrockOptions) (*BedrockResponse, error)
+    GetModelInfo() BedrockModelInfo
+    IsHealthy() bool
+}
+
+type BedrockOptions struct {
+    ModelID     string  `json:"modelId"`
+    MaxTokens   int     `json:"maxTokens"`
+    Temperature float64 `json:"temperature"`
+    TopP        float64 `json:"topP"`
+}
+
+type BedrockResponse struct {
+    Content   string            `json:"content"`
+    Usage     BedrockUsage      `json:"usage"`
+    Metadata  map[string]string `json:"metadata"`
+}
+
+type BedrockUsage struct {
+    InputTokens  int `json:"inputTokens"`
+    OutputTokens int `json:"outputTokens"`
 }
 ```
 
@@ -502,16 +522,88 @@ volumes:
   postgres_data:
 ```
 
+## Amazon Bedrock Integration
+
+### Authentication and Configuration
+
+The system uses Amazon Bedrock API keys for authentication, configured via environment variables:
+
+```go
+type BedrockConfig struct {
+    APIKey    string `env:"AWS_BEARER_TOKEN_BEDROCK,required"`
+    Region    string `env:"BEDROCK_REGION" envDefault:"us-east-1"`
+    ModelID   string `env:"BEDROCK_MODEL_ID" envDefault:"amazon.nova-lite-v1:0"`
+    BaseURL   string `env:"BEDROCK_BASE_URL" envDefault:"https://bedrock-runtime.us-east-1.amazonaws.com"`
+    Timeout   int    `env:"BEDROCK_TIMEOUT_SECONDS" envDefault:"30"`
+}
+```
+
+### Report Generation Flow
+
+```mermaid
+sequenceDiagram
+    participant API as API Handler
+    participant IS as Inquiry Service
+    participant RG as Report Generator
+    participant BR as Bedrock Service
+    participant ST as Storage
+
+    API->>IS: CreateInquiry(request)
+    IS->>ST: Store inquiry
+    IS->>RG: GenerateReport(inquiry)
+    RG->>BR: GenerateText(prompt)
+    BR->>BR: Call Bedrock API
+    BR-->>RG: Return generated text
+    RG->>ST: Store report with inquiry
+    RG-->>IS: Return report
+    IS-->>API: Return inquiry with report
+```
+
+### Prompt Engineering
+
+The system uses structured prompts based on service type:
+
+```go
+func (r *reportGenerator) buildPrompt(inquiry *Inquiry) string {
+    template := `Generate a professional consulting report draft for the following client inquiry:
+
+Client: %s (%s)
+Company: %s
+Services Requested: %s
+Message: %s
+
+Please provide a structured report with:
+1. Executive Summary
+2. Current State Assessment
+3. Recommendations
+4. Next Steps
+
+Keep the tone professional and focus on actionable insights.`
+
+    return fmt.Sprintf(template, 
+        inquiry.Name, 
+        inquiry.Email, 
+        inquiry.Company, 
+        strings.Join(inquiry.Services, ", "), 
+        inquiry.Message)
+}
+```
+
+### Error Handling and Resilience
+
+- **Graceful Degradation**: If Bedrock fails, inquiry is still created without report
+- **Timeout Handling**: 30-second timeout for Bedrock API calls
+- **Retry Logic**: Single retry on network errors
+- **Error Logging**: Detailed logging of Bedrock API failures
+
 ### Security Considerations
 
-1. **Authentication**: JWT tokens with refresh mechanism
-2. **Authorization**: Role-based access control (RBAC)
-3. **Data Encryption**: TLS in transit, AES-256 at rest
-4. **Input Validation**: Comprehensive validation and sanitization
-5. **Rate Limiting**: Per-IP and per-user rate limits
-6. **CORS**: Configured for frontend domain only
-7. **Secrets Management**: AWS Secrets Manager integration
-8. **Audit Logging**: All actions logged with user context
+1. **API Key Security**: Store AWS_BEARER_TOKEN_BEDROCK in environment variables only
+2. **Data Privacy**: Client data sent to Bedrock is not stored by AWS (per Bedrock terms)
+3. **Rate Limiting**: Respect Bedrock API rate limits
+4. **Input Sanitization**: Clean inquiry data before sending to Bedrock
+5. **HTTPS Only**: All Bedrock API calls use HTTPS
+6. **Audit Logging**: Log all Bedrock API calls with inquiry IDs
 
 ### Monitoring and Observability
 

@@ -5,18 +5,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/cloud-consulting/backend/internal/domain"
-	"github.com/cloud-consulting/backend/internal/storage"
+	"github.com/cloud-consulting/backend/internal/interfaces"
 )
 
 // InquiryHandler handles inquiry-related HTTP requests
 type InquiryHandler struct {
-	storage *storage.InMemoryStorage
+	inquiryService interfaces.InquiryService
 }
 
 // NewInquiryHandler creates a new inquiry handler
-func NewInquiryHandler(storage *storage.InMemoryStorage) *InquiryHandler {
+func NewInquiryHandler(inquiryService interfaces.InquiryService) *InquiryHandler {
 	return &InquiryHandler{
-		storage: storage,
+		inquiryService: inquiryService,
 	}
 }
 
@@ -59,7 +59,7 @@ func (h *InquiryHandler) CreateInquiry(c *gin.Context) {
 		}
 	}
 
-	inquiry, err := h.storage.CreateInquiry(&req)
+	inquiry, err := h.inquiryService.CreateInquiry(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -79,7 +79,7 @@ func (h *InquiryHandler) CreateInquiry(c *gin.Context) {
 func (h *InquiryHandler) GetInquiry(c *gin.Context) {
 	id := c.Param("id")
 	
-	inquiry, err := h.storage.GetInquiry(id)
+	inquiry, err := h.inquiryService.GetInquiry(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -104,7 +104,7 @@ func (h *InquiryHandler) GetInquiry(c *gin.Context) {
 
 // ListInquiries handles GET /api/v1/inquiries
 func (h *InquiryHandler) ListInquiries(c *gin.Context) {
-	inquiries, err := h.storage.ListInquiries()
+	inquiries, err := h.inquiryService.ListInquiries(c.Request.Context(), nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,

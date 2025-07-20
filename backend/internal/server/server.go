@@ -10,6 +10,7 @@ import (
 	"github.com/cloud-consulting/backend/internal/config"
 	"github.com/cloud-consulting/backend/internal/domain"
 	"github.com/cloud-consulting/backend/internal/handlers"
+	"github.com/cloud-consulting/backend/internal/services"
 	"github.com/cloud-consulting/backend/internal/storage"
 )
 
@@ -19,6 +20,7 @@ type Server struct {
 	logger         *logrus.Logger
 	router         *gin.Engine
 	inquiryHandler *handlers.InquiryHandler
+	reportHandler  *handlers.ReportHandler
 }
 
 // New creates a new server instance
@@ -33,15 +35,24 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	router.Use(corsMiddleware(cfg.CORSAllowedOrigins))
 	router.Use(loggingMiddleware(logger))
 
-	// Initialize storage and handlers
+	// Initialize storage
 	memStorage := storage.NewInMemoryStorage()
-	inquiryHandler := handlers.NewInquiryHandler(memStorage)
+	
+	// Initialize services
+	bedrockService := services.NewBedrockService(&cfg.Bedrock)
+	reportGenerator := services.NewReportGenerator(bedrockService)
+	inquiryService := services.NewInquiryService(memStorage, reportGenerator)
+	
+	// Initialize handlers
+	inquiryHandler := handlers.NewInquiryHandler(inquiryService)
+	reportHandler := handlers.NewReportHandler(memStorage)
 
 	server := &Server{
 		config:         cfg,
 		logger:         logger,
 		router:         router,
 		inquiryHandler: inquiryHandler,
+		reportHandler:  reportHandler,
 	}
 
 	// Setup routes
@@ -69,6 +80,7 @@ func (s *Server) setupRoutes() {
 			inquiries.POST("", s.inquiryHandler.CreateInquiry)
 			inquiries.GET("/:id", s.inquiryHandler.GetInquiry)
 			inquiries.GET("", s.inquiryHandler.ListInquiries)
+			inquiries.GET("/:id/report", s.reportHandler.GetInquiryReport)
 		}
 
 		// System management routes

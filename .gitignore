@@ -1,0 +1,39 @@
+# Environment files - NEVER commit these!
+.env
+.env.local
+.env.development
+.env.production
+.env.docker
+*.env
+
+# Backend specific
+backend/.env
+backend/.env.*
+backend/server
+
+# Logs
+*.log
+logs/
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+*.exe
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/

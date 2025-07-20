@@ -59,6 +59,60 @@ This implementation plan focuses on creating a minimal, working Go backend that 
   - Verify all endpoints work correctly
   - _Requirements: 5.1, 5.2_
 
+- [x] 10. Add Amazon Bedrock configuration
+  - Add Bedrock configuration struct with environment variable support
+  - Include AWS_BEARER_TOKEN_BEDROCK, region, model ID, and timeout settings
+  - Update config loading to include Bedrock settings with defaults
+  - _Requirements: 2.6_
+
+- [x] 11. Implement Bedrock service interface
+  - Create BedrockService interface with GenerateText method
+  - Implement HTTP client for Bedrock API calls with proper authentication
+  - Add request/response structs for Bedrock API communication
+  - Include timeout handling and basic error handling
+  - _Requirements: 2.2, 2.3_
+
+- [x] 12. Create report generator component
+  - Implement ReportGenerator that uses BedrockService
+  - Build structured prompts based on inquiry service type and content
+  - Handle Bedrock responses and format as plain text reports
+  - Add graceful error handling when Bedrock calls fail
+  - _Requirements: 2.1, 2.4, 2.5_
+
+- [x] 13. Update data models for reports
+  - Add Report struct with ID, InquiryID, content, status, and timestamps
+  - Modify Inquiry struct to include optional Reports field
+  - Update in-memory storage to handle inquiry-report relationships
+  - _Requirements: 2.4_
+
+- [x] 14. Integrate report generation into inquiry creation
+  - Modify inquiry creation endpoint to trigger report generation
+  - Call report generator after successfully storing inquiry
+  - Store generated report with inquiry in memory storage
+  - Ensure inquiry creation succeeds even if report generation fails
+  - _Requirements: 2.1, 2.5_
+
+- [x] 15. Add report retrieval endpoint
+  - Implement GET /api/v1/inquiries/{id}/report endpoint
+  - Return generated report content for specific inquiry
+  - Handle cases where no report exists yet
+  - _Requirements: 2.4_
+
+- [ ] 16. Update API documentation
+  - Document new Bedrock integration in README.md
+  - Add environment variable setup instructions for AWS_BEARER_TOKEN_BEDROCK
+  - Include examples of inquiry creation with report generation
+  - Document new report retrieval endpoint
+  - _Requirements: 8.1, 8.2_
+
+- [ ] 17. Test Bedrock integration end-to-end
+  - Set up Bedrock API key in environment
+  - Create test inquiry and verify report generation
+  - Test error scenarios (invalid API key, network issues)
+  - Verify inquiry creation works when Bedrock fails
+  - Test report retrieval endpoint
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+
 ## Future Iterations (Not in this implementation)
 
 The following features will be added in subsequent iterations:
