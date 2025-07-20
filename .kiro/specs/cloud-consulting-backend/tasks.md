@@ -45,13 +45,13 @@ This implementation plan focuses on creating a minimal, working Go backend that 
   - Format response for frontend consumption
   - _Requirements: 1.2_
 
-- [ ] 8. Create basic documentation
+- [x] 8. Create basic documentation
   - Add README.md with setup and usage instructions
   - Document available API endpoints with examples
   - Include curl commands for testing endpoints
   - _Requirements: 8.1, 8.2_
 
-- [ ] 9. Test the complete flow
+- [x] 9. Test the complete flow
   - Start the server locally
   - Test health check endpoint
   - Create sample inquiry via POST endpoint
