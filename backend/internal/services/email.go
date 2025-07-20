@@ -3,8 +3,11 @@ package services
 import (
 	"context"
 	"fmt"
+	"html"
+	"regexp"
 	"strings"
 
+	"github.com/russross/blackfriday/v2"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cloud-consulting/backend/internal/domain"
@@ -247,6 +250,45 @@ func (e *emailService) detectHighPriority(message string) bool {
 	return false
 }
 
+// convertMarkdownToHTML converts Markdown text to HTML
+func (e *emailService) convertMarkdownToHTML(markdown string) string {
+	// Configure Blackfriday with safe HTML rendering
+	renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
+		Flags: blackfriday.CommonHTMLFlags | blackfriday.HTMLFlagsNone,
+	})
+	
+	extensions := blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs
+	
+	// Convert markdown to HTML
+	htmlBytes := blackfriday.Run([]byte(markdown), blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(extensions))
+	
+	return string(htmlBytes)
+}
+
+// sanitizeMarkdownForPlainText cleans up markdown for plain text display
+func (e *emailService) sanitizeMarkdownForPlainText(markdown string) string {
+	// Remove markdown formatting for plain text
+	text := markdown
+	
+	// Remove markdown headers
+	text = regexp.MustCompile(`#{1,6}\s*`).ReplaceAllString(text, "")
+	
+	// Remove bold/italic markers
+	text = regexp.MustCompile(`\*\*([^*]+)\*\*`).ReplaceAllString(text, "$1")
+	text = regexp.MustCompile(`\*([^*]+)\*`).ReplaceAllString(text, "$1")
+	text = regexp.MustCompile(`__([^_]+)__`).ReplaceAllString(text, "$1")
+	text = regexp.MustCompile(`_([^_]+)_`).ReplaceAllString(text, "$1")
+	
+	// Remove markdown links, keep just the text
+	text = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`).ReplaceAllString(text, "$1")
+	
+	// Clean up extra whitespace
+	text = regexp.MustCompile(`\n\s*\n`).ReplaceAllString(text, "\n\n")
+	text = strings.TrimSpace(text)
+	
+	return text
+}
+
 // buildReportEmailText creates the plain text version of the report email
 func (e *emailService) buildReportEmailText(inquiry *domain.Inquiry, report *domain.Report) string {
 	var builder strings.Builder
@@ -278,7 +320,7 @@ func (e *emailService) buildReportEmailText(inquiry *domain.Inquiry, report *dom
 	
 	builder.WriteString("📋 GENERATED REPORT\n")
 	builder.WriteString("===================\n")
-	builder.WriteString(fmt.Sprintf("%s\n\n", report.Content))
+	builder.WriteString(fmt.Sprintf("%s\n\n", e.sanitizeMarkdownForPlainText(report.Content)))
 	
 	builder.WriteString("📌 ACTION REQUIRED\n")
 	builder.WriteString("==================\n")
@@ -387,6 +429,46 @@ func (e *emailService) buildReportEmailHTML(inquiry *domain.Inquiry, report *dom
             font-size: 14px;
             line-height: 1.4;
         }
+        .report-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            line-height: 1.6;
+        }
+        .report-content h1, .report-content h2, .report-content h3, .report-content h4 {
+            color: #007cba;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        .report-content h1 { font-size: 24px; border-bottom: 2px solid #007cba; padding-bottom: 10px; }
+        .report-content h2 { font-size: 20px; border-bottom: 1px solid #e9ecef; padding-bottom: 8px; }
+        .report-content h3 { font-size: 18px; }
+        .report-content h4 { font-size: 16px; }
+        .report-content p { margin: 12px 0; }
+        .report-content ul, .report-content ol { margin: 12px 0; padding-left: 25px; }
+        .report-content li { margin: 6px 0; }
+        .report-content strong { color: #007cba; font-weight: 600; }
+        .report-content em { font-style: italic; color: #666; }
+        .report-content blockquote {
+            border-left: 4px solid #007cba;
+            margin: 15px 0;
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            font-style: italic;
+        }
+        .report-content code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .report-content hr {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 25px 0;
+        }
         h2, h3 { color: #007cba; margin-top: 0; }
         .message-box {
             background-color: white;
@@ -428,7 +510,7 @@ func (e *emailService) buildReportEmailHTML(inquiry *domain.Inquiry, report *dom
             
             <div class="report-section">
                 <h3>📋 Generated Report</h3>
-                <pre>%s</pre>
+                <div class="report-content">%s</div>
             </div>
             
             <div style="background-color: %s; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -445,15 +527,15 @@ func (e *emailService) buildReportEmailHTML(inquiry *domain.Inquiry, report *dom
 		headerStyle,
 		headerTitle,
 		priorityAlert,
-		inquiry.Name,
-		inquiry.Email,
-		inquiry.Company,
-		inquiry.Phone,
-		strings.Join(inquiry.Services, ", "),
+		html.EscapeString(inquiry.Name),
+		html.EscapeString(inquiry.Email),
+		html.EscapeString(inquiry.Company),
+		html.EscapeString(inquiry.Phone),
+		html.EscapeString(strings.Join(inquiry.Services, ", ")),
 		inquiry.ID,
 		report.ID,
-		inquiry.Message,
-		report.Content,
+		html.EscapeString(inquiry.Message),
+		e.convertMarkdownToHTML(report.Content),
 		func() string {
 			if isHighPriority {
 				return "#f8d7da"
@@ -536,13 +618,13 @@ func (e *emailService) buildInquiryEmailHTML(inquiry *domain.Inquiry) string {
     </div>
 </body>
 </html>`,
-		inquiry.Name,
-		inquiry.Email,
-		inquiry.Company,
-		inquiry.Phone,
-		strings.Join(inquiry.Services, ", "),
+		html.EscapeString(inquiry.Name),
+		html.EscapeString(inquiry.Email),
+		html.EscapeString(inquiry.Company),
+		html.EscapeString(inquiry.Phone),
+		html.EscapeString(strings.Join(inquiry.Services, ", ")),
 		inquiry.ID,
-		inquiry.Message)
+		html.EscapeString(inquiry.Message))
 }
 
 // buildCustomerConfirmationText creates the plain text version of the customer confirmation email
@@ -692,8 +774,8 @@ func (e *emailService) buildCustomerConfirmationHTML(inquiry *domain.Inquiry) st
     </div>
 </body>
 </html>`,
-		inquiry.Name,
-		strings.Join(inquiry.Services, ", "),
-		inquiry.Company,
+		html.EscapeString(inquiry.Name),
+		html.EscapeString(strings.Join(inquiry.Services, ", ")),
+		html.EscapeString(inquiry.Company),
 		inquiry.ID)
 }
