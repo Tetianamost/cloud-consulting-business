@@ -1,174 +1,285 @@
-# API Documentation
-
-This directory contains API documentation for the Cloud Consulting Backend.
+# Cloud Consulting Backend API Documentation
 
 ## Overview
 
-The API follows RESTful conventions and returns JSON responses. All endpoints use standard HTTP status codes and include comprehensive error handling.
+The Cloud Consulting Backend provides RESTful APIs for managing service inquiries from potential clients. The system accepts inquiries, categorizes them by service type, and stores them for consultant review.
 
 ## Base URL
 
-- Development: `http://localhost:8080`
-- Production: `https://api.your-domain.com`
+- **Local Development**: `http://localhost:8061`
+- **Production**: TBD
 
 ## Authentication
 
-Authentication is optional and can be enabled via the `ENABLE_AUTHENTICATION` environment variable. When enabled, endpoints require a valid JWT token in the Authorization header:
+Currently, the API does not require authentication for inquiry submission endpoints.
 
+## API Endpoints
+
+### Health Check
+
+#### GET /health
+
+Returns the health status of the service.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "service": "cloud-consulting-backend",
+  "version": "1.0.0",
+  "time": "2025-07-19T18:18:35Z"
+}
 ```
-Authorization: Bearer <jwt-token>
+
+### Service Configuration
+
+#### GET /api/v1/config/services
+
+Returns available service types and their descriptions.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "services": [
+      {
+        "id": "assessment",
+        "name": "Cloud Assessment",
+        "description": "Comprehensive evaluation of your current cloud infrastructure, security posture, and optimization opportunities"
+      },
+      {
+        "id": "migration",
+        "name": "Cloud Migration",
+        "description": "Strategic planning and execution support for migrating workloads to the cloud"
+      },
+      {
+        "id": "optimization",
+        "name": "Cloud Optimization",
+        "description": "Performance tuning, cost optimization, and efficiency improvements for existing cloud deployments"
+      },
+      {
+        "id": "architecture_review",
+        "name": "Architecture Review",
+        "description": "Expert review of cloud architecture designs for scalability, security, and best practices compliance"
+      }
+    ]
+  }
+}
 ```
 
-## Rate Limiting
+### Inquiries
 
-API requests are rate-limited to prevent abuse:
-- Default: 100 requests per second per IP
-- Burst: 200 requests
-- Configurable via `RATE_LIMIT_RPS` and `RATE_LIMIT_BURST`
+#### POST /api/v1/inquiries
 
-## Response Format
+Creates a new service inquiry.
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "company": "Test Company",
+  "phone": "+1-555-123-4567",
+  "services": ["assessment", "migration"],
+  "message": "I need help with cloud migration planning.",
+  "source": "contact_form"
+}
+```
+
+**Required Fields:**
+- `name` (string): Client's full name
+- `email` (string): Valid email address
+- `services` (array): Array of service IDs (must be valid service types)
+- `message` (string): Inquiry message
+
+**Optional Fields:**
+- `company` (string): Company name
+- `phone` (string): Phone number
+- `source` (string): Source of the inquiry (e.g., "contact_form", "quote_request")
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "a485bdeb-446f-4a45-b401-a369ce3a5318",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "company": "Test Company",
+    "phone": "+1-555-123-4567",
+    "services": ["assessment", "migration"],
+    "message": "I need help with cloud migration planning.",
+    "status": "pending",
+    "priority": "medium",
+    "source": "contact_form",
+    "created_at": "2025-07-19T18:19:28.009554-06:00",
+    "updated_at": "2025-07-19T18:19:28.009554-06:00"
+  },
+  "message": "Inquiry created successfully"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": "At least one service must be selected"
+}
+```
+
+#### GET /api/v1/inquiries/{id}
+
+Retrieves a specific inquiry by ID.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "a485bdeb-446f-4a45-b401-a369ce3a5318",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "company": "Test Company",
+    "phone": "+1-555-123-4567",
+    "services": ["assessment", "migration"],
+    "message": "I need help with cloud migration planning.",
+    "status": "pending",
+    "priority": "medium",
+    "source": "contact_form",
+    "created_at": "2025-07-19T18:19:28.009554-06:00",
+    "updated_at": "2025-07-19T18:19:28.009554-06:00"
+  }
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "error": "Inquiry not found"
+}
+```
+
+#### GET /api/v1/inquiries
+
+Retrieves all inquiries.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "a485bdeb-446f-4a45-b401-a369ce3a5318",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "company": "Test Company",
+      "phone": "+1-555-123-4567",
+      "services": ["assessment", "migration"],
+      "message": "I need help with cloud migration planning.",
+      "status": "pending",
+      "priority": "medium",
+      "source": "contact_form",
+      "created_at": "2025-07-19T18:19:28.009554-06:00",
+      "updated_at": "2025-07-19T18:19:28.009554-06:00"
+    }
+  ],
+  "count": 1
+}
+```
+
+## Service Types
+
+The following service types are currently supported:
+
+- **assessment**: Cloud Assessment
+- **migration**: Cloud Migration  
+- **optimization**: Cloud Optimization
+- **architecture_review**: Architecture Review
+
+## Error Handling
 
 All API responses follow a consistent format:
 
-### Success Response
+**Success Response:**
 ```json
 {
   "success": true,
   "data": { ... },
-  "message": "Operation completed successfully",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "trace_id": "abc123"
+  "message": "Optional success message"
 }
 ```
 
-### Error Response
+**Error Response:**
 ```json
 {
   "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Validation failed",
-    "details": "Email is required",
-    "trace_id": "abc123",
-    "timestamp": "2024-01-15T10:30:00Z"
-  },
-  "timestamp": "2024-01-15T10:30:00Z",
-  "trace_id": "abc123"
+  "error": "Error description"
 }
 ```
 
-### Paginated Response
-```json
-{
-  "success": true,
-  "data": [...],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 100,
-    "total_pages": 5,
-    "has_next": true,
-    "has_prev": false
-  },
-  "timestamp": "2024-01-15T10:30:00Z"
-}
+## CORS Configuration
+
+The API is configured to accept requests from:
+- `http://localhost:3000` (React development server)
+- `http://localhost:3001` (Alternative development port)
+
+## Testing Examples
+
+### Using curl
+
+**Health Check:**
+```bash
+curl -X GET http://localhost:8061/health
 ```
 
-## Error Codes
-
-| Code | Description |
-|------|-------------|
-| `VALIDATION_ERROR` | Request validation failed |
-| `NOT_FOUND` | Resource not found |
-| `UNAUTHORIZED` | Authentication required |
-| `FORBIDDEN` | Insufficient permissions |
-| `CONFLICT` | Resource conflict |
-| `RATE_LIMIT_EXCEEDED` | Rate limit exceeded |
-| `INTERNAL_ERROR` | Internal server error |
-| `SERVICE_UNAVAILABLE` | Service temporarily unavailable |
-| `TIMEOUT` | Request timeout |
-| `BAD_REQUEST` | Invalid request |
-
-## Endpoints
-
-### Health Check
-- [GET /health](endpoints/health.md) - System health status
-
-### Inquiries
-- [POST /api/v1/inquiries](endpoints/inquiries.md#create-inquiry) - Create new inquiry
-- [GET /api/v1/inquiries/{id}](endpoints/inquiries.md#get-inquiry) - Get inquiry details
-- [GET /api/v1/inquiries](endpoints/inquiries.md#list-inquiries) - List inquiries
-- [PUT /api/v1/inquiries/{id}/status](endpoints/inquiries.md#update-status) - Update inquiry status
-- [GET /api/v1/inquiries/{id}/report](endpoints/inquiries.md#get-report) - Get generated report
-
-### System Management
-- [GET /api/v1/metrics](endpoints/system.md#metrics) - Prometheus metrics
-- [POST /api/v1/hooks/trigger](endpoints/system.md#trigger-hook) - Manual hook trigger
-- [GET /api/v1/hooks](endpoints/system.md#list-hooks) - List active hooks
-- [GET /api/v1/config/services](endpoints/system.md#service-config) - Get service configuration
-
-## Data Models
-
-### Inquiry
-```json
-{
-  "id": "uuid",
-  "name": "John Doe",
-  "email": "john@example.com",
-  "company": "Acme Corp",
-  "phone": "+1-555-0123",
-  "services": ["assessment", "migration"],
-  "message": "We need help with our cloud migration",
-  "status": "pending",
-  "priority": "medium",
-  "source": "website",
-  "utm_params": {
-    "utm_source": "google",
-    "utm_medium": "cpc"
-  },
-  "assigned_to": "consultant-id",
-  "created_at": "2024-01-15T10:30:00Z",
-  "updated_at": "2024-01-15T10:30:00Z"
-}
+**Get Service Configuration:**
+```bash
+curl -X GET http://localhost:8061/api/v1/config/services
 ```
 
-### Report
-```json
-{
-  "id": "uuid",
-  "inquiry_id": "uuid",
-  "type": "draft",
-  "title": "Cloud Assessment Report",
-  "content": "Report content...",
-  "status": "draft",
-  "generated_by": "ai-agent",
-  "reviewed_by": "consultant-id",
-  "s3_key": "reports/uuid.pdf",
-  "metadata": {
-    "word_count": 1500,
-    "generation_time": 30
-  },
-  "created_at": "2024-01-15T10:30:00Z",
-  "updated_at": "2024-01-15T10:30:00Z"
-}
+**Create Inquiry:**
+```bash
+curl -X POST http://localhost:8061/api/v1/inquiries \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "services": ["assessment"],
+    "message": "I need a cloud assessment."
+  }'
 ```
 
-### Activity
-```json
-{
-  "id": "uuid",
-  "inquiry_id": "uuid",
-  "type": "inquiry_created",
-  "description": "New inquiry received from John Doe",
-  "actor": "system",
-  "metadata": {
-    "ip_address": "192.168.1.1",
-    "user_agent": "Mozilla/5.0..."
-  },
-  "created_at": "2024-01-15T10:30:00Z"
-}
+**Get All Inquiries:**
+```bash
+curl -X GET http://localhost:8061/api/v1/inquiries
 ```
 
-## Testing
+## Frontend Integration
 
-Use the provided Postman collection or curl commands to test the API endpoints. Examples are provided in each endpoint documentation file.
+The frontend uses the `/src/services/api.ts` service to communicate with the backend:
+
+```typescript
+import { apiService } from '../services/api';
+
+// Create an inquiry
+const response = await apiService.createInquiry({
+  name: 'John Doe',
+  email: 'john@example.com',
+  services: ['assessment'],
+  message: 'I need help with cloud migration.'
+});
+```
+
+## Status Codes
+
+- **200 OK**: Successful GET requests
+- **201 Created**: Successful POST requests (inquiry creation)
+- **400 Bad Request**: Invalid request data or validation errors
+- **404 Not Found**: Resource not found
+- **500 Internal Server Error**: Server-side errors
+
+## Data Storage
+
+Currently using in-memory storage for development. Data will be lost when the server restarts. Production deployment will use PostgreSQL database.
