@@ -7,6 +7,7 @@ import { theme } from '../../../styles/theme';
 import Button from '../../ui/Button';
 import { FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
+import { apiService, CreateInquiryRequest } from '../../../services/api';
 
 // Fixed icon components
 const CheckCircleIcon = () => <Icon icon={FiCheckCircle} size={16} />;
@@ -216,10 +217,8 @@ const validationSchema = Yup.object().shape({
 const serviceOptions = [
   { id: 'assessment', label: 'Cloud Assessment' },
   { id: 'migration', label: 'Cloud Migration' },
-  { id: 'optimization', label: 'Cost Optimization' },
-  { id: 'architecture', label: 'Architecture Design' },
-  { id: 'security', label: 'Security & Compliance' },
-  { id: 'support', label: 'Managed Services' },
+  { id: 'optimization', label: 'Cloud Optimization' },
+  { id: 'architecture_review', label: 'Architecture Review' },
 ];
 
 // Animation variants
@@ -257,40 +256,24 @@ const ContactForm: React.FC = () => {
     values: FormValues,
     { setSubmitting, resetForm }: FormikHelpers<FormValues>
   ) => {
-    // Sanitize input data
-    const sanitizedName = values.name.trim();
-    const sanitizedEmail = values.email.trim();
-    const sanitizedCompany = values.company.trim();
-    const sanitizedPhone = values.phone.trim();
-    const sanitizedMessage = values.message.trim();
-    
-    // Format services as a comma-separated string
-    const selectedServices = values.services.map(service => {
-      const serviceOption = serviceOptions.find(option => option.id === service);
-      return serviceOption ? serviceOption.label : service;
-    }).join(', ');
-    
-    // Prepare form data for Netlify
-    const formData = new FormData();
-    formData.append('form-name', 'contact-form');
-    formData.append('name', sanitizedName);
-    formData.append('email', sanitizedEmail);
-    formData.append('company', sanitizedCompany || 'Independent/Individual');
-    formData.append('phone', sanitizedPhone || 'Not provided');
-    formData.append('services', selectedServices);
-    formData.append('message', sanitizedMessage);
-    
     try {
-      const response = await fetch('/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(formData as any).toString()
-      });
+      // Prepare data for backend API
+      const inquiryData: CreateInquiryRequest = {
+        name: values.name.trim(),
+        email: values.email.trim(),
+        company: values.company.trim() || undefined,
+        phone: values.phone.trim() || undefined,
+        services: values.services, // Send as array of service IDs
+        message: values.message.trim(),
+        source: 'contact_form'
+      };
       
-      if (response.ok) {
-        console.log('Contact form submitted successfully!');
+      // Submit to backend API
+      const response = await apiService.createInquiry(inquiryData);
+      
+      if (response.success) {
+        console.log('Contact form submitted successfully!', response.data);
         setFormState('success');
-        setSubmitting(false);
         resetForm();
         
         // Reset success message after 5 seconds
@@ -298,17 +281,18 @@ const ContactForm: React.FC = () => {
           setFormState('idle');
         }, 5000);
       } else {
-        throw new Error('Form submission failed');
+        throw new Error(response.error || 'Form submission failed');
       }
     } catch (error) {
       console.error('Failed to submit form:', error);
       setFormState('error');
-      setSubmitting(false);
       
       // Reset error message after 5 seconds
       setTimeout(() => {
         setFormState('idle');
       }, 5000);
+    } finally {
+      setSubmitting(false);
     }
   };
   
@@ -322,13 +306,7 @@ const ContactForm: React.FC = () => {
         onSubmit={handleSubmit}
       >
         {({ isSubmitting, errors, touched }) => (
-          <Form data-netlify="true" data-netlify-honeypot="bot-field" method="POST" name="contact-form">
-            <input type="hidden" name="form-name" value="contact-form" />
-            <div style={{ display: 'none' }}>
-              <label>
-                Don't fill this out if you're human: <input name="bot-field" />
-              </label>
-            </div>
+          <Form>
             <FieldRow>
               <FormGroup>
                 <Label htmlFor="name">Full Name *</Label>
@@ -464,7 +442,7 @@ const ContactForm: React.FC = () => {
             viewport={{ once: true }}
           >
             <CheckCircleIcon />
-            <div>Your message has been sent successfully. We'll get back to you as soon as possible!</div>
+            <div>Your inquiry has been submitted successfully! We'll get back to you as soon as possible.</div>
           </FormMessage>
         )}
         
@@ -477,7 +455,7 @@ const ContactForm: React.FC = () => {
             viewport={{ once: true }}
           >
             <Icon icon={FiAlertCircle} size={24} />
-            <div>There was an error sending your message. Please try again later or email us directly at info@cloudpartner.pro</div>
+            <div>There was an error submitting your inquiry. Please try again later or email us directly at info@cloudpartner.pro</div>
           </FormMessage>
         )}
       </AnimatePresence>

@@ -5,6 +5,7 @@ import { theme } from '../../../styles/theme';
 import Button from '../../ui/Button';
 import { FiInfo, FiCheckCircle, FiX, FiMail, FiUser, FiPhone, FiBriefcase, FiAlertCircle } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
+import { apiService, CreateInquiryRequest } from '../../../services/api';
 
 const CalculatorContainer = styled(motion.div)`
   background-color: white;
@@ -443,7 +444,7 @@ const serviceTypes = [
     pricePerServer: 150,
   },
   {
-    id: 'architecture',
+    id: 'architecture_review',
     title: 'Cloud Architecture Review',
     description: 'Expert review of existing or planned cloud architecture',
     basePrice: 600,
@@ -640,38 +641,38 @@ const PricingCalculator: React.FC = () => {
   const sendEmail = async () => {
     setIsSubmitting(true);
     
-    // Sanitize input data
-    const sanitizedName = name.trim();
-    const sanitizedEmail = email.trim();
-    const sanitizedPhone = phone.trim();
-    const sanitizedCompany = company.trim();
-    const sanitizedRequirements = requirements.trim();
-    
-    // Prepare form data for Netlify
-    const formData = new FormData();
-    formData.append('form-name', 'quote-request-form');
-    formData.append('name', sanitizedName);
-    formData.append('email', sanitizedEmail);
-    formData.append('phone', sanitizedPhone || 'Not provided');
-    formData.append('company', sanitizedCompany || 'Independent/Individual');
-    formData.append('serviceType', selectedService.title);
-    formData.append('complexity', selectedComplexity.title);
-    formData.append('count', String(count));
-    formData.append('basePrice', basePrice.toLocaleString());
-    formData.append('variablePrice', variablePrice.toLocaleString());
-    formData.append('complexityMultiplier', String(complexityMultiplier));
-    formData.append('totalEstimate', totalEstimate.toLocaleString());
-    formData.append('requirements', sanitizedRequirements || 'No additional requirements specified.');
-    
     try {
-      const response = await fetch('/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(formData as any).toString()
-      });
+      // Prepare detailed message with quote information
+      const quoteDetails = `
+Quote Request Details:
+- Service: ${selectedService.title}
+- Complexity: ${selectedComplexity.title}
+- ${serviceType === 'optimization' ? 'Hours' : 'Servers/Applications'}: ${count}
+- Base Fee: $${basePrice.toLocaleString()}
+- ${serviceType === 'optimization' ? 'Hourly Rate Cost' : 'Per-Server/App Cost'}: $${variablePrice.toLocaleString()}
+- Complexity Multiplier: ${complexityMultiplier}x
+- Total Estimate: $${totalEstimate.toLocaleString()}
+
+Additional Requirements:
+${requirements.trim() || 'No additional requirements specified.'}
+      `.trim();
+
+      // Prepare data for backend API
+      const inquiryData: CreateInquiryRequest = {
+        name: name.trim(),
+        email: email.trim(),
+        company: company.trim() || undefined,
+        phone: phone.trim() || undefined,
+        services: [serviceType], // Send the selected service type
+        message: quoteDetails,
+        source: 'quote_request'
+      };
       
-      if (response.ok) {
-        console.log('Quote request submitted successfully!');
+      // Submit to backend API
+      const response = await apiService.createInquiry(inquiryData);
+      
+      if (response.success) {
+        console.log('Quote request submitted successfully!', response.data);
         // Reset form and close modal
         setName('');
         setEmail('');
@@ -680,7 +681,6 @@ const PricingCalculator: React.FC = () => {
         setRequirements('');
         setErrors({});
         setEmailError(null);
-        setIsSubmitting(false);
         setIsModalOpen(false);
         // Show success message
         setSuccess(true);
@@ -688,11 +688,10 @@ const PricingCalculator: React.FC = () => {
           setSuccess(false);
         }, 5000);
       } else {
-        throw new Error('Form submission failed');
+        throw new Error(response.error || 'Form submission failed');
       }
     } catch (error) {
       console.error('Failed to submit form:', error);
-      setIsSubmitting(false);
       // Set appropriate error message
       let errorMessage = "Failed to send your request. Please try again or contact us directly.";
       // Display error to user
@@ -701,6 +700,8 @@ const PricingCalculator: React.FC = () => {
       setTimeout(() => {
         setEmailError(null);
       }, 8000);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -881,22 +882,7 @@ const PricingCalculator: React.FC = () => {
               </ModalHeader>
               
               <ModalBody>
-                <form data-netlify="true" data-netlify-honeypot="bot-field" method="POST" name="quote-request-form" style={{ display: 'none' }}>
-                  <input type="hidden" name="form-name" value="quote-request-form" />
-                  <input name="bot-field" />
-                  <input name="name" />
-                  <input name="email" />
-                  <input name="phone" />
-                  <input name="company" />
-                  <input name="serviceType" />
-                  <input name="complexity" />
-                  <input name="count" />
-                  <input name="basePrice" />
-                  <input name="variablePrice" />
-                  <input name="complexityMultiplier" />
-                  <input name="totalEstimate" />
-                  <textarea name="requirements"></textarea>
-                </form>
+
                 
                 <AnimatePresence>
                   {emailError && (
