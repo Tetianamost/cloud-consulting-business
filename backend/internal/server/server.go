@@ -10,6 +10,7 @@ import (
 	"github.com/cloud-consulting/backend/internal/config"
 	"github.com/cloud-consulting/backend/internal/domain"
 	"github.com/cloud-consulting/backend/internal/handlers"
+	"github.com/cloud-consulting/backend/internal/interfaces"
 	"github.com/cloud-consulting/backend/internal/services"
 	"github.com/cloud-consulting/backend/internal/storage"
 )
@@ -41,7 +42,22 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	// Initialize services
 	bedrockService := services.NewBedrockService(&cfg.Bedrock)
 	reportGenerator := services.NewReportGenerator(bedrockService)
-	inquiryService := services.NewInquiryService(memStorage, reportGenerator)
+	
+	// Initialize email services (with graceful degradation if SES config is missing)
+	var emailService interfaces.EmailService
+	if cfg.SES.AccessKeyID != "" && cfg.SES.SecretAccessKey != "" && cfg.SES.SenderEmail != "" {
+		sesService, err := services.NewSESService(cfg.SES, logger)
+		if err != nil {
+			logger.WithError(err).Warn("Failed to initialize SES service, email notifications will be disabled")
+		} else {
+			emailService = services.NewEmailService(sesService, cfg.SES, logger)
+			logger.Info("Email service initialized successfully")
+		}
+	} else {
+		logger.Warn("SES configuration incomplete, email notifications will be disabled")
+	}
+	
+	inquiryService := services.NewInquiryService(memStorage, reportGenerator, emailService)
 	
 	// Initialize handlers
 	inquiryHandler := handlers.NewInquiryHandler(inquiryService)

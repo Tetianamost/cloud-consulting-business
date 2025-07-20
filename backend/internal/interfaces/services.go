@@ -59,6 +59,21 @@ type BedrockService interface {
 	IsHealthy() bool
 }
 
+// EmailService defines the interface for email notifications
+type EmailService interface {
+	SendReportEmail(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report) error
+	SendInquiryNotification(ctx context.Context, inquiry *domain.Inquiry) error
+	SendCustomerConfirmation(ctx context.Context, inquiry *domain.Inquiry) error
+	IsHealthy() bool
+}
+
+// SESService defines the interface for AWS SES integration
+type SESService interface {
+	SendEmail(ctx context.Context, email *EmailMessage) error
+	VerifyEmailAddress(ctx context.Context, email string) error
+	GetSendingQuota(ctx context.Context) (*SendingQuota, error)
+}
+
 // Supporting types for services
 
 // ReportTemplate represents a template for report generation
@@ -183,4 +198,21 @@ type BedrockModelInfo struct {
 	Provider    string `json:"provider"`
 	MaxTokens   int    `json:"maxTokens"`
 	IsAvailable bool   `json:"isAvailable"`
+}
+
+// EmailMessage represents an email message to be sent
+type EmailMessage struct {
+	From        string   `json:"from"`
+	To          []string `json:"to"`
+	Subject     string   `json:"subject"`
+	TextBody    string   `json:"text_body"`
+	HTMLBody    string   `json:"html_body,omitempty"`
+	ReplyTo     string   `json:"reply_to,omitempty"`
+}
+
+// SendingQuota represents AWS SES sending quota information
+type SendingQuota struct {
+	Max24HourSend   float64 `json:"max_24_hour_send"`
+	MaxSendRate     float64 `json:"max_send_rate"`
+	SentLast24Hours float64 `json:"sent_last_24_hours"`
 }

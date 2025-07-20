@@ -113,6 +113,47 @@ This implementation plan focuses on creating a minimal, working Go backend that 
   - Test report retrieval endpoint
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
+- [ ] 18. Add AWS SES configuration
+  - Add SES configuration struct with environment variable support
+  - Include AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, region, and sender email settings
+  - Update config loading to include SES settings with validation
+  - _Requirements: 3.3, 3.6_
+
+- [ ] 19. Implement SES service interface
+  - Create SESService interface with SendEmail method
+  - Implement AWS SDK v2 client for SES API calls with proper authentication
+  - Add request/response structs for SES API communication
+  - Include timeout handling and basic error handling
+  - _Requirements: 3.3_
+
+- [ ] 20. Create email service component
+  - Implement EmailService that uses SESService
+  - Build HTML and text email templates for report notifications
+  - Format inquiry and report data into professional email content
+  - Add graceful error handling when SES calls fail
+  - _Requirements: 3.1, 3.2, 3.5_
+
+- [ ] 21. Integrate email notifications into inquiry flow
+  - Modify inquiry creation endpoint to trigger email notifications
+  - Send email after successfully generating report
+  - Ensure inquiry creation succeeds even if email sending fails
+  - Log email sending attempts and failures
+  - _Requirements: 3.1, 3.2, 3.4_
+
+- [ ] 22. Update environment configuration
+  - Add SES environment variables to .env.example
+  - Document required AWS SES setup and verification steps
+  - Include sender email verification requirements
+  - _Requirements: 3.6_
+
+- [ ] 23. Test email integration end-to-end
+  - Set up AWS SES credentials and verify sender email
+  - Create test inquiry and verify email delivery
+  - Test error scenarios (invalid credentials, unverified sender)
+  - Verify inquiry creation works when email fails
+  - Test email content formatting and delivery
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
 ## Future Iterations (Not in this implementation)
 
 The following features will be added in subsequent iterations:

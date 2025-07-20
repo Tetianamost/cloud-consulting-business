@@ -15,6 +15,7 @@ type Config struct {
 	GinMode            string
 	CORSAllowedOrigins []string
 	Bedrock            BedrockConfig
+	SES                SESConfig
 }
 
 // BedrockConfig holds Amazon Bedrock configuration
@@ -24,6 +25,16 @@ type BedrockConfig struct {
 	ModelID   string
 	BaseURL   string
 	Timeout   int
+}
+
+// SESConfig holds AWS SES configuration
+type SESConfig struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	Region          string
+	SenderEmail     string
+	ReplyToEmail    string
+	Timeout         int
 }
 
 // Load loads basic configuration from environment variables without validation
@@ -42,6 +53,14 @@ func Load() (*Config, error) {
 			ModelID: getEnv("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0"),
 			BaseURL: getEnv("BEDROCK_BASE_URL", "https://bedrock-runtime.us-east-1.amazonaws.com"),
 			Timeout: getEnvAsInt("BEDROCK_TIMEOUT_SECONDS", 30),
+		},
+		SES: SESConfig{
+			AccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", ""),
+			SecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
+			Region:          getEnv("AWS_SES_REGION", "us-east-1"),
+			SenderEmail:     getEnv("SES_SENDER_EMAIL", ""),
+			ReplyToEmail:    getEnv("SES_REPLY_TO_EMAIL", ""),
+			Timeout:         getEnvAsInt("SES_TIMEOUT_SECONDS", 30),
 		},
 	}
 	

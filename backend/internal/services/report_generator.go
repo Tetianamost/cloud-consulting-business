@@ -65,14 +65,22 @@ func (r *reportGenerator) buildPrompt(inquiry *domain.Inquiry) string {
 
 Client: %s (%s)
 Company: %s
+Phone: %s
 Services Requested: %s
 Message: %s
+
+PRIORITY ANALYSIS: Carefully analyze the client's message for urgency indicators and meeting requests. Look for:
+- Time-sensitive language: "urgent", "ASAP", "immediately", "today", "tomorrow", "this week"
+- Meeting requests: "schedule", "meeting", "call", "discuss", "talk", "available"
+- Specific dates/times mentioned
+- Business impact language: "critical", "blocking", "emergency", "deadline"
 
 Please provide a structured report with the following sections:
 
 1. EXECUTIVE SUMMARY
    - Brief overview of the client's needs
    - Key recommendations summary
+   - **PRIORITY LEVEL**: If urgent language or immediate meeting requests are detected, clearly mark as "HIGH PRIORITY" and explain why
 
 2. CURRENT STATE ASSESSMENT
    - Analysis of the client's current situation based on their inquiry
@@ -85,6 +93,22 @@ Please provide a structured report with the following sections:
 4. NEXT STEPS
    - Immediate actions the client should consider
    - Proposed engagement timeline
+   - **MEETING SCHEDULING**: If the client requested a meeting or mentioned specific dates/times, highlight this prominently
+
+5. URGENCY ASSESSMENT
+   - If any urgency indicators were found, create a special section highlighting:
+     * Specific urgent language detected
+     * Requested meeting timeframes
+     * Recommended response timeline
+     * Any specific dates/times mentioned by the client
+
+IMPORTANT: At the end of the report, include a "Contact Information" section with the client's actual details for follow-up:
+- Use the client's name: %s
+- Use the client's email: %s
+- Use the client's company: %s
+- Use the client's phone: %s
+
+Do NOT use placeholder text like [Your Name] or [Your Contact Information]. Use the actual client information provided above.
 
 Keep the tone professional and focus on actionable insights. The report should be comprehensive but concise, suitable for a business audience.`
 
@@ -92,8 +116,13 @@ Keep the tone professional and focus on actionable insights. The report should b
 		inquiry.Name,
 		inquiry.Email,
 		r.getCompanyOrDefault(inquiry.Company),
+		r.getPhoneOrDefault(inquiry.Phone),
 		strings.Join(inquiry.Services, ", "),
 		inquiry.Message,
+		inquiry.Name,
+		inquiry.Email,
+		r.getCompanyOrDefault(inquiry.Company),
+		r.getPhoneOrDefault(inquiry.Phone),
 	)
 }
 
@@ -134,6 +163,14 @@ func (r *reportGenerator) getCompanyOrDefault(company string) string {
 		return company
 	}
 	return "Client Organization"
+}
+
+// getPhoneOrDefault returns the phone number or a default value
+func (r *reportGenerator) getPhoneOrDefault(phone string) string {
+	if phone != "" {
+		return phone
+	}
+	return "Not provided"
 }
 
 // GetReport retrieves a report by ID (placeholder implementation)

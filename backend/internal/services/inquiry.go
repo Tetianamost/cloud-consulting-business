@@ -13,13 +13,15 @@ import (
 type inquiryService struct {
 	storage         *storage.InMemoryStorage
 	reportGenerator interfaces.ReportService
+	emailService    interfaces.EmailService
 }
 
 // NewInquiryService creates a new inquiry service instance
-func NewInquiryService(storage *storage.InMemoryStorage, reportGenerator interfaces.ReportService) interfaces.InquiryService {
+func NewInquiryService(storage *storage.InMemoryStorage, reportGenerator interfaces.ReportService, emailService interfaces.EmailService) interfaces.InquiryService {
 	return &inquiryService{
 		storage:         storage,
 		reportGenerator: reportGenerator,
+		emailService:    emailService,
 	}
 }
 
@@ -31,6 +33,13 @@ func (s *inquiryService) CreateInquiry(ctx context.Context, req *domain.CreateIn
 		return nil, fmt.Errorf("failed to create inquiry: %w", err)
 	}
 
+	// Send customer confirmation email immediately after inquiry creation
+	if s.emailService != nil {
+		if err := s.emailService.SendCustomerConfirmation(ctx, inquiry); err != nil {
+			fmt.Printf("Warning: Failed to send customer confirmation email for inquiry %s: %v\n", inquiry.ID, err)
+		}
+	}
+
 	// Try to generate a report using Bedrock
 	// This should not fail the inquiry creation if it fails
 	if s.reportGenerator != nil {
@@ -38,10 +47,38 @@ func (s *inquiryService) CreateInquiry(ctx context.Context, req *domain.CreateIn
 		if err != nil {
 			// Log the error but don't fail the inquiry creation
 			fmt.Printf("Warning: Failed to generate report for inquiry %s: %v\n", inquiry.ID, err)
+			
+			// If report generation fails, send basic inquiry notification to internal team
+			if s.emailService != nil {
+				if err := s.emailService.SendInquiryNotification(ctx, inquiry); err != nil {
+					fmt.Printf("Warning: Failed to send inquiry notification email for inquiry %s: %v\n", inquiry.ID, err)
+				}
+			}
 		} else {
 			// Store the report
 			if err := s.storage.CreateReport(report); err != nil {
 				fmt.Printf("Warning: Failed to store report for inquiry %s: %v\n", inquiry.ID, err)
+				
+				// If report storage fails, send basic inquiry notification
+				if s.emailService != nil {
+					if err := s.emailService.SendInquiryNotification(ctx, inquiry); err != nil {
+						fmt.Printf("Warning: Failed to send inquiry notification email for inquiry %s: %v\n", inquiry.ID, err)
+					}
+				}
+			} else {
+				// Send comprehensive internal email with the report (this is the ONLY internal email)
+				if s.emailService != nil {
+					if err := s.emailService.SendReportEmail(ctx, inquiry, report); err != nil {
+						fmt.Printf("Warning: Failed to send report email for inquiry %s: %v\n", inquiry.ID, err)
+					}
+				}
+			}
+		}
+	} else {
+		// If no report generator available, send basic inquiry notification
+		if s.emailService != nil {
+			if err := s.emailService.SendInquiryNotification(ctx, inquiry); err != nil {
+				fmt.Printf("Warning: Failed to send inquiry notification email for inquiry %s: %v\n", inquiry.ID, err)
 			}
 		}
 	}

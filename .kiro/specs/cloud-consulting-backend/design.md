@@ -118,20 +118,35 @@ type ReportGeneratorHook struct {
 }
 ```
 
-#### 3. Notification Service
-Handles consultant notifications and communication.
+#### 3. Email Notification Service
+Handles email notifications using AWS SES for report delivery.
 
 ```go
-type NotificationService interface {
-    SendNotification(ctx context.Context, notification *Notification) error
-    RegisterChannel(channel NotificationChannel) error
-    GetDeliveryStatus(notificationID string) (*DeliveryStatus, error)
+type EmailService interface {
+    SendReportEmail(ctx context.Context, inquiry *Inquiry, report *Report) error
+    SendInquiryNotification(ctx context.Context, inquiry *Inquiry) error
+    IsHealthy() bool
 }
 
-type NotificationChannel interface {
-    Send(ctx context.Context, message *Message) error
-    GetChannelType() ChannelType
-    IsHealthy() bool
+type SESService interface {
+    SendEmail(ctx context.Context, email *EmailMessage) error
+    VerifyEmailAddress(ctx context.Context, email string) error
+    GetSendingQuota(ctx context.Context) (*SendingQuota, error)
+}
+
+type EmailMessage struct {
+    From        string   `json:"from"`
+    To          []string `json:"to"`
+    Subject     string   `json:"subject"`
+    TextBody    string   `json:"text_body"`
+    HTMLBody    string   `json:"html_body,omitempty"`
+    ReplyTo     string   `json:"reply_to,omitempty"`
+}
+
+type SendingQuota struct {
+    Max24HourSend   float64 `json:"max_24_hour_send"`
+    MaxSendRate     float64 `json:"max_send_rate"`
+    SentLast24Hours float64 `json:"sent_last_24_hours"`
 }
 ```
 
@@ -537,6 +552,98 @@ type BedrockConfig struct {
     Timeout   int    `env:"BEDROCK_TIMEOUT_SECONDS" envDefault:"30"`
 }
 ```
+
+## AWS SES Email Integration
+
+### Authentication and Configuration
+
+The system uses AWS SES for email delivery, configured via environment variables:
+
+```go
+type SESConfig struct {
+    AccessKeyID     string `env:"AWS_ACCESS_KEY_ID,required"`
+    SecretAccessKey string `env:"AWS_SECRET_ACCESS_KEY,required"`
+    Region          string `env:"AWS_SES_REGION" envDefault:"us-east-1"`
+    SenderEmail     string `env:"SES_SENDER_EMAIL,required"`
+    ReplyToEmail    string `env:"SES_REPLY_TO_EMAIL"`
+    Timeout         int    `env:"SES_TIMEOUT_SECONDS" envDefault:"30"`
+}
+```
+
+### Email Delivery Flow
+
+```mermaid
+sequenceDiagram
+    participant API as API Handler
+    participant IS as Inquiry Service
+    participant RG as Report Generator
+    participant ES as Email Service
+    participant SES as AWS SES
+
+    API->>IS: CreateInquiry(request)
+    IS->>IS: Store inquiry
+    IS->>RG: GenerateReport(inquiry)
+    RG-->>IS: Return report
+    IS->>ES: SendReportEmail(inquiry, report)
+    ES->>SES: SendEmail(message)
+    SES-->>ES: Delivery status
+    ES-->>IS: Email sent (or error logged)
+    IS-->>API: Return inquiry with report
+```
+
+### Email Templates
+
+The system uses structured email templates for different notification types:
+
+```go
+func (e *emailService) buildReportEmailHTML(inquiry *Inquiry, report *Report) string {
+    template := `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>New Cloud Consulting Report Generated</title>
+</head>
+<body>
+    <h2>New Report Generated</h2>
+    <p><strong>Client:</strong> %s (%s)</p>
+    <p><strong>Company:</strong> %s</p>
+    <p><strong>Services:</strong> %s</p>
+    <p><strong>Inquiry ID:</strong> %s</p>
+    
+    <h3>Generated Report:</h3>
+    <div style="background-color: #f5f5f5; padding: 15px; border-left: 4px solid #007cba;">
+        <pre>%s</pre>
+    </div>
+    
+    <p>Please review and respond to the client accordingly.</p>
+</body>
+</html>`
+
+    return fmt.Sprintf(template,
+        inquiry.Name,
+        inquiry.Email,
+        inquiry.Company,
+        strings.Join(inquiry.Services, ", "),
+        inquiry.ID,
+        report.Content)
+}
+```
+
+### Error Handling and Resilience
+
+- **Graceful Degradation**: If SES fails, inquiry and report generation still succeed
+- **Timeout Handling**: 30-second timeout for SES API calls
+- **Error Logging**: Detailed logging of SES API failures without blocking main flow
+- **Retry Logic**: Single retry on transient network errors
+
+### Security Considerations
+
+1. **Credentials Security**: Store AWS credentials in environment variables only
+2. **Email Validation**: Validate email addresses before sending
+3. **Rate Limiting**: Respect SES sending limits and quotas
+4. **Content Sanitization**: Clean report content before including in emails
+5. **HTTPS Only**: All SES API calls use HTTPS
+6. **Audit Logging**: Log all email sending attempts with inquiry IDs
 
 ### Report Generation Flow
 

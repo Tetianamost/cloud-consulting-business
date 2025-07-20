@@ -32,14 +32,16 @@ This feature implements a comprehensive Go backend system for processing and cat
 
 ### Requirement 3
 
-**User Story:** As a consultant, I want to be notified when new inquiries arrive so that I can respond promptly to potential clients.
+**User Story:** As a consultant, I want to be notified via email when new inquiries arrive and reports are generated so that I can respond promptly to potential clients.
 
 #### Acceptance Criteria
 
-1. WHEN a new inquiry is processed THEN the system SHALL send a notification to the assigned consultant
-2. WHEN sending notifications THEN the system SHALL include inquiry details and generated report summary
-3. WHEN notification delivery fails THEN the system SHALL retry up to 3 times and log failures
-4. WHEN multiple consultants are available THEN the system SHALL distribute inquiries based on service type expertise
+1. WHEN a new inquiry is processed THEN the system SHALL send an email notification to info@cloudpartner.pro
+2. WHEN a report is generated THEN the system SHALL send an email with the report content to info@cloudpartner.pro and optionally to the inquirer
+3. WHEN sending email notifications THEN the system SHALL use AWS SES as the email delivery service
+4. WHEN email delivery fails THEN the system SHALL log the error but continue processing the inquiry successfully
+5. WHEN sending emails THEN the system SHALL include inquiry details and generated report content in the message body
+6. WHEN configuring email service THEN the system SHALL use environment variables for AWS SES credentials and sender address
 
 ### Requirement 4
 

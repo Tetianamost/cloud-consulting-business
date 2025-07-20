@@ -6,6 +6,10 @@ A Go-based REST API for managing cloud consulting service inquiries.
 
 - RESTful API for inquiry management
 - AI-powered draft report generation using Amazon Bedrock
+- Dual email notification system via AWS SES:
+  - Customer confirmation emails (sent to inquirer)
+  - Internal notifications with AI reports (sent to business team)
+- Email validation and placeholder filtering
 - Service type configuration
 - In-memory storage (development)
 - CORS support for frontend integration
@@ -36,15 +40,22 @@ go mod tidy
 cp .env.example .env
 ```
 
-4. Configure Amazon Bedrock API key:
+4. Configure AWS services:
    - Generate an API key from the Amazon Bedrock console
    - Get your AWS access keys from IAM console
+   - Verify your sender email address in AWS SES console
    - Update the `.env` file with your credentials:
    ```bash
+   # AWS credentials (required for both Bedrock and SES)
    AWS_ACCESS_KEY_ID=your_aws_access_key
    AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   
+   # Bedrock configuration
    AWS_BEARER_TOKEN_BEDROCK=your_bedrock_api_key_here
-   # AWS_SESSION_TOKEN is optional - only needed for temporary credentials
+   
+   # SES configuration
+   SES_SENDER_EMAIL=info@cloudpartner.pro  # Must be verified in SES
+   SES_REPLY_TO_EMAIL=info@cloudpartner.pro
    ```
 
 5. Start the server:
@@ -88,6 +99,14 @@ The application uses environment variables for configuration. Key settings:
 - `BEDROCK_BASE_URL`: Bedrock API base URL (default: https://bedrock-runtime.us-east-1.amazonaws.com)
 - `BEDROCK_TIMEOUT_SECONDS`: Request timeout in seconds (default: 30)
 
+### AWS SES Email Configuration
+- `AWS_ACCESS_KEY_ID`: AWS access key ID (required for email notifications)
+- `AWS_SECRET_ACCESS_KEY`: AWS secret access key (required for email notifications)
+- `AWS_SES_REGION`: AWS region for SES (default: us-east-1)
+- `SES_SENDER_EMAIL`: Verified sender email address (required, e.g., info@cloudpartner.pro)
+- `SES_REPLY_TO_EMAIL`: Reply-to email address (optional)
+- `SES_TIMEOUT_SECONDS`: Request timeout in seconds (default: 30)
+
 ## API Documentation
 
 See [API Documentation](docs/api/README.md) for detailed endpoint information.
@@ -96,10 +115,34 @@ See [API Documentation](docs/api/README.md) for detailed endpoint information.
 
 - `GET /health` - Health check
 - `GET /api/v1/config/services` - Get available service types
-- `POST /api/v1/inquiries` - Create new inquiry (automatically generates AI report)
+- `POST /api/v1/inquiries` - Create new inquiry (automatically generates AI report and sends emails)
 - `GET /api/v1/inquiries` - List all inquiries
 - `GET /api/v1/inquiries/{id}` - Get specific inquiry
 - `GET /api/v1/inquiries/{id}/report` - Get AI-generated report for inquiry
+
+### Email Workflow
+
+When a new inquiry is created via `POST /api/v1/inquiries`, the system automatically:
+
+1. **Customer Confirmation Email**: Sends a professional confirmation email to the customer's provided email address
+   - Thanks the customer for their inquiry
+   - Confirms receipt and provides a reference ID
+   - Outlines next steps and timeline
+   - Does NOT include the AI-generated report
+
+2. **Internal Inquiry Notification**: Sends a notification to the business team (info@cloudpartner.pro)
+   - Contains basic inquiry details
+   - Sent immediately after inquiry creation
+
+3. **Internal Report Email**: After AI report generation, sends detailed email to business team
+   - Includes complete customer information
+   - Contains the AI-generated report content
+   - Provides original customer message
+   - Formatted for easy review and response
+
+**Email Validation**: Customer emails are validated and cleaned before sending. Placeholder emails (test@example.com, etc.) are automatically filtered out to prevent sending to invalid addresses.
+
+**Error Handling**: Email delivery failures do not prevent inquiry creation. All email errors are logged but the inquiry process continues successfully.
 
 ## Development
 
@@ -146,27 +189,42 @@ Currently using in-memory storage for development purposes. Data will be lost wh
 
 **Note**: Production deployment will use PostgreSQL database as specified in the design document.
 
-## AI Report Generation
+## AI Report Generation & Email Notifications
 
-The backend automatically generates draft reports for new inquiries using Amazon Bedrock's Nova model.
+The backend automatically generates draft reports for new inquiries using Amazon Bedrock's Nova model and sends email notifications via AWS SES.
 
 ### How it works:
 1. When a new inquiry is created via `POST /api/v1/inquiries`, the system automatically triggers report generation
 2. The inquiry details are sent to Amazon Bedrock with a structured prompt
 3. Bedrock generates a professional consulting report draft
 4. The report is stored and linked to the inquiry
-5. Reports can be retrieved via `GET /api/v1/inquiries/{id}/report`
+5. An email notification is sent to `info@cloudpartner.pro` (and optionally to the inquirer) with the report content
+6. Reports can be retrieved via `GET /api/v1/inquiries/{id}/report`
+
+### Email Notifications:
+- Professional HTML and text email templates
+- Sent to `info@cloudpartner.pro` for all new reports
+- Includes inquiry details and full report content
+- Uses AWS SES for reliable delivery
+- Graceful degradation if email service is unavailable
 
 ### Error Handling:
 - If Bedrock API fails, the inquiry is still created successfully
-- Report generation failures are logged but don't block inquiry processing
-- The system gracefully degrades when Bedrock is unavailable
+- If email delivery fails, the inquiry and report are still created successfully
+- All failures are logged but don't block the main inquiry processing flow
+- The system gracefully degrades when external services are unavailable
 
 ### Example Report Structure:
 - Executive Summary
 - Current State Assessment  
 - Recommendations
 - Next Steps
+
+### AWS SES Setup Requirements:
+1. **Verify sender email address**: The `SES_SENDER_EMAIL` must be verified in AWS SES console
+2. **AWS credentials**: Ensure your AWS credentials have SES sending permissions
+3. **SES sandbox**: If in sandbox mode, recipient emails must also be verified
+4. **Production access**: Request production access to send to any email address
 
 ## Data Storage
 
@@ -204,6 +262,9 @@ Logs include request details such as:
    AWS_BEARER_TOKEN_BEDROCK=your_bedrock_api_key_here
    AWS_ACCESS_KEY_ID=your_aws_access_key
    AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   
+   # Required for email notifications
+   SES_SENDER_EMAIL=info@cloudpartner.pro  # Must be verified in SES
    ```
 
 3. **Start the services:**
