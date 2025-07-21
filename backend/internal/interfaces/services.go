@@ -21,6 +21,7 @@ type InquiryService interface {
 type ReportService interface {
 	GenerateReport(ctx context.Context, inquiry *domain.Inquiry) (*domain.Report, error)
 	GenerateHTML(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report) (string, error)
+	GeneratePDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report) ([]byte, error)
 	GetReport(ctx context.Context, id string) (*domain.Report, error)
 	GetReportsByInquiry(ctx context.Context, inquiryID string) ([]*domain.Report, error)
 	UpdateReportStatus(ctx context.Context, id string, status domain.ReportStatus) error
@@ -64,8 +65,10 @@ type BedrockService interface {
 // EmailService defines the interface for email notifications
 type EmailService interface {
 	SendReportEmail(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report) error
+	SendReportEmailWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error
 	SendInquiryNotification(ctx context.Context, inquiry *domain.Inquiry) error
 	SendCustomerConfirmation(ctx context.Context, inquiry *domain.Inquiry) error
+	SendCustomerConfirmationWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error
 	IsHealthy() bool
 }
 
@@ -86,6 +89,14 @@ type TemplateService interface {
 	ReloadTemplates() error
 	PrepareReportTemplateData(inquiry *domain.Inquiry, report *domain.Report) interface{}
 	PrepareConsultantNotificationData(inquiry *domain.Inquiry, report *domain.Report, isHighPriority bool) interface{}
+}
+
+// PDFService defines the interface for PDF generation
+type PDFService interface {
+	GeneratePDF(ctx context.Context, htmlContent string, options *PDFOptions) ([]byte, error)
+	GeneratePDFFromURL(ctx context.Context, url string, options *PDFOptions) ([]byte, error)
+	IsHealthy() bool
+	GetVersion() string
 }
 
 // Supporting types for services
@@ -216,12 +227,20 @@ type BedrockModelInfo struct {
 
 // EmailMessage represents an email message to be sent
 type EmailMessage struct {
-	From        string   `json:"from"`
-	To          []string `json:"to"`
-	Subject     string   `json:"subject"`
-	TextBody    string   `json:"text_body"`
-	HTMLBody    string   `json:"html_body,omitempty"`
-	ReplyTo     string   `json:"reply_to,omitempty"`
+	From        string            `json:"from"`
+	To          []string          `json:"to"`
+	Subject     string            `json:"subject"`
+	TextBody    string            `json:"text_body"`
+	HTMLBody    string            `json:"html_body,omitempty"`
+	ReplyTo     string            `json:"reply_to,omitempty"`
+	Attachments []EmailAttachment `json:"attachments,omitempty"`
+}
+
+// EmailAttachment represents an email attachment
+type EmailAttachment struct {
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	Data        []byte `json:"data"`
 }
 
 // SendingQuota represents AWS SES sending quota information
@@ -229,4 +248,20 @@ type SendingQuota struct {
 	Max24HourSend   float64 `json:"max_24_hour_send"`
 	MaxSendRate     float64 `json:"max_send_rate"`
 	SentLast24Hours float64 `json:"sent_last_24_hours"`
+}
+
+// PDFOptions represents options for PDF generation
+type PDFOptions struct {
+	PageSize        string            `json:"page_size"`        // A4, Letter, etc.
+	Orientation     string            `json:"orientation"`      // Portrait, Landscape
+	MarginTop       string            `json:"margin_top"`       // e.g., "1in", "2cm"
+	MarginRight     string            `json:"margin_right"`
+	MarginBottom    string            `json:"margin_bottom"`
+	MarginLeft      string            `json:"margin_left"`
+	HeaderHTML      string            `json:"header_html"`      // HTML for header
+	FooterHTML      string            `json:"footer_html"`      // HTML for footer
+	EnableJavaScript bool             `json:"enable_javascript"`
+	LoadTimeout     int               `json:"load_timeout"`     // Timeout in seconds
+	Quality         int               `json:"quality"`          // Image quality (0-100)
+	CustomOptions   map[string]string `json:"custom_options"`   // Additional wkhtmltopdf options
 }

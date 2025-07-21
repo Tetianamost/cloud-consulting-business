@@ -1,8 +1,14 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
+	"mime"
+	"mime/multipart"
+	"net/textproto"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -54,6 +60,17 @@ func (s *sesService) SendEmail(ctx context.Context, email *interfaces.EmailMessa
 	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(s.config.Timeout)*time.Second)
 	defer cancel()
 
+	// If there are attachments, use SendRawEmail
+	if len(email.Attachments) > 0 {
+		return s.sendRawEmail(timeoutCtx, email)
+	}
+
+	// Use regular SendEmail for emails without attachments
+	return s.sendSimpleEmail(timeoutCtx, email)
+}
+
+// sendSimpleEmail sends an email without attachments using the simple SES API
+func (s *sesService) sendSimpleEmail(ctx context.Context, email *interfaces.EmailMessage) error {
 	// Build the email input
 	input := &ses.SendEmailInput{
 		Source: aws.String(email.From),
@@ -88,7 +105,7 @@ func (s *sesService) SendEmail(ctx context.Context, email *interfaces.EmailMessa
 	}
 
 	// Send the email
-	result, err := s.client.SendEmail(timeoutCtx, input)
+	result, err := s.client.SendEmail(ctx, input)
 	if err != nil {
 		s.logger.WithError(err).WithFields(logrus.Fields{
 			"to":      email.To,
@@ -104,6 +121,138 @@ func (s *sesService) SendEmail(ctx context.Context, email *interfaces.EmailMessa
 	}).Info("Email sent successfully via SES")
 
 	return nil
+}
+
+// sendRawEmail sends an email with attachments using the raw SES API
+func (s *sesService) sendRawEmail(ctx context.Context, email *interfaces.EmailMessage) error {
+	// Build the raw email message
+	rawMessage, err := s.buildRawMessage(email)
+	if err != nil {
+		return fmt.Errorf("failed to build raw email message: %w", err)
+	}
+
+	// Create the raw email input
+	input := &ses.SendRawEmailInput{
+		Source: aws.String(email.From),
+		Destinations: email.To,
+		RawMessage: &types.RawMessage{
+			Data: rawMessage,
+		},
+	}
+
+	// Send the raw email
+	result, err := s.client.SendRawEmail(ctx, input)
+	if err != nil {
+		s.logger.WithError(err).WithFields(logrus.Fields{
+			"to":          email.To,
+			"subject":     email.Subject,
+			"attachments": len(email.Attachments),
+		}).Error("Failed to send raw email via SES")
+		return fmt.Errorf("failed to send raw email: %w", err)
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"message_id":  aws.ToString(result.MessageId),
+		"to":          email.To,
+		"subject":     email.Subject,
+		"attachments": len(email.Attachments),
+	}).Info("Raw email with attachments sent successfully via SES")
+
+	return nil
+}
+
+// buildRawMessage builds a raw MIME email message with attachments
+func (s *sesService) buildRawMessage(email *interfaces.EmailMessage) ([]byte, error) {
+	var buf bytes.Buffer
+
+	// Write headers
+	buf.WriteString(fmt.Sprintf("From: %s\r\n", email.From))
+	buf.WriteString(fmt.Sprintf("To: %s\r\n", strings.Join(email.To, ", ")))
+	buf.WriteString(fmt.Sprintf("Subject: %s\r\n", email.Subject))
+	if email.ReplyTo != "" {
+		buf.WriteString(fmt.Sprintf("Reply-To: %s\r\n", email.ReplyTo))
+	}
+	buf.WriteString("MIME-Version: 1.0\r\n")
+
+	// Create multipart writer
+	writer := multipart.NewWriter(&buf)
+	buf.WriteString(fmt.Sprintf("Content-Type: multipart/mixed; boundary=%s\r\n\r\n", writer.Boundary()))
+
+	// Add text/HTML body as multipart alternative
+	if email.HTMLBody != "" || email.TextBody != "" {
+		// Create alternative part for text and HTML
+		altWriter := multipart.NewWriter(&buf)
+		altHeader := textproto.MIMEHeader{}
+		altHeader.Set("Content-Type", fmt.Sprintf("multipart/alternative; boundary=%s", altWriter.Boundary()))
+		
+		part, err := writer.CreatePart(altHeader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create alternative part: %w", err)
+		}
+		
+		altBuf := bytes.NewBuffer(nil)
+		
+		// Add text part
+		if email.TextBody != "" {
+			textHeader := textproto.MIMEHeader{}
+			textHeader.Set("Content-Type", "text/plain; charset=UTF-8")
+			textHeader.Set("Content-Transfer-Encoding", "quoted-printable")
+			
+			textPart, err := altWriter.CreatePart(textHeader)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create text part: %w", err)
+			}
+			
+			textPart.Write([]byte(email.TextBody))
+		}
+		
+		// Add HTML part
+		if email.HTMLBody != "" {
+			htmlHeader := textproto.MIMEHeader{}
+			htmlHeader.Set("Content-Type", "text/html; charset=UTF-8")
+			htmlHeader.Set("Content-Transfer-Encoding", "quoted-printable")
+			
+			htmlPart, err := altWriter.CreatePart(htmlHeader)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create HTML part: %w", err)
+			}
+			
+			htmlPart.Write([]byte(email.HTMLBody))
+		}
+		
+		altWriter.Close()
+		part.Write(altBuf.Bytes())
+	}
+
+	// Add attachments
+	for _, attachment := range email.Attachments {
+		header := textproto.MIMEHeader{}
+		header.Set("Content-Type", attachment.ContentType)
+		header.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", mime.QEncoding.Encode("UTF-8", attachment.Filename)))
+		header.Set("Content-Transfer-Encoding", "base64")
+		
+		part, err := writer.CreatePart(header)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create attachment part: %w", err)
+		}
+		
+		// Encode attachment data as base64
+		encoded := base64.StdEncoding.EncodeToString(attachment.Data)
+		
+		// Write base64 data with line breaks every 76 characters (RFC 2045)
+		for i := 0; i < len(encoded); i += 76 {
+			end := i + 76
+			if end > len(encoded) {
+				end = len(encoded)
+			}
+			part.Write([]byte(encoded[i:end] + "\r\n"))
+		}
+	}
+
+	// Close the multipart writer
+	writer.Close()
+
+	return buf.Bytes(), nil
 }
 
 // VerifyEmailAddress verifies an email address with SES

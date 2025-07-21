@@ -15,13 +15,15 @@ import (
 type reportGenerator struct {
 	bedrockService  interfaces.BedrockService
 	templateService interfaces.TemplateService
+	pdfService      interfaces.PDFService
 }
 
 // NewReportGenerator creates a new report generator instance
-func NewReportGenerator(bedrockService interfaces.BedrockService, templateService interfaces.TemplateService) interfaces.ReportService {
+func NewReportGenerator(bedrockService interfaces.BedrockService, templateService interfaces.TemplateService, pdfService interfaces.PDFService) interfaces.ReportService {
 	return &reportGenerator{
 		bedrockService:  bedrockService,
 		templateService: templateService,
+		pdfService:      pdfService,
 	}
 }
 
@@ -312,3 +314,28 @@ func (r *reportGenerator) formatContentForHTML(content string) string {
 	
 	return strings.Join(htmlParagraphs, "\n")
 }
+
+// GeneratePDF generates a PDF version of a report
+func (r *reportGenerator) GeneratePDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report) ([]byte, error) {
+	if r.pdfService == nil {
+		return nil, fmt.Errorf("PDF service not available")
+	}
+	
+	// First generate the HTML version
+	htmlContent, err := r.GenerateHTML(ctx, inquiry, report)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate HTML for PDF: %w", err)
+	}
+	
+	// Get optimized PDF options for reports
+	options := getReportPDFOptions()
+	
+	// Generate PDF from HTML
+	pdfBytes, err := r.pdfService.GeneratePDF(ctx, htmlContent, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate PDF: %w", err)
+	}
+	
+	return pdfBytes, nil
+}
+

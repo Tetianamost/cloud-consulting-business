@@ -709,6 +709,190 @@ func (e *emailService) buildCustomerConfirmationText(inquiry *domain.Inquiry) st
 	return builder.String()
 }
 
+// SendReportEmailWithPDF sends an internal email notification with PDF attachment when a report is generated
+func (e *emailService) SendReportEmailWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error {
+	// Check if this is a high priority inquiry
+	isHighPriority := e.detectHighPriority(inquiry.Message)
+	
+	var subject string
+	if isHighPriority {
+		subject = fmt.Sprintf("🚨 HIGH PRIORITY - New Cloud Consulting Report - %s", inquiry.Name)
+	} else {
+		subject = fmt.Sprintf("New Cloud Consulting Report Generated - %s", inquiry.Name)
+	}
+	
+	// Use branded template if available, fallback to basic template
+	var htmlBody string
+	var textBody string
+	
+	if e.templateService != nil {
+		// Use the template service to prepare data properly
+		templateData := e.templateService.PrepareConsultantNotificationData(inquiry, report, isHighPriority)
+		
+		// Render branded HTML template
+		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "consultant_notification", templateData)
+		if err != nil {
+			e.logger.WithError(err).WithField("inquiry_id", inquiry.ID).Warn("Failed to render branded template, using fallback")
+			htmlBody = e.buildReportEmailHTML(inquiry, report)
+		} else {
+			htmlBody = brandedHTML
+		}
+	} else {
+		htmlBody = e.buildReportEmailHTML(inquiry, report)
+	}
+	
+	// Always use the text version as fallback
+	textBody = e.buildReportEmailText(inquiry, report)
+
+	// Create PDF attachment
+	var attachments []interfaces.EmailAttachment
+	if pdfData != nil && len(pdfData) > 0 {
+		filename := e.generatePDFFilename(inquiry, report)
+		attachments = append(attachments, interfaces.EmailAttachment{
+			Filename:    filename,
+			ContentType: "application/pdf",
+			Data:        pdfData,
+		})
+	}
+
+	// Send only to internal address - no customer email included
+	email := &interfaces.EmailMessage{
+		From:        e.config.SenderEmail,
+		To:          []string{"info@cloudpartner.pro"},
+		Subject:     subject,
+		TextBody:    textBody,
+		HTMLBody:    htmlBody,
+		ReplyTo:     e.config.ReplyToEmail,
+		Attachments: attachments,
+	}
+
+	err := e.sesService.SendEmail(ctx, email)
+	if err != nil {
+		e.logger.WithError(err).WithFields(logrus.Fields{
+			"inquiry_id": inquiry.ID,
+			"report_id":  report.ID,
+		}).Error("Failed to send internal report email with PDF")
+		return fmt.Errorf("failed to send internal report email with PDF: %w", err)
+	}
+
+	e.logger.WithFields(logrus.Fields{
+		"inquiry_id":      inquiry.ID,
+		"report_id":       report.ID,
+		"recipients":      email.To,
+		"high_priority":   isHighPriority,
+		"template_used":   "branded",
+		"pdf_attached":    len(pdfData) > 0,
+		"pdf_size":        len(pdfData),
+	}).Info("Internal report email with PDF sent successfully")
+
+	return nil
+}
+
+// SendCustomerConfirmationWithPDF sends a confirmation email to the customer with PDF attachment
+func (e *emailService) SendCustomerConfirmationWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error {
+	// Validate and clean customer email
+	customerEmail := e.validateAndCleanEmail(inquiry.Email)
+	if customerEmail == "" {
+		e.logger.WithField("inquiry_id", inquiry.ID).Warn("Invalid customer email, skipping confirmation")
+		return nil // Don't fail the inquiry creation for invalid email
+	}
+
+	subject := "Thank you for your cloud consulting inquiry - CloudPartner Pro"
+	
+	// Use branded template if available, fallback to basic template
+	var htmlBody string
+	var textBody string
+	
+	if e.templateService != nil {
+		// Prepare template data
+		templateData := &CustomerConfirmationTemplateData{
+			Name:     inquiry.Name,
+			Company:  inquiry.Company,
+			Services: strings.Join(inquiry.Services, ", "),
+			ID:       inquiry.ID,
+		}
+		
+		// Render branded HTML template
+		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "customer_confirmation", templateData)
+		if err != nil {
+			e.logger.WithError(err).WithField("inquiry_id", inquiry.ID).Warn("Failed to render branded template, using fallback")
+			htmlBody = e.buildCustomerConfirmationHTML(inquiry)
+		} else {
+			htmlBody = brandedHTML
+		}
+	} else {
+		htmlBody = e.buildCustomerConfirmationHTML(inquiry)
+	}
+	
+	// Always use the text version as fallback
+	textBody = e.buildCustomerConfirmationText(inquiry)
+
+	// Create PDF attachment if provided
+	var attachments []interfaces.EmailAttachment
+	if pdfData != nil && len(pdfData) > 0 && report != nil {
+		filename := e.generatePDFFilename(inquiry, report)
+		attachments = append(attachments, interfaces.EmailAttachment{
+			Filename:    filename,
+			ContentType: "application/pdf",
+			Data:        pdfData,
+		})
+	}
+
+	email := &interfaces.EmailMessage{
+		From:        e.config.SenderEmail,
+		To:          []string{customerEmail},
+		Subject:     subject,
+		TextBody:    textBody,
+		HTMLBody:    htmlBody,
+		ReplyTo:     e.config.ReplyToEmail,
+		Attachments: attachments,
+	}
+
+	err := e.sesService.SendEmail(ctx, email)
+	if err != nil {
+		e.logger.WithError(err).WithFields(logrus.Fields{
+			"inquiry_id":     inquiry.ID,
+			"customer_email": customerEmail,
+		}).Error("Failed to send customer confirmation email with PDF")
+		return fmt.Errorf("failed to send customer confirmation email with PDF: %w", err)
+	}
+
+	e.logger.WithFields(logrus.Fields{
+		"inquiry_id":     inquiry.ID,
+		"customer_email": customerEmail,
+		"template_used":  "branded",
+		"pdf_attached":   len(pdfData) > 0,
+		"pdf_size":       len(pdfData),
+	}).Info("Customer confirmation email with PDF sent successfully")
+
+	return nil
+}
+
+// generatePDFFilename creates a filename for PDF attachments
+func (e *emailService) generatePDFFilename(inquiry *domain.Inquiry, report *domain.Report) string {
+	// Sanitize company name for filename
+	companyName := inquiry.Company
+	if companyName == "" {
+		companyName = "Client"
+	}
+	
+	// Remove special characters and spaces
+	sanitized := ""
+	for _, r := range companyName {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			sanitized += string(r)
+		} else if r == ' ' || r == '-' || r == '_' {
+			sanitized += "_"
+		}
+	}
+	
+	if sanitized == "" {
+		sanitized = "Client"
+	}
+	
+	return sanitized + "_" + string(report.Type) + "_report.pdf"
+}
+
 // buildCustomerConfirmationHTML creates the HTML version of the customer confirmation email
 func (e *emailService) buildCustomerConfirmationHTML(inquiry *domain.Inquiry) string {
 	return fmt.Sprintf(`<!DOCTYPE html>

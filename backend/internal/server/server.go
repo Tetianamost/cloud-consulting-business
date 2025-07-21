@@ -42,9 +42,12 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	// Initialize template service first
 	templateService := services.NewTemplateService("templates", logger)
 	
+	// Initialize PDF service
+	pdfService := services.NewPDFService(logger)
+	
 	// Initialize services
 	bedrockService := services.NewBedrockService(&cfg.Bedrock)
-	reportGenerator := services.NewReportGenerator(bedrockService, templateService)
+	reportGenerator := services.NewReportGenerator(bedrockService, templateService, pdfService)
 	
 	// Initialize email services (with graceful degradation if SES config is missing)
 	var emailService interfaces.EmailService
@@ -104,6 +107,8 @@ func (s *Server) setupRoutes() {
 			inquiries.GET("", s.inquiryHandler.ListInquiries)
 			inquiries.GET("/:id/report", s.reportHandler.GetInquiryReport)
 			inquiries.GET("/:id/report/html", s.inquiryHandler.GetInquiryReportHTML)
+			inquiries.GET("/:id/report/pdf", s.inquiryHandler.GetInquiryReportPDF)
+			inquiries.GET("/:id/report/download", s.inquiryHandler.DownloadInquiryReport)
 		}
 
 		// System management routes
