@@ -22,6 +22,7 @@ type Server struct {
 	router         *gin.Engine
 	inquiryHandler *handlers.InquiryHandler
 	reportHandler  *handlers.ReportHandler
+	adminHandler   *handlers.AdminHandler
 }
 
 // New creates a new server instance
@@ -68,6 +69,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	// Initialize handlers
 	inquiryHandler := handlers.NewInquiryHandler(inquiryService, reportGenerator)
 	reportHandler := handlers.NewReportHandler(memStorage)
+	adminHandler := handlers.NewAdminHandler(memStorage, inquiryService, reportGenerator, emailService)
 
 	server := &Server{
 		config:         cfg,
@@ -75,6 +77,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 		router:         router,
 		inquiryHandler: inquiryHandler,
 		reportHandler:  reportHandler,
+		adminHandler:   adminHandler,
 	}
 
 	// Setup routes
@@ -109,6 +112,15 @@ func (s *Server) setupRoutes() {
 			inquiries.GET("/:id/report/html", s.inquiryHandler.GetInquiryReportHTML)
 			inquiries.GET("/:id/report/pdf", s.inquiryHandler.GetInquiryReportPDF)
 			inquiries.GET("/:id/report/download", s.inquiryHandler.DownloadInquiryReport)
+		}
+
+		// Admin routes
+		admin := v1.Group("/admin")
+		{
+			admin.GET("/inquiries", s.adminHandler.ListInquiries)
+			admin.GET("/metrics", s.adminHandler.GetSystemMetrics)
+			admin.GET("/email-status/:inquiryId", s.adminHandler.GetEmailStatus)
+			admin.GET("/reports/:inquiryId/download/:format", s.adminHandler.DownloadReport)
 		}
 
 		// System management routes
