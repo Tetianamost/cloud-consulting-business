@@ -32,13 +32,9 @@ func (s *inquiryService) CreateInquiry(ctx context.Context, req *domain.CreateIn
 	if err != nil {
 		return nil, fmt.Errorf("failed to create inquiry: %w", err)
 	}
-
-	// Send customer confirmation email immediately after inquiry creation
-	if s.emailService != nil {
-		if err := s.emailService.SendCustomerConfirmation(ctx, inquiry); err != nil {
-			fmt.Printf("Warning: Failed to send customer confirmation email for inquiry %s: %v\n", inquiry.ID, err)
-		}
-	}
+	
+	// We'll send customer confirmation email after report generation
+	// This ensures we can include report links and attachments if available
 
 	// Try to generate a report using Bedrock
 	// This should not fail the inquiry creation if it fails
@@ -53,6 +49,11 @@ func (s *inquiryService) CreateInquiry(ctx context.Context, req *domain.CreateIn
 				if err := s.emailService.SendInquiryNotification(ctx, inquiry); err != nil {
 					fmt.Printf("Warning: Failed to send inquiry notification email for inquiry %s: %v\n", inquiry.ID, err)
 				}
+				
+				// Send basic customer confirmation since we don't have a report
+				if err := s.emailService.SendCustomerConfirmation(ctx, inquiry); err != nil {
+					fmt.Printf("Warning: Failed to send customer confirmation email for inquiry %s: %v\n", inquiry.ID, err)
+				}
 			}
 		} else {
 			// Store the report
@@ -64,12 +65,47 @@ func (s *inquiryService) CreateInquiry(ctx context.Context, req *domain.CreateIn
 					if err := s.emailService.SendInquiryNotification(ctx, inquiry); err != nil {
 						fmt.Printf("Warning: Failed to send inquiry notification email for inquiry %s: %v\n", inquiry.ID, err)
 					}
+					
+					// Send basic customer confirmation since we couldn't store the report
+					if err := s.emailService.SendCustomerConfirmation(ctx, inquiry); err != nil {
+						fmt.Printf("Warning: Failed to send customer confirmation email for inquiry %s: %v\n", inquiry.ID, err)
+					}
 				}
 			} else {
 				// Send comprehensive internal email with the report (this is the ONLY internal email)
 				if s.emailService != nil {
-					if err := s.emailService.SendReportEmail(ctx, inquiry, report); err != nil {
-						fmt.Printf("Warning: Failed to send report email for inquiry %s: %v\n", inquiry.ID, err)
+					// Try to generate PDF for the report
+					var pdfData []byte
+					if s.reportGenerator != nil {
+						pdfBytes, pdfErr := s.reportGenerator.GeneratePDF(ctx, inquiry, report)
+						if pdfErr != nil {
+							fmt.Printf("Warning: Failed to generate PDF for inquiry %s: %v\n", inquiry.ID, pdfErr)
+						} else {
+							pdfData = pdfBytes
+						}
+					}
+					
+					// Send internal notification with PDF if available
+					if pdfData != nil && len(pdfData) > 0 {
+						if err := s.emailService.SendReportEmailWithPDF(ctx, inquiry, report, pdfData); err != nil {
+							fmt.Printf("Warning: Failed to send report email with PDF for inquiry %s: %v\n", inquiry.ID, err)
+						}
+					} else {
+						if err := s.emailService.SendReportEmail(ctx, inquiry, report); err != nil {
+							fmt.Printf("Warning: Failed to send report email for inquiry %s: %v\n", inquiry.ID, err)
+						}
+					}
+					
+					// Send customer confirmation with PDF if available
+					if pdfData != nil && len(pdfData) > 0 {
+						if err := s.emailService.SendCustomerConfirmationWithPDF(ctx, inquiry, report, pdfData); err != nil {
+							fmt.Printf("Warning: Failed to send customer confirmation with PDF for inquiry %s: %v\n", inquiry.ID, err)
+						}
+					} else {
+						// The regular SendCustomerConfirmation will include report links if a report exists
+						if err := s.emailService.SendCustomerConfirmation(ctx, inquiry); err != nil {
+							fmt.Printf("Warning: Failed to send customer confirmation email for inquiry %s: %v\n", inquiry.ID, err)
+						}
 					}
 				}
 			}
@@ -79,6 +115,11 @@ func (s *inquiryService) CreateInquiry(ctx context.Context, req *domain.CreateIn
 		if s.emailService != nil {
 			if err := s.emailService.SendInquiryNotification(ctx, inquiry); err != nil {
 				fmt.Printf("Warning: Failed to send inquiry notification email for inquiry %s: %v\n", inquiry.ID, err)
+			}
+			
+			// Send basic customer confirmation since we don't have a report generator
+			if err := s.emailService.SendCustomerConfirmation(ctx, inquiry); err != nil {
+				fmt.Printf("Warning: Failed to send customer confirmation email for inquiry %s: %v\n", inquiry.ID, err)
 			}
 		}
 	}

@@ -178,13 +178,13 @@ This implementation plan transforms the existing backend into a comprehensive, d
   - _Requirements: 10.1, 10.2_
 
 - [x] 27. Add PDF generation capability
-  - Integrate wkhtmltopdf or similar PDF generation library
+  - Integrate PDF generation library
   - Create PDF generation service with proper error handling
   - Implement PDF download endpoints for reports
   - Ensure professional formatting and layout for printing
   - _Requirements: 10.2, 10.4, 10.5_
 
-- [ ] 28. Enhance email service with customer confirmations
+- [x] 28. Enhance email service with customer confirmations
   - Send immediate confirmation emails to customers upon inquiry submission(if not done already)
   - Include branded templates with professional messaging
   - Add download links for reports when available
