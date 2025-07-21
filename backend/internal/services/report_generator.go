@@ -13,13 +13,15 @@ import (
 
 // reportGenerator implements report generation using Bedrock
 type reportGenerator struct {
-	bedrockService interfaces.BedrockService
+	bedrockService  interfaces.BedrockService
+	templateService interfaces.TemplateService
 }
 
 // NewReportGenerator creates a new report generator instance
-func NewReportGenerator(bedrockService interfaces.BedrockService) interfaces.ReportService {
+func NewReportGenerator(bedrockService interfaces.BedrockService, templateService interfaces.TemplateService) interfaces.ReportService {
 	return &reportGenerator{
-		bedrockService: bedrockService,
+		bedrockService:  bedrockService,
+		templateService: templateService,
 	}
 }
 
@@ -199,4 +201,114 @@ func (r *reportGenerator) ValidateReport(report *domain.Report) error {
 		return fmt.Errorf("report content cannot be empty")
 	}
 	return nil
+}
+
+// GenerateHTML generates HTML version of a report
+func (r *reportGenerator) GenerateHTML(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report) (string, error) {
+	if r.templateService == nil {
+		return "", fmt.Errorf("template service not available")
+	}
+	
+	// Determine template name based on report type
+	templateName := r.getTemplateName(report.Type)
+	
+	// Prepare template data
+	templateData := r.prepareTemplateData(inquiry, report)
+	
+	// Render the template
+	htmlContent, err := r.templateService.RenderReportTemplate(ctx, templateName, templateData)
+	if err != nil {
+		return "", fmt.Errorf("failed to render HTML report: %w", err)
+	}
+	
+	return htmlContent, nil
+}
+
+// getTemplateName returns the template name for a report type
+func (r *reportGenerator) getTemplateName(reportType domain.ReportType) string {
+	switch reportType {
+	case domain.ReportTypeAssessment:
+		return "assessment"
+	case domain.ReportTypeMigration:
+		return "migration"
+	case domain.ReportTypeOptimization:
+		return "optimization"
+	case domain.ReportTypeArchitecture:
+		return "architecture"
+	default:
+		return "assessment" // Default fallback
+	}
+}
+
+// prepareTemplateData prepares data for template rendering
+func (r *reportGenerator) prepareTemplateData(inquiry *domain.Inquiry, report *domain.Report) interface{} {
+	// Use the template service to prepare data if available
+	if r.templateService != nil {
+		return r.templateService.PrepareReportTemplateData(inquiry, report)
+	}
+	
+	// Fallback to basic data structure
+	return map[string]interface{}{
+		"ID":               report.ID,
+		"Title":            report.Title,
+		"ClientName":       inquiry.Name,
+		"ClientEmail":      inquiry.Email,
+		"ClientCompany":    r.getCompanyOrDefault(inquiry.Company),
+		"ClientPhone":      r.getPhoneOrDefault(inquiry.Phone),
+		"Services":         strings.Join(inquiry.Services, ", "),
+		"GeneratedDate":    report.CreatedAt.Format("January 2, 2006"),
+		"IsHighPriority":   r.detectHighPriority(report.Content),
+		"FormattedContent": r.formatContentForHTML(report.Content),
+	}
+}
+
+// detectHighPriority analyzes report content for priority indicators
+func (r *reportGenerator) detectHighPriority(content string) bool {
+	priorityKeywords := []string{
+		"HIGH PRIORITY", "URGENT", "CRITICAL", "IMMEDIATE", "ASAP",
+		"urgent", "critical", "emergency", "deadline", "time-sensitive",
+		"meeting", "schedule", "call", "discuss", "today", "tomorrow",
+	}
+	
+	contentLower := strings.ToLower(content)
+	for _, keyword := range priorityKeywords {
+		if strings.Contains(contentLower, strings.ToLower(keyword)) {
+			return true
+		}
+	}
+	return false
+}
+
+// formatContentForHTML converts plain text content to HTML
+func (r *reportGenerator) formatContentForHTML(content string) string {
+	if content == "" {
+		return "<p>No content available.</p>"
+	}
+	
+	// Basic HTML formatting
+	// Split into paragraphs
+	paragraphs := strings.Split(content, "\n\n")
+	var htmlParagraphs []string
+	
+	for _, p := range paragraphs {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		
+		// Convert line breaks within paragraphs
+		p = strings.ReplaceAll(p, "\n", "<br>")
+		
+		// Convert **bold** to <strong>
+		p = strings.ReplaceAll(p, "**", "<strong>")
+		
+		// Simple header detection
+		if strings.HasSuffix(p, ":") && len(p) < 100 {
+			htmlParagraphs = append(htmlParagraphs, fmt.Sprintf("<h3>%s</h3>", p))
+		} else {
+			htmlParagraphs = append(htmlParagraphs, fmt.Sprintf("<p>%s</p>", p))
+		}
+	}
+	
+	return strings.Join(htmlParagraphs, "\n")
 }

@@ -39,12 +39,12 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	// Initialize storage
 	memStorage := storage.NewInMemoryStorage()
 	
+	// Initialize template service first
+	templateService := services.NewTemplateService("templates", logger)
+	
 	// Initialize services
 	bedrockService := services.NewBedrockService(&cfg.Bedrock)
-	reportGenerator := services.NewReportGenerator(bedrockService)
-	
-	// Initialize template service
-	templateService := services.NewTemplateService("templates", logger)
+	reportGenerator := services.NewReportGenerator(bedrockService, templateService)
 	
 	// Initialize email services (with graceful degradation if SES config is missing)
 	var emailService interfaces.EmailService
@@ -63,7 +63,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	inquiryService := services.NewInquiryService(memStorage, reportGenerator, emailService)
 	
 	// Initialize handlers
-	inquiryHandler := handlers.NewInquiryHandler(inquiryService)
+	inquiryHandler := handlers.NewInquiryHandler(inquiryService, reportGenerator)
 	reportHandler := handlers.NewReportHandler(memStorage)
 
 	server := &Server{
@@ -87,6 +87,9 @@ func (s *Server) Handler() http.Handler {
 
 // setupRoutes configures the API routes
 func (s *Server) setupRoutes() {
+	// Serve static files (CSS, etc.)
+	s.router.Static("/static", "./static")
+	
 	// Health check endpoint
 	s.router.GET("/health", s.healthCheck)
 	
@@ -100,6 +103,7 @@ func (s *Server) setupRoutes() {
 			inquiries.GET("/:id", s.inquiryHandler.GetInquiry)
 			inquiries.GET("", s.inquiryHandler.ListInquiries)
 			inquiries.GET("/:id/report", s.reportHandler.GetInquiryReport)
+			inquiries.GET("/:id/report/html", s.inquiryHandler.GetInquiryReportHTML)
 		}
 
 		// System management routes

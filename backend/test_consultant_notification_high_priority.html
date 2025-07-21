@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Cloud Consulting Inquiry - HIGH</title>
+    <style>
+         
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+         
+        .email-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+         
+        .header {
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header.normal {
+            background: linear-gradient(135deg, #007cba 0%, #005a8b 100%);
+        }
+        
+        .header.high-priority {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="cloud" patternUnits="userSpaceOnUse" width="20" height="20"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23cloud)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .logo {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 15px;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: #ffffff;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .logo-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: #007cba;
+        }
+        
+        .header-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 5px 0 0 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+         
+        .priority-alert {
+            padding: 20px 30px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .priority-alert.normal {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: #ffffff;
+        }
+        
+        .priority-alert.high-priority {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        .alert-icon {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+        
+         
+        .content {
+            padding: 30px;
+        }
+        
+         
+        .client-info {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 5px solid #007cba;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .client-info h3 {
+            color: #007cba;
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .client-info h3::before {
+            content: '👤';
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #007cba;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            color: #333333;
+            font-size: 15px;
+            word-break: break-word;
+        }
+        
+        .services-item, .inquiry-id-item {
+            grid-column: 1 / -1;
+        }
+        
+        .inquiry-id-item {
+            text-align: center;
+            background: linear-gradient(135deg, #007cba 0%, #005a8b 100%);
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+        
+         
+        .message-section {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-left: 5px solid #ffc107;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .message-section h3 {
+            color: #856404;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .message-section h3::before {
+            content: '💬';
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        
+        .message-content {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #ffeaa7;
+            font-style: italic;
+            line-height: 1.7;
+            color: #333333;
+        }
+        
+         
+        .report-section {
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+            border-left: 5px solid #28a745;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .report-section h3 {
+            color: #28a745;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .report-section h3::before {
+            content: '📋';
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        
+        .report-content {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #c3e6cb;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .report-content h1, .report-content h2, .report-content h3, .report-content h4 {
+            color: #007cba;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .report-content h1 { 
+            font-size: 20px; 
+            border-bottom: 2px solid #007cba; 
+            padding-bottom: 8px; 
+        }
+        
+        .report-content h2 { 
+            font-size: 18px; 
+            border-bottom: 1px solid #e9ecef; 
+            padding-bottom: 6px; 
+        }
+        
+        .report-content p { margin: 10px 0; }
+        .report-content ul, .report-content ol { margin: 10px 0; padding-left: 20px; }
+        .report-content li { margin: 5px 0; }
+        .report-content strong { color: #007cba; font-weight: 600; }
+        
+         
+        .action-section {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .action-section.normal {
+            background: linear-gradient(135deg, #e7f3ff 0%, #cce7ff 100%);
+            border: 2px solid #007cba;
+            color: #004085;
+        }
+        
+        .action-section.high-priority {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .action-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+         
+        .footer {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: #ffffff;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .footer-logo {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .footer-text {
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+         
+        @media (max-width: 800px) {
+            .email-container {
+                margin: 0;
+                box-shadow: none;
+            }
+            
+            .header, .content, .footer {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-title {
+                font-size: 18px;
+            }
+            
+            .report-content {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        
+        <div class="header high-priority">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                    </svg>
+                </div>
+                <h1 class="header-title">
+                    🚨 HIGH PRIORITY 
+                    New Cloud Consulting Report Generated
+                </h1>
+                <p class="header-subtitle">CloudPartner Pro - Internal Notification</p>
+            </div>
+        </div>
+        
+        
+        <div class="priority-alert high-priority">
+            <span class="alert-icon">
+                ⚠️
+            </span>
+            
+                URGENT ATTENTION REQUIRED - This inquiry contains urgent language or meeting requests
+            
+        </div>
+        
+        
+        <div class="content">
+            
+            <div class="client-info">
+                <h3>Client Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Name</div>
+                        <div class="info-value">Sarah Johnson</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">sarah.johnson@techcorp.com</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Company</div>
+                        <div class="info-value">TechCorp Solutions</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">&#43;1-555-0199</div>
+                    </div>
+                    <div class="info-item services-item">
+                        <div class="info-label">Services Requested</div>
+                        <div class="info-value">migration, optimization</div>
+                    </div>
+                    <div class="info-item inquiry-id-item">
+                        <div class="info-label">Inquiry ID</div>
+                        <div class="info-value">test-inquiry-email-123</div>
+                    </div>
+                    
+                    <div class="info-item inquiry-id-item">
+                        <div class="info-label">Report ID</div>
+                        <div class="info-value">test-report-email-456</div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            
+            <div class="message-section">
+                <h3>Original Message</h3>
+                <div class="message-content">We need urgent help with our cloud migration project. The current system is experiencing performance issues and we need to migrate to AWS ASAP. Can we schedule a call this afternoon to discuss the timeline?</div>
+            </div>
+            
+            
+            
+            <div class="report-section">
+                <h3>Generated Report</h3>
+                <div class="report-content"><h3>EXECUTIVE SUMMARY</h3>
+
+<p><strong>Client's Needs:</strong>
+TechCorp Solutions has requested urgent assistance with their cloud migration project. The client is experiencing performance issues with their current system and needs to migrate to AWS as soon as possible. They have requested an immediate call to discuss timeline and implementation.</p>
+
+<p><strong>Key Recommendations Summary:</strong>
+Given the urgency and performance issues, we recommend an accelerated migration approach with immediate performance optimization. A phased migration strategy will minimize downtime while addressing current performance bottlenecks.</p>
+
+<p><strong>PRIORITY LEVEL: HIGH PRIORITY</strong>
+The client's use of "urgent", "ASAP", and request for same-day meeting indicates critical business impact requiring immediate attention.</p>
+
+<h3>CURRENT STATE ASSESSMENT</h3>
+
+<p><strong>Analysis:</strong>
+TechCorp Solutions is experiencing active performance issues that are impacting business operations. The urgency of the migration request suggests these issues may be causing significant business disruption.</p>
+
+<strong>Identified Challenges:</strong>
+<ul>
+  <li>Performance bottlenecks in current infrastructure</li>
+  <li>Time-sensitive migration requirements</li>
+  <li>Need for immediate technical consultation</li>
+  <li>Business continuity concerns during migration</li>
+</ul>
+
+<h3>RECOMMENDATIONS</h3>
+
+<strong>Immediate Actions:</strong>
+<ol>
+  <li><strong>Emergency Performance Assessment</strong> - Conduct immediate analysis of current performance issues</li>
+  <li><strong>Accelerated Migration Planning</strong> - Develop fast-track migration strategy for AWS</li>
+  <li><strong>Resource Allocation</strong> - Assign senior migration specialists immediately</li>
+</ol>
+
+<strong>Migration Strategy:</strong>
+<ul>
+  <li><strong>Phase 1:</strong> Critical system stabilization and performance fixes</li>
+  <li><strong>Phase 2:</strong> Core infrastructure migration to AWS</li>
+  <li><strong>Phase 3:</strong> Optimization and performance tuning</li>
+</ul>
+
+<h3>NEXT STEPS</h3>
+
+<strong>Immediate Actions:</strong>
+<ul>
+  <li>Schedule emergency consultation call within 2 hours</li>
+  <li>Begin performance assessment of current systems</li>
+  <li>Prepare AWS migration architecture proposal</li>
+</ul>
+
+<strong>Timeline:</strong>
+<ul>
+  <li><strong>Today:</strong> Initial consultation and performance assessment</li>
+  <li><strong>Week 1:</strong> Migration planning and AWS environment setup</li>
+  <li><strong>Week 2-3:</strong> Phased migration execution</li>
+</ul>
+
+<h3>URGENCY ASSESSMENT</h3>
+
+<strong>Urgent Language Detected:</strong>
+<ul>
+  <li>"urgent help"</li>
+  <li>"ASAP"</li>
+  <li>"schedule a call this afternoon"</li>
+</ul>
+
+<strong>Business Impact:</strong>
+<ul>
+  <li>Active performance issues affecting operations</li>
+  <li>Time-sensitive migration requirements</li>
+  <li>Same-day consultation requested</li>
+</ul>
+
+<p><strong>Recommended Response Time:</strong> Within 1 hour</p>
+
+<h3>CONTACT INFORMATION</h3>
+
+<p><strong>Client:</strong> Sarah Johnson
+<strong>Email:</strong> sarah.johnson@techcorp.com
+<strong>Company:</strong> TechCorp Solutions
+<strong>Phone:</strong> +1-555-0199</p></div>
+            </div>
+            
+            
+            
+            <div class="action-section high-priority">
+                <span class="action-icon">
+                    🚨
+                </span>
+                
+                    <strong>HIGH PRIORITY:</strong> Please review and respond to the client IMMEDIATELY.<br>
+                    Check for meeting requests, urgent timelines, or critical business needs.
+                
+            </div>
+        </div>
+        
+        
+        <div class="footer">
+            <div class="footer-logo">CloudPartner Pro - Internal System</div>
+            <p class="footer-text">
+                This is an automated notification from the Cloud Consulting Business.<br>
+                For system support, contact the development team.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

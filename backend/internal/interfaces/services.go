@@ -20,6 +20,7 @@ type InquiryService interface {
 // ReportService defines the interface for report management
 type ReportService interface {
 	GenerateReport(ctx context.Context, inquiry *domain.Inquiry) (*domain.Report, error)
+	GenerateHTML(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report) (string, error)
 	GetReport(ctx context.Context, id string) (*domain.Report, error)
 	GetReportsByInquiry(ctx context.Context, inquiryID string) ([]*domain.Report, error)
 	UpdateReportStatus(ctx context.Context, id string, status domain.ReportStatus) error
@@ -83,6 +84,8 @@ type TemplateService interface {
 	ValidateTemplate(templateContent string) error
 	GetAvailableTemplates() []string
 	ReloadTemplates() error
+	PrepareReportTemplateData(inquiry *domain.Inquiry, report *domain.Report) interface{}
+	PrepareConsultantNotificationData(inquiry *domain.Inquiry, report *domain.Report, isHighPriority bool) interface{}
 }
 
 // Supporting types for services

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/report-styles.css">
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { font-size: 12pt; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="report-body">
+    <div class="report-container">
+        <!-- Header -->
+        <header class="report-header">
+            <div class="header-content">
+                <div class="company-logo">
+                    <div class="brand-logo migration-theme">
+                        <span class="logo-text">CP</span>
+                    </div>
+                    <div class="company-info">
+                        <h1 class="company-name">CloudPartner Pro</h1>
+                        <p class="company-tagline">Migration Excellence</p>
+                    </div>
+                </div>
+                <div class="report-meta">
+                    <p class="report-date">{{.GeneratedDate}}</p>
+                    <p class="report-id">Report ID: {{.ID}}</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Title Section -->
+        <section class="title-section">
+            <h1 class="report-title migration-title">{{.Title}}</h1>
+            <div class="migration-badge">
+                <span class="badge badge-migration">Cloud Migration Strategy</span>
+            </div>
+            <div class="client-info">
+                <h2 class="section-heading">Migration Overview</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Client:</span>
+                        <span class="info-value">{{.ClientName}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Organization:</span>
+                        <span class="info-value">{{.ClientCompany}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Contact:</span>
+                        <span class="info-value">{{.ClientEmail}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Migration Scope:</span>
+                        <span class="info-value">{{.Services}}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Priority Alert (if high priority) -->
+        {{if .IsHighPriority}}
+        <section class="priority-alert">
+            <div class="alert alert-warning">
+                <h3 class="alert-title">⚡ URGENT MIGRATION REQUEST</h3>
+                <p class="alert-message">This migration request has been flagged as high priority and requires immediate planning and resource allocation.</p>
+            </div>
+        </section>
+        {{end}}
+
+        <!-- Report Content -->
+        <main class="report-content migration-content">
+            {{.FormattedContent}}
+        </main>
+
+        <!-- Migration Timeline (if applicable) -->
+        <section class="migration-timeline no-print">
+            <h2 class="section-heading">Typical Migration Timeline</h2>
+            <div class="timeline-info">
+                <p class="timeline-note">This section would be populated with specific timeline information based on the migration scope and complexity.</p>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="report-footer">
+            <div class="footer-content">
+                <div class="contact-info">
+                    <h3>Migration Support Team</h3>
+                    <p>CloudPartner Pro Migration Services</p>
+                    <p>Email: migrations@cloudpartner.pro</p>
+                    <p>24/7 Support: support@cloudpartner.pro</p>
+                </div>
+                <div class="footer-meta">
+                    <p class="generated-info">Generated on {{.GeneratedDate}} by CloudPartner Pro AI</p>
+                    <p class="confidentiality">This migration plan is confidential and intended solely for {{.ClientName}}</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

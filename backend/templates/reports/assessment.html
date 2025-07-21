@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/report-styles.css">
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { font-size: 12pt; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="report-body">
+    <div class="report-container">
+        <!-- Header -->
+        <header class="report-header">
+            <div class="header-content">
+                <div class="company-logo">
+                    <div class="brand-logo">
+                        <span class="logo-text">CP</span>
+                    </div>
+                    <div class="company-info">
+                        <h1 class="company-name">CloudPartner Pro</h1>
+                        <p class="company-tagline">Cloud Excellence, Delivered</p>
+                    </div>
+                </div>
+                <div class="report-meta">
+                    <p class="report-date">{{.GeneratedDate}}</p>
+                    <p class="report-id">Report ID: {{.ID}}</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Title Section -->
+        <section class="title-section">
+            <h1 class="report-title">{{.Title}}</h1>
+            <div class="client-info">
+                <h2 class="section-heading">Client Information</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Client:</span>
+                        <span class="info-value">{{.ClientName}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Company:</span>
+                        <span class="info-value">{{.ClientCompany}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">{{.ClientEmail}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Services:</span>
+                        <span class="info-value">{{.Services}}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Priority Alert (if high priority) -->
+        {{if .IsHighPriority}}
+        <section class="priority-alert">
+            <div class="alert alert-danger">
+                <h3 class="alert-title">🚨 HIGH PRIORITY</h3>
+                <p class="alert-message">This inquiry requires immediate attention based on urgency indicators detected in the client's message.</p>
+            </div>
+        </section>
+        {{end}}
+
+        <!-- Report Content -->
+        <main class="report-content">
+            {{.FormattedContent}}
+        </main>
+
+        <!-- Footer -->
+        <footer class="report-footer">
+            <div class="footer-content">
+                <div class="contact-info">
+                    <h3>Contact Information</h3>
+                    <p>CloudPartner Pro</p>
+                    <p>Email: info@cloudpartner.pro</p>
+                    <p>Website: www.cloudpartner.pro</p>
+                </div>
+                <div class="footer-meta">
+                    <p class="generated-info">Generated on {{.GeneratedDate}} by CloudPartner Pro AI</p>
+                    <p class="confidentiality">This report is confidential and intended solely for {{.ClientName}}</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,553 @@
+/* CloudPartner Pro Report Styles */
+
+/* Import email styles for consistency */
+@import url('email-styles.css');
+
+/* Report-specific variables */
+:root {
+    --report-max-width: 210mm; /* A4 width */
+    --report-margin: 20mm;
+    --report-font-size: 11pt;
+    --report-line-height: 1.6;
+    --header-height: 80px;
+    --footer-height: 60px;
+    
+    /* Service-specific colors */
+    --assessment-color: #007cba;
+    --migration-color: #28a745;
+    --optimization-color: #ffc107;
+    --architecture-color: #6f42c1;
+}
+
+/* Base report styles */
+.report-body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: var(--report-font-size);
+    line-height: var(--report-line-height);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+}
+
+.report-container {
+    max-width: var(--report-max-width);
+    margin: 0 auto;
+    padding: 20px;
+    background: #ffffff;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    min-height: 100vh;
+}
+
+/* Header styles */
+.report-header {
+    border-bottom: 3px solid var(--primary-color);
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.company-logo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.brand-logo {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(0, 124, 186, 0.3);
+}
+
+/* Service-specific logo themes */
+.brand-logo.migration-theme {
+    background: linear-gradient(135deg, var(--migration-color), #1e7e34);
+}
+
+.brand-logo.optimization-theme {
+    background: linear-gradient(135deg, var(--optimization-color), #e0a800);
+}
+
+.brand-logo.architecture-theme {
+    background: linear-gradient(135deg, var(--architecture-color), #5a32a3);
+}
+
+.logo-text {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.company-info {
+    text-align: left;
+}
+
+.company-name {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.company-tagline {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 5px 0 0 0;
+    font-style: italic;
+}
+
+.report-meta {
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.report-date, .report-id {
+    margin: 5px 0;
+}
+
+/* Title section */
+.title-section {
+    margin-bottom: 40px;
+}
+
+.report-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0 0 20px 0;
+    line-height: 1.3;
+}
+
+/* Service-specific title colors */
+.migration-title {
+    color: var(--migration-color);
+}
+
+.optimization-title {
+    color: var(--optimization-color);
+}
+
+.architecture-title {
+    color: var(--architecture-color);
+}
+
+/* Service badges */
+.badge {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+}
+
+.badge-migration {
+    background: linear-gradient(135deg, var(--migration-color), #1e7e34);
+    color: white;
+}
+
+.badge-optimization {
+    background: linear-gradient(135deg, var(--optimization-color), #e0a800);
+    color: #333;
+}
+
+.badge-architecture {
+    background: linear-gradient(135deg, var(--architecture-color), #5a32a3);
+    color: white;
+}
+
+/* Client info section */
+.client-info {
+    background: var(--light-gray);
+    border-left: 5px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 25px;
+    margin: 20px 0;
+}
+
+.section-heading {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0 0 15px 0;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 5px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.info-label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-weight: 500;
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+/* Priority alerts */
+.priority-alert {
+    margin: 30px 0;
+}
+
+.alert {
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 5px solid;
+    margin: 20px 0;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    border-left-color: var(--danger-color);
+    color: #721c24;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    border-left-color: var(--warning-color);
+    color: #856404;
+}
+
+.alert-success {
+    background: #d4edda;
+    border-left-color: var(--secondary-color);
+    color: #155724;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    border-left-color: #17a2b8;
+    color: #0c5460;
+}
+
+.alert-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+}
+
+.alert-message {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Report content */
+.report-content {
+    margin: 40px 0;
+    line-height: 1.8;
+}
+
+.report-content h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 30px 0 15px 0;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+}
+
+.report-content h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 25px 0 12px 0;
+}
+
+.report-content h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin: 20px 0 10px 0;
+}
+
+.report-content h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin: 15px 0 8px 0;
+}
+
+.report-content p {
+    margin: 12px 0;
+    text-align: justify;
+}
+
+.report-content ul, .report-content ol {
+    margin: 15px 0;
+    padding-left: 25px;
+}
+
+.report-content li {
+    margin: 8px 0;
+}
+
+.report-content strong {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.report-content em {
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+/* Service-specific content styling */
+.migration-content h1, .migration-content h2 {
+    color: var(--migration-color);
+    border-bottom-color: var(--migration-color);
+}
+
+.optimization-content h1, .optimization-content h2 {
+    color: var(--optimization-color);
+    border-bottom-color: var(--optimization-color);
+}
+
+.architecture-content h1, .architecture-content h2 {
+    color: var(--architecture-color);
+    border-bottom-color: var(--architecture-color);
+}
+
+/* Additional sections */
+.migration-timeline, .savings-highlight, .architecture-principles {
+    background: var(--light-gray);
+    border-radius: 8px;
+    padding: 25px;
+    margin: 30px 0;
+}
+
+.timeline-info, .benefits-grid, .principles-grid {
+    margin-top: 15px;
+}
+
+.benefits-grid, .principles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.benefit-item, .principle-item {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.benefit-item h4, .principle-item h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.benefit-item p, .principle-item p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Footer */
+.report-footer {
+    border-top: 2px solid var(--light-gray);
+    padding-top: 20px;
+    margin-top: 50px;
+    font-size: 12px;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.contact-info h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0 0 10px 0;
+}
+
+.contact-info p {
+    margin: 5px 0;
+    color: var(--text-muted);
+}
+
+.footer-meta {
+    text-align: right;
+    color: var(--text-muted);
+}
+
+.generated-info, .confidentiality {
+    margin: 5px 0;
+    font-size: 11px;
+}
+
+.confidentiality {
+    font-style: italic;
+    color: var(--medium-gray);
+}
+
+/* Print styles */
+@media print {
+    .report-container {
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        max-width: none;
+    }
+    
+    .report-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        z-index: 1000;
+    }
+    
+    .report-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        z-index: 1000;
+    }
+    
+    .report-content {
+        margin-top: calc(var(--header-height) + 20px);
+        margin-bottom: calc(var(--footer-height) + 20px);
+    }
+    
+    .page-break {
+        page-break-before: always;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+    
+    /* Ensure proper colors in print */
+    .brand-logo,
+    .badge,
+    .alert {
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .report-container {
+        padding: 15px;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .company-logo {
+        justify-content: center;
+    }
+    
+    .report-meta {
+        text-align: center;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .footer-meta {
+        text-align: center;
+    }
+    
+    .benefits-grid, .principles-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .report-title {
+        font-size: 22px;
+    }
+    
+    .company-name {
+        font-size: 20px;
+    }
+    
+    .brand-logo {
+        width: 50px;
+        height: 50px;
+        font-size: 18px;
+    }
+    
+    .logo-text {
+        font-size: 16px;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .report-container {
+        border: 2px solid var(--text-color);
+    }
+    
+    .brand-logo {
+        border: 2px solid white;
+    }
+    
+    .alert {
+        border: 2px solid;
+    }
+}

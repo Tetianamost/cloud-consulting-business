@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/report-styles.css">
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { font-size: 12pt; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="report-body">
+    <div class="report-container">
+        <!-- Header -->
+        <header class="report-header">
+            <div class="header-content">
+                <div class="company-logo">
+                    <div class="brand-logo optimization-theme">
+                        <span class="logo-text">CP</span>
+                    </div>
+                    <div class="company-info">
+                        <h1 class="company-name">CloudPartner Pro</h1>
+                        <p class="company-tagline">Performance Optimization</p>
+                    </div>
+                </div>
+                <div class="report-meta">
+                    <p class="report-date">{{.GeneratedDate}}</p>
+                    <p class="report-id">Report ID: {{.ID}}</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Title Section -->
+        <section class="title-section">
+            <h1 class="report-title optimization-title">{{.Title}}</h1>
+            <div class="optimization-badge">
+                <span class="badge badge-optimization">Performance Analysis</span>
+            </div>
+            <div class="client-info">
+                <h2 class="section-heading">Optimization Scope</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Client:</span>
+                        <span class="info-value">{{.ClientName}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Organization:</span>
+                        <span class="info-value">{{.ClientCompany}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Contact:</span>
+                        <span class="info-value">{{.ClientEmail}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Focus Areas:</span>
+                        <span class="info-value">{{.Services}}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Priority Alert (if high priority) -->
+        {{if .IsHighPriority}}
+        <section class="priority-alert">
+            <div class="alert alert-success">
+                <h3 class="alert-title">🎯 PRIORITY OPTIMIZATION</h3>
+                <p class="alert-message">This optimization request has been identified as high-impact and should be prioritized for immediate cost savings and performance gains.</p>
+            </div>
+        </section>
+        {{end}}
+
+        <!-- Report Content -->
+        <main class="report-content optimization-content">
+            {{.FormattedContent}}
+        </main>
+
+        <!-- Cost Savings Potential (if applicable) -->
+        <section class="savings-highlight no-print">
+            <h2 class="section-heading">Potential Benefits</h2>
+            <div class="benefits-grid">
+                <div class="benefit-item">
+                    <h4>Cost Reduction</h4>
+                    <p>Optimize resource allocation and eliminate waste</p>
+                </div>
+                <div class="benefit-item">
+                    <h4>Performance Gains</h4>
+                    <p>Improve application response times and throughput</p>
+                </div>
+                <div class="benefit-item">
+                    <h4>Scalability</h4>
+                    <p>Enhanced ability to handle growth and demand spikes</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="report-footer">
+            <div class="footer-content">
+                <div class="contact-info">
+                    <h3>Optimization Team</h3>
+                    <p>CloudPartner Pro Performance Services</p>
+                    <p>Email: optimization@cloudpartner.pro</p>
+                    <p>Performance Hotline: perf@cloudpartner.pro</p>
+                </div>
+                <div class="footer-meta">
+                    <p class="generated-info">Generated on {{.GeneratedDate}} by CloudPartner Pro AI</p>
+                    <p class="confidentiality">This optimization report is confidential and intended solely for {{.ClientName}}</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/russross/blackfriday/v2"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cloud-consulting/backend/internal/domain"
@@ -50,28 +49,8 @@ func (e *emailService) SendReportEmail(ctx context.Context, inquiry *domain.Inqu
 	var textBody string
 	
 	if e.templateService != nil {
-		// Prepare template data
-		templateData := &ConsultantNotificationTemplateData{
-			Name:           inquiry.Name,
-			Email:          inquiry.Email,
-			Company:        inquiry.Company,
-			Phone:          inquiry.Phone,
-			Services:       strings.Join(inquiry.Services, ", "),
-			Message:        inquiry.Message,
-			ID:             inquiry.ID,
-			IsHighPriority: isHighPriority,
-			Priority: func() string {
-				if isHighPriority {
-					return "HIGH"
-				}
-				return "NORMAL"
-			}(),
-			Report: &ReportTemplateData{
-				ID:          report.ID,
-				Content:     report.Content,
-				HTMLContent: e.convertMarkdownToHTML(report.Content),
-			},
-		}
+		// Use the template service to prepare data properly
+		templateData := e.templateService.PrepareConsultantNotificationData(inquiry, report, isHighPriority)
 		
 		// Render branded HTML template
 		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "consultant_notification", templateData)
@@ -319,20 +298,7 @@ func (e *emailService) detectHighPriority(message string) bool {
 	return false
 }
 
-// convertMarkdownToHTML converts Markdown text to HTML
-func (e *emailService) convertMarkdownToHTML(markdown string) string {
-	// Configure Blackfriday with safe HTML rendering
-	renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
-		Flags: blackfriday.CommonHTMLFlags | blackfriday.HTMLFlagsNone,
-	})
-	
-	extensions := blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs
-	
-	// Convert markdown to HTML
-	htmlBytes := blackfriday.Run([]byte(markdown), blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(extensions))
-	
-	return string(htmlBytes)
-}
+
 
 // sanitizeMarkdownForPlainText cleans up markdown for plain text display
 func (e *emailService) sanitizeMarkdownForPlainText(markdown string) string {
@@ -604,7 +570,7 @@ func (e *emailService) buildReportEmailHTML(inquiry *domain.Inquiry, report *dom
 		inquiry.ID,
 		report.ID,
 		html.EscapeString(inquiry.Message),
-		e.convertMarkdownToHTML(report.Content),
+		html.EscapeString(report.Content),
 		func() string {
 			if isHighPriority {
 				return "#f8d7da"
@@ -706,26 +672,7 @@ type CustomerConfirmationTemplateData struct {
 	ID       string
 }
 
-// ConsultantNotificationTemplateData represents the data structure for consultant notification emails
-type ConsultantNotificationTemplateData struct {
-	Name           string
-	Email          string
-	Company        string
-	Phone          string
-	Services       string
-	Message        string
-	ID             string
-	IsHighPriority bool
-	Priority       string
-	Report         *ReportTemplateData
-}
 
-// ReportTemplateData represents report information for email templates
-type ReportTemplateData struct {
-	ID          string
-	HTMLContent string
-	Content     string
-}
 
 // buildCustomerConfirmationText creates the plain text version of the customer confirmation email
 func (e *emailService) buildCustomerConfirmationText(inquiry *domain.Inquiry) string {

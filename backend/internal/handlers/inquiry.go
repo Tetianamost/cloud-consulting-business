@@ -10,13 +10,15 @@ import (
 
 // InquiryHandler handles inquiry-related HTTP requests
 type InquiryHandler struct {
-	inquiryService interfaces.InquiryService
+	inquiryService  interfaces.InquiryService
+	reportService   interfaces.ReportService
 }
 
 // NewInquiryHandler creates a new inquiry handler
-func NewInquiryHandler(inquiryService interfaces.InquiryService) *InquiryHandler {
+func NewInquiryHandler(inquiryService interfaces.InquiryService, reportService interfaces.ReportService) *InquiryHandler {
 	return &InquiryHandler{
 		inquiryService: inquiryService,
+		reportService:  reportService,
 	}
 }
 
@@ -118,4 +120,61 @@ func (h *InquiryHandler) ListInquiries(c *gin.Context) {
 		"data":    inquiries,
 		"count":   len(inquiries),
 	})
+}
+
+// GetInquiryReportHTML handles GET /api/v1/inquiries/{id}/report/html
+func (h *InquiryHandler) GetInquiryReportHTML(c *gin.Context) {
+	id := c.Param("id")
+	
+	// Get the inquiry
+	inquiry, err := h.inquiryService.GetInquiry(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to retrieve inquiry",
+		})
+		return
+	}
+
+	if inquiry == nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "Inquiry not found",
+		})
+		return
+	}
+
+	// Check if inquiry has reports
+	if len(inquiry.Reports) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "No reports found for this inquiry",
+		})
+		return
+	}
+
+	// Get the first (latest) report
+	report := inquiry.Reports[0]
+
+	// Generate HTML version of the report
+	if h.reportService == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Report service not available",
+		})
+		return
+	}
+
+	htmlContent, err := h.reportService.GenerateHTML(c.Request.Context(), inquiry, report)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to generate HTML report",
+		})
+		return
+	}
+
+	// Return HTML content
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.String(http.StatusOK, htmlContent)
 }
