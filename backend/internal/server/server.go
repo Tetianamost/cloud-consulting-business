@@ -43,6 +43,9 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	bedrockService := services.NewBedrockService(&cfg.Bedrock)
 	reportGenerator := services.NewReportGenerator(bedrockService)
 	
+	// Initialize template service
+	templateService := services.NewTemplateService("templates", logger)
+	
 	// Initialize email services (with graceful degradation if SES config is missing)
 	var emailService interfaces.EmailService
 	if cfg.SES.AccessKeyID != "" && cfg.SES.SecretAccessKey != "" && cfg.SES.SenderEmail != "" {
@@ -50,8 +53,8 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 		if err != nil {
 			logger.WithError(err).Warn("Failed to initialize SES service, email notifications will be disabled")
 		} else {
-			emailService = services.NewEmailService(sesService, cfg.SES, logger)
-			logger.Info("Email service initialized successfully")
+			emailService = services.NewEmailService(sesService, templateService, cfg.SES, logger)
+			logger.Info("Email service initialized successfully with branded templates")
 		}
 	} else {
 		logger.Warn("SES configuration incomplete, email notifications will be disabled")

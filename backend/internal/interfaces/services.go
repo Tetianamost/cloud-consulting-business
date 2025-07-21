@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"context"
+	"html/template"
 
 	"github.com/cloud-consulting/backend/internal/domain"
 )
@@ -72,6 +73,16 @@ type SESService interface {
 	SendEmail(ctx context.Context, email *EmailMessage) error
 	VerifyEmailAddress(ctx context.Context, email string) error
 	GetSendingQuota(ctx context.Context) (*SendingQuota, error)
+}
+
+// TemplateService defines the interface for email and report template management
+type TemplateService interface {
+	RenderEmailTemplate(ctx context.Context, templateName string, data interface{}) (string, error)
+	RenderReportTemplate(ctx context.Context, templateName string, data interface{}) (string, error)
+	LoadTemplate(templateName string) (*template.Template, error)
+	ValidateTemplate(templateContent string) error
+	GetAvailableTemplates() []string
+	ReloadTemplates() error
 }
 
 // Supporting types for services

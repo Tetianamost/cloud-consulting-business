@@ -17,17 +17,19 @@ import (
 
 // emailService implements the EmailService interface
 type emailService struct {
-	sesService interfaces.SESService
-	config     configPkg.SESConfig
-	logger     *logrus.Logger
+	sesService      interfaces.SESService
+	templateService interfaces.TemplateService
+	config          configPkg.SESConfig
+	logger          *logrus.Logger
 }
 
 // NewEmailService creates a new email service instance
-func NewEmailService(sesService interfaces.SESService, config configPkg.SESConfig, logger *logrus.Logger) interfaces.EmailService {
+func NewEmailService(sesService interfaces.SESService, templateService interfaces.TemplateService, config configPkg.SESConfig, logger *logrus.Logger) interfaces.EmailService {
 	return &emailService{
-		sesService: sesService,
-		config:     config,
-		logger:     logger,
+		sesService:      sesService,
+		templateService: templateService,
+		config:          config,
+		logger:          logger,
 	}
 }
 
@@ -43,8 +45,48 @@ func (e *emailService) SendReportEmail(ctx context.Context, inquiry *domain.Inqu
 		subject = fmt.Sprintf("New Cloud Consulting Report Generated - %s", inquiry.Name)
 	}
 	
-	textBody := e.buildReportEmailText(inquiry, report)
-	htmlBody := e.buildReportEmailHTML(inquiry, report)
+	// Use branded template if available, fallback to basic template
+	var htmlBody string
+	var textBody string
+	
+	if e.templateService != nil {
+		// Prepare template data
+		templateData := &ConsultantNotificationTemplateData{
+			Name:           inquiry.Name,
+			Email:          inquiry.Email,
+			Company:        inquiry.Company,
+			Phone:          inquiry.Phone,
+			Services:       strings.Join(inquiry.Services, ", "),
+			Message:        inquiry.Message,
+			ID:             inquiry.ID,
+			IsHighPriority: isHighPriority,
+			Priority: func() string {
+				if isHighPriority {
+					return "HIGH"
+				}
+				return "NORMAL"
+			}(),
+			Report: &ReportTemplateData{
+				ID:          report.ID,
+				Content:     report.Content,
+				HTMLContent: e.convertMarkdownToHTML(report.Content),
+			},
+		}
+		
+		// Render branded HTML template
+		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "consultant_notification", templateData)
+		if err != nil {
+			e.logger.WithError(err).WithField("inquiry_id", inquiry.ID).Warn("Failed to render branded template, using fallback")
+			htmlBody = e.buildReportEmailHTML(inquiry, report)
+		} else {
+			htmlBody = brandedHTML
+		}
+	} else {
+		htmlBody = e.buildReportEmailHTML(inquiry, report)
+	}
+	
+	// Always use the text version as fallback
+	textBody = e.buildReportEmailText(inquiry, report)
 
 	// Send only to internal address - no customer email included
 	email := &interfaces.EmailMessage{
@@ -70,6 +112,7 @@ func (e *emailService) SendReportEmail(ctx context.Context, inquiry *domain.Inqu
 		"report_id":       report.ID,
 		"recipients":      email.To,
 		"high_priority":   isHighPriority,
+		"template_used":   "branded",
 	}).Info("Internal report email sent successfully")
 
 	return nil
@@ -123,10 +166,35 @@ func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *do
 		return nil // Don't fail the inquiry creation for invalid email
 	}
 
-	subject := "Thank you for your cloud consulting inquiry"
+	subject := "Thank you for your cloud consulting inquiry - CloudPartner Pro"
 	
-	textBody := e.buildCustomerConfirmationText(inquiry)
-	htmlBody := e.buildCustomerConfirmationHTML(inquiry)
+	// Use branded template if available, fallback to basic template
+	var htmlBody string
+	var textBody string
+	
+	if e.templateService != nil {
+		// Prepare template data
+		templateData := &CustomerConfirmationTemplateData{
+			Name:     inquiry.Name,
+			Company:  inquiry.Company,
+			Services: strings.Join(inquiry.Services, ", "),
+			ID:       inquiry.ID,
+		}
+		
+		// Render branded HTML template
+		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "customer_confirmation", templateData)
+		if err != nil {
+			e.logger.WithError(err).WithField("inquiry_id", inquiry.ID).Warn("Failed to render branded template, using fallback")
+			htmlBody = e.buildCustomerConfirmationHTML(inquiry)
+		} else {
+			htmlBody = brandedHTML
+		}
+	} else {
+		htmlBody = e.buildCustomerConfirmationHTML(inquiry)
+	}
+	
+	// Always use the text version as fallback
+	textBody = e.buildCustomerConfirmationText(inquiry)
 
 	email := &interfaces.EmailMessage{
 		From:     e.config.SenderEmail,
@@ -149,6 +217,7 @@ func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *do
 	e.logger.WithFields(logrus.Fields{
 		"inquiry_id":     inquiry.ID,
 		"customer_email": customerEmail,
+		"template_used":  "branded",
 	}).Info("Customer confirmation email sent successfully")
 
 	return nil
@@ -625,6 +694,37 @@ func (e *emailService) buildInquiryEmailHTML(inquiry *domain.Inquiry) string {
 		html.EscapeString(strings.Join(inquiry.Services, ", ")),
 		inquiry.ID,
 		html.EscapeString(inquiry.Message))
+}
+
+// Template data structures for branded email templates
+
+// CustomerConfirmationTemplateData represents the data structure for customer confirmation emails
+type CustomerConfirmationTemplateData struct {
+	Name     string
+	Company  string
+	Services string
+	ID       string
+}
+
+// ConsultantNotificationTemplateData represents the data structure for consultant notification emails
+type ConsultantNotificationTemplateData struct {
+	Name           string
+	Email          string
+	Company        string
+	Phone          string
+	Services       string
+	Message        string
+	ID             string
+	IsHighPriority bool
+	Priority       string
+	Report         *ReportTemplateData
+}
+
+// ReportTemplateData represents report information for email templates
+type ReportTemplateData struct {
+	ID          string
+	HTMLContent string
+	Content     string
 }
 
 // buildCustomerConfirmationText creates the plain text version of the customer confirmation email
