@@ -1,0 +1,50 @@
+# Local development Dockerfile - builds everything from scratch
+FROM ubuntu:22.04
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    nginx \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js manually
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
+
+# Verify Node.js installation
+RUN node --version && npm --version
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Copy built app to nginx directory
+RUN cp -r build/* /var/share/nginx/html/ || mkdir -p /var/share/nginx/html && cp -r build/* /var/share/nginx/html/
+
+# Copy custom nginx configuration
+COPY nginx.conf /etc/nginx/sites-available/default
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

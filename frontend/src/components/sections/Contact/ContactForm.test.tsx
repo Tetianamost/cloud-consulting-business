@@ -128,7 +128,7 @@ describe('ContactForm Enhanced Features', () => {
     await userEvent.type(screen.getByLabelText(/email address/i), 'john@example.com');
     await userEvent.type(screen.getByLabelText(/message/i), 'Test message');
     await userEvent.click(screen.getByLabelText(/cloud assessment/i));
-    await user.click(screen.getByRole('button', { name: /send message/i }));
+    await userEvent.click(screen.getByRole('button', { name: /send message/i }));
 
     // Wait for success message
     await waitFor(() => {

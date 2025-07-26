@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import Button from '../../ui/Button';
+import { Button } from '../../ui/button';
 import CloudAnimation from './CloudAnimation';
 import { FiArrowRight } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
@@ -254,34 +254,33 @@ const Hero: React.FC = () => {
           </Subheading>
           
           <CTAButtons>
-          <Button 
-            size="lg" 
-            icon={<Icon icon={FiArrowRight} size={18} />} 
-            iconPosition="right"
-            onClick={() => {
-              console.log("Get Started clicked");
-              document.getElementById('contact')?.scrollIntoView({ 
-                behavior: 'smooth' 
-              });
-            }}
-          >
-            Get Started
-          </Button>
-          
-          <Button 
-            size="lg" 
-            variant="outline"
-            onClick={() => {
-              console.log("Learn More clicked");
-              // Using the native scrollIntoView method
-              document.getElementById('services')?.scrollIntoView({ 
-                behavior: 'smooth' 
-              });
-            }}
-          >
-            Learn More
-          </Button>
-        </CTAButtons>
+            <Button 
+              size="lg" 
+              variant="default"
+              onClick={() => {
+                console.log("Get Started clicked");
+                document.getElementById('contact')?.scrollIntoView({ 
+                  behavior: 'smooth' 
+                });
+              }}
+            >
+              Get Started
+              <Icon icon={FiArrowRight} size={18} />
+            </Button>
+            
+            <Button 
+              size="lg" 
+              variant="outline"
+              onClick={() => {
+                console.log("Learn More clicked");
+                document.getElementById('services')?.scrollIntoView({ 
+                  behavior: 'smooth' 
+                });
+              }}
+            >
+              Learn More
+            </Button>
+          </CTAButtons>
           
           <Stats variants={statsVariants}>
             <StatItem variants={statItemVariants}>

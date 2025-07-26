@@ -25,7 +25,7 @@ func NewInquiryHandler(inquiryService interfaces.InquiryService, reportService i
 
 // CreateInquiry handles POST /api/v1/inquiries
 func (h *InquiryHandler) CreateInquiry(c *gin.Context) {
-	var req domain.CreateInquiryRequest
+	var req interfaces.CreateInquiryRequest
 	
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

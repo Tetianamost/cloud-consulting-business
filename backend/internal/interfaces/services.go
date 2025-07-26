@@ -7,12 +7,23 @@ import (
 	"github.com/cloud-consulting/backend/internal/domain"
 )
 
+// CreateInquiryRequest represents the request to create an inquiry
+type CreateInquiryRequest struct {
+	Name     string   `json:"name" validate:"required,min=2,max=50"`
+	Email    string   `json:"email" validate:"required,email"`
+	Company  string   `json:"company,omitempty"`
+	Phone    string   `json:"phone,omitempty"`
+	Services []string `json:"services" validate:"required,min=1"`
+	Message  string   `json:"message" validate:"required,min=1"`
+	Source   string   `json:"source,omitempty"`
+}
+
 // InquiryService defines the interface for inquiry management
 type InquiryService interface {
-	CreateInquiry(ctx context.Context, req *domain.CreateInquiryRequest) (*domain.Inquiry, error)
+	CreateInquiry(ctx context.Context, req *CreateInquiryRequest) (*domain.Inquiry, error)
 	GetInquiry(ctx context.Context, id string) (*domain.Inquiry, error)
 	ListInquiries(ctx context.Context, filters *domain.InquiryFilters) ([]*domain.Inquiry, error)
-	UpdateInquiryStatus(ctx context.Context, id string, status domain.InquiryStatus) error
+	UpdateInquiryStatus(ctx context.Context, id string, status string) error
 	AssignConsultant(ctx context.Context, id string, consultantID string) error
 	GetInquiryCount(ctx context.Context, filters *domain.InquiryFilters) (int64, error)
 }

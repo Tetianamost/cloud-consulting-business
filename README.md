@@ -1,100 +1,128 @@
-# Cloud Consulting Business Platform
+# Cloud Consulting Backend
 
-A full-stack application for managing cloud consulting services with AI-powered report generation using Amazon Bedrock.
+A comprehensive Go backend system for processing and categorizing cloud consulting service inquiries with AI-powered report generation and admin dashboard.
 
-## 🚀 Quick Start with Docker
+## Features
+
+- 🚀 **Service Inquiry Processing**: Handle four main service types (Assessment, Migration, Optimization, Architecture Review)
+- 🤖 **AI Report Generation**: Automatically generate draft reports using Amazon Bedrock AI
+- 📧 **Email Notifications**: Professional email notifications using AWS SES
+- 👨‍💼 **Admin Dashboard**: React-based admin interface for monitoring and management
+- 🔐 **Authentication**: JWT-based admin authentication
+- 📊 **Metrics & Monitoring**: System metrics and email delivery tracking
+- 🐳 **Docker Support**: Full containerization with Docker Compose
+
+## Quick Start
 
 ### Prerequisites
 
-- Docker and Docker Compose installed
-- AWS account with Bedrock access
-- Amazon Bedrock API key
+Choose one of the following setups based on your environment:
+
+**Option 1: Native Development**
+- Go 1.21+
+- Node.js 18+
+- AWS credentials (optional for AI and email features)
+
+**Option 2: Docker (Local Builds)**
+- Docker and Docker Compose
+- No internet required after initial setup
+
+**Option 3: Docker (Registry Images)**
+- Docker and Docker Compose
+- Internet connection required
 
 ### 1. Clone and Setup
 
 ```bash
-git clone <your-repo>
-cd cloud-consulting-business
-
-# Copy environment configuration
-cp .env.example .env
+git clone <repository-url>
+cd cloud-consulting-backend
 ```
 
-### 2. Configure AWS Credentials
+### 2. Configure Environment
 
-Edit `.env` file with your AWS credentials:
+The `.env` file is already configured with demo values. Update with your AWS credentials if you want AI and email features:
 
 ```bash
-# Required for Bedrock AI integration
-AWS_BEARER_TOKEN_BEDROCK=your_bedrock_api_key_here
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_REGION=us-east-1
-
-# AWS_SESSION_TOKEN is optional - only needed for temporary credentials
+# Edit .env with your AWS credentials if you want AI and email features
+nano .env
 ```
 
-> 📖 **Need help with AWS setup?** See our detailed [AWS Setup Guide](docs/AWS_SETUP.md) for step-by-step instructions on getting your credentials.
+### 3. Choose Your Development Method
 
-### 3. Start the Application
-
+#### Option A: Interactive Setup (Recommended)
 ```bash
-# Start backend and frontend
-docker-compose up -d backend frontend
+./start-local-options.sh
+```
 
-# Or use the helper script
-./scripts/docker-dev.sh up
+This will give you a menu to choose between:
+1. Docker with local builds (no registry pulls)
+2. Native development (Go + Node.js directly)
+3. Docker with registry images (requires internet)
+
+#### Option B: Direct Commands
+
+**Native Development (No Docker):**
+```bash
+./start-local-dev.sh
+```
+
+**Docker with Local Builds:**
+```bash
+docker-compose -f docker-compose.local.yml up --build
+```
+
+**Docker with Registry Images:**
+```bash
+./start-local.sh
+```
+
+**Completely Offline Docker:**
+```bash
+./build-offline.sh
+docker-compose -f docker-compose.offline.yml up
 ```
 
 ### 4. Access the Application
 
-- **Frontend**: http://localhost:3000
+All methods will make the application available at:
+- **Frontend**: http://localhost:3006
 - **Backend API**: http://localhost:8061
 - **Health Check**: http://localhost:8061/health
+- **Admin Login**: http://localhost:3006/admin/login
 
-## 🏗️ Architecture
+### 4. Access the Application
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React Frontend│    │   Go Backend    │    │  Amazon Bedrock │
-│   (Port 3000)   │◄──►│   (Port 8061)   │◄──►│   AI Service    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+- **Frontend**: http://localhost:3006
+- **Backend API**: http://localhost:8061
+- **Health Check**: http://localhost:8061/health
+- **Admin Login**: http://localhost:3006/admin/login
 
-## 🛠️ Development Commands
+**Admin Credentials:**
+- Username: `admin`
+- Password: `cloudadmin`
 
-### Using Docker Compose Helper Script
+## API Endpoints
 
-```bash
-# Start services
-./scripts/docker-dev.sh up              # Backend + Frontend
-./scripts/docker-dev.sh up-backend      # Backend only
-./scripts/docker-dev.sh up-full         # All services + DB + Cache
+### Public Endpoints
+- `POST /api/v1/inquiries` - Create new inquiry
+- `GET /api/v1/inquiries/{id}` - Get inquiry details
+- `GET /api/v1/config/services` - Get available service types
+- `GET /health` - Health check
 
-# View logs
-./scripts/docker-dev.sh logs            # All services
-./scripts/docker-dev.sh logs-backend    # Backend only
-./scripts/docker-dev.sh logs-frontend   # Frontend only
+### Admin Endpoints (Protected)
+- `POST /api/v1/auth/login` - Admin login
+- `GET /api/v1/admin/inquiries` - List all inquiries
+- `GET /api/v1/admin/metrics` - System metrics
+- `GET /api/v1/admin/email-status/{id}` - Email delivery status
+- `GET /api/v1/admin/reports/{id}/download/{format}` - Download reports
 
-# Stop and cleanup
-./scripts/docker-dev.sh down            # Stop services
-./scripts/docker-dev.sh clean           # Stop + remove volumes
+## Development
 
-# Test services
-./scripts/docker-dev.sh test            # Health checks
-
-# Build services
-./scripts/docker-dev.sh build           # Rebuild containers
-```
-
-### Direct Docker Compose Commands
+### Manual Docker Commands
 
 ```bash
-# Start all services
-docker-compose up -d
-
-# Start with optional services (database, cache, monitoring)
-docker-compose --profile database --profile cache --profile monitoring up -d
+# Build and start services
+docker-compose up --build -d
 
 # View logs
 docker-compose logs -f backend
@@ -102,155 +130,98 @@ docker-compose logs -f frontend
 
 # Stop services
 docker-compose down
-
-# Rebuild and start
-docker-compose up --build -d
-
-# Clean up everything
-docker-compose down -v --remove-orphans
 ```
 
-## 🧪 Testing the API
+### Environment Variables
 
-### Create an inquiry (triggers AI report generation):
+Key environment variables in `.env`:
 
 ```bash
-curl -X POST http://localhost:8061/api/v1/inquiries \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "company": "Tech Corp",
-    "services": ["assessment"],
-    "message": "We need help assessing our current AWS infrastructure for cost optimization."
-  }'
+# Backend Configuration
+PORT=8061
+JWT_SECRET=cloud-consulting-demo-secret
+
+# AWS Bedrock (for AI report generation)
+AWS_BEARER_TOKEN_BEDROCK=your-bedrock-token
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+
+# AWS SES (for email notifications)
+SES_SENDER_EMAIL=noreply@yourdomain.com
 ```
 
-### Get the AI-generated report:
+## Architecture
+
+- **Backend**: Go with Gin framework
+- **Frontend**: React with TypeScript
+- **Storage**: In-memory (for demo) with plans for PostgreSQL
+- **AI**: Amazon Bedrock Nova model
+- **Email**: AWS SES
+- **Authentication**: JWT tokens
+- **Containerization**: Docker with multi-stage builds
+
+## Service Types
+
+1. **Assessment** - Cloud readiness assessment and migration planning
+2. **Migration** - End-to-end cloud migration services
+3. **Optimization** - Cloud cost optimization and performance tuning
+4. **Architecture Review** - Cloud architecture review and best practices
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port conflicts**: Make sure ports 3006 and 8061 are available
+2. **Docker issues**: Ensure Docker is running and you have sufficient resources
+3. **AWS credentials**: AI and email features require valid AWS credentials
+4. **Network/Registry issues**: If you get "failed to resolve source metadata" errors:
+   - Use `./start-local-options.sh` and choose option 1 (local builds)
+   - Or use native development with option 2
+   - Or build completely offline with `./build-offline.sh`
+5. **DNS resolution issues**: If Docker can't reach registries:
+   - Check your DNS settings
+   - Try using local builds instead of registry pulls
+   - Use the offline build option
+
+### Logs
 
 ```bash
-curl http://localhost:8061/api/v1/inquiries/{inquiry-id}/report
+# Backend logs
+docker-compose logs backend
+
+# Frontend logs
+docker-compose logs frontend
+
+# All logs
+docker-compose logs
 ```
 
-### List all inquiries:
+### Health Checks
 
 ```bash
-curl http://localhost:8061/api/v1/inquiries
+# Backend health
+curl http://localhost:8061/health
+
+# Frontend health
+curl http://localhost:3006
 ```
 
-## 📁 Project Structure
-
-```
-cloud-consulting-business/
-├── backend/                 # Go backend service
-│   ├── cmd/server/         # Application entry point
-│   ├── internal/           # Internal packages
-│   │   ├── config/        # Configuration management
-│   │   ├── domain/        # Domain models
-│   │   ├── handlers/      # HTTP handlers
-│   │   ├── services/      # Business logic (including Bedrock)
-│   │   ├── storage/       # Data storage
-│   │   └── server/        # Server setup
-│   ├── Dockerfile         # Backend container
-│   └── README.md          # Backend documentation
-├── frontend/               # React frontend
-│   ├── src/               # Source code
-│   ├── Dockerfile         # Frontend container
-│   └── nginx.conf         # Nginx configuration
-├── scripts/               # Helper scripts
-│   └── docker-dev.sh      # Docker development helper
-├── docker-compose.yml     # Multi-service orchestration
-├── .env.example          # Environment template
-└── README.md             # This file
-```
-
-## 🔧 Features
-
-### Backend (Go)
-- ✅ RESTful API for inquiry management
-- ✅ AI-powered report generation with Amazon Bedrock
-- ✅ Graceful error handling and fallbacks
-- ✅ Structured logging
-- ✅ Health checks and monitoring
-- ✅ CORS support for frontend integration
-
-### Frontend (React)
-- ✅ Modern React with TypeScript
-- ✅ Responsive design with Tailwind CSS
-- ✅ Form handling with validation
-- ✅ API integration with backend
-- ✅ Production-ready Nginx configuration
-
-### AI Integration
-- ✅ Amazon Bedrock Nova model integration
-- ✅ Structured prompt engineering
-- ✅ Professional report generation
-- ✅ Error handling and fallbacks
-- ✅ Configurable model parameters
-
-## 🔒 Security
-
-- Environment-based configuration
-- Non-root container users
-- HTTPS-ready setup
-- Security headers in Nginx
-- Input validation and sanitization
-
-## 📊 Optional Services
-
-Enable additional services with profiles:
+## Stopping the Application
 
 ```bash
-# Database (PostgreSQL)
-docker-compose --profile database up -d
-
-# Cache (Redis)
-docker-compose --profile cache up -d
-
-# Monitoring (Prometheus + Grafana)
-docker-compose --profile monitoring up -d
+./stop-local.sh
+# or
+docker-compose down
 ```
 
-## 🚀 Production Deployment
-
-For production deployment:
-
-1. Use production environment variables
-2. Enable HTTPS with SSL certificates
-3. Use managed databases (RDS, ElastiCache)
-4. Implement proper logging and monitoring
-5. Set up CI/CD pipelines
-6. Configure auto-scaling
-
-## 📝 Environment Variables
-
-### Required
-- `AWS_BEARER_TOKEN_BEDROCK` - Your Bedrock API key
-- `AWS_ACCESS_KEY_ID` - AWS access key
-- `AWS_SECRET_ACCESS_KEY` - AWS secret key
-
-### Optional
-- `AWS_REGION` - AWS region (default: us-east-1)
-- `BEDROCK_MODEL_ID` - Bedrock model (default: amazon.nova-lite-v1:0)
-- `PORT` - Backend port (default: 8061)
-- `LOG_LEVEL` - Logging level (default: 4)
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test with Docker Compose
+4. Test locally with `./start-local.sh`
 5. Submit a pull request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
-
-## 🆘 Support
-
-For issues and questions:
-1. Check the logs: `./scripts/docker-dev.sh logs`
-2. Run health checks: `./scripts/docker-dev.sh test`
-3. Review the documentation in `/backend/README.md`
-4. Open an issue on GitHub

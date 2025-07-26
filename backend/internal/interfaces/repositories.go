@@ -15,7 +15,7 @@ type InquiryRepository interface {
 	Update(ctx context.Context, inquiry *domain.Inquiry) error
 	Delete(ctx context.Context, id string) error
 	Count(ctx context.Context, filters *domain.InquiryFilters) (int64, error)
-	GetByStatus(ctx context.Context, status domain.InquiryStatus) ([]*domain.Inquiry, error)
+	GetByStatus(ctx context.Context, status string) ([]*domain.Inquiry, error)
 }
 
 // ReportRepository defines the interface for report data access

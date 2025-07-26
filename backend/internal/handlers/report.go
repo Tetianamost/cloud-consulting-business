@@ -24,7 +24,7 @@ func (h *ReportHandler) GetInquiryReport(c *gin.Context) {
 	inquiryID := c.Param("id")
 	
 	// Get reports for the inquiry
-	reports, err := h.storage.GetReportsByInquiry(inquiryID)
+	reports, err := h.storage.GetReportsByInquiry(c.Request.Context(), inquiryID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,

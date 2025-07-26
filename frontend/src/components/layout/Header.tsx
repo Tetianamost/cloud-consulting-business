@@ -5,10 +5,10 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Link } from 'react-scroll';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { theme } from '../../styles/theme';
-import Button from '../ui/Button';
+import { Button } from '../ui/button';
 import Icon from '../ui/Icon';
 
-const HeaderContainer = styled(motion.header)<{ $isScrolled: boolean; $isHidden: boolean }>`
+const HeaderContainer = styled(motion.header) <{ $isScrolled: boolean; $isHidden: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
@@ -131,11 +131,19 @@ const Overlay = styled(motion.div)`
   z-index: ${theme.zIndices.overlay};
 `;
 
+const AdminLinkContainer = styled.div`
+  margin: 0 ${theme.space[4]};
+  
+  @media (max-width: ${theme.breakpoints.lg}) {
+    margin: ${theme.space[4]} 0;
+    width: 100%;
+  }
+`;
+
 const Header: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
-  const lastScrollY = useRef(0);
 
   // Improved scroll handler: hide on scroll down, show on scroll up
   useEffect(() => {
@@ -172,20 +180,20 @@ const Header: React.FC = () => {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-  
+
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
-  
+
   const closeMenu = () => {
     setIsOpen(false);
   };
-  
+
   // Animation variants
   const navVariants = {
     hidden: { opacity: 0, y: -20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: {
         duration: 0.5,
@@ -193,7 +201,7 @@ const Header: React.FC = () => {
       }
     }
   };
-  
+
   return (
     <HeaderContainer
       $isScrolled={isScrolled}
@@ -204,7 +212,7 @@ const Header: React.FC = () => {
     >
       <Nav>
         <Logo>
-        <NavLink
+          <NavLink
             to="home"
             spy={true}
             smooth={true}
@@ -212,12 +220,12 @@ const Header: React.FC = () => {
             duration={500}
             onClick={closeMenu}
           >
-          Cloud<span>Partner</span><span style={{ color: theme.colors.accent }}>Pro</span>
+            Cloud<span>Partner</span><span style={{ color: theme.colors.accent }}>Pro</span>
           </NavLink>
         </Logo>
         <MenuButton onClick={toggleMenu}>
-        {isOpen ? <Icon icon={FiX} size={24} /> : <Icon icon={FiMenu} size={24} />}
-      </MenuButton>
+          {isOpen ? <Icon icon={FiX} size={24} /> : <Icon icon={FiMenu} size={24} />}
+        </MenuButton>
         <AnimatePresence>
           {isOpen && (
             <Overlay
@@ -281,20 +289,22 @@ const Header: React.FC = () => {
           </NavLink>
           {/* Admin link - only visible if admin is enabled */}
           {process.env.REACT_APP_ENABLE_ADMIN !== 'false' && (
-            <NavLink
-              as="a"
-              href="/admin"
-              onClick={(e) => {
-                e.preventDefault();
-                closeMenu();
-                window.location.href = '/admin';
-              }}
-            >
-              Admin
-            </NavLink>
+            <AdminLinkContainer>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                asChild
+              >
+                <RouterLink to="/admin/login" onClick={closeMenu}>
+                  Sign In
+                </RouterLink>
+              </Button>
+            </AdminLinkContainer>
           )}
           <NavButton>
             <Button
+              variant="default"
+              size="sm"
               onClick={() => {
                 closeMenu();
                 // Scroll to contact section

@@ -1,0 +1,16 @@
+# Completely offline Dockerfile - uses only what's available locally
+FROM scratch
+
+# Copy a minimal Linux environment (you would need to have this locally)
+# For now, let's use a simple approach with a pre-built binary
+
+# This approach requires you to build the binary locally first
+COPY main /app/main
+COPY templates /app/templates
+COPY static /app/static
+
+WORKDIR /app
+
+EXPOSE 8061
+
+CMD ["./main"]

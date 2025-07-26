@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import Button from '../../ui/Button';
+import { Button } from '../../ui/button';
 import { FiInfo, FiCheckCircle, FiX, FiMail, FiUser, FiPhone, FiBriefcase, FiAlertCircle } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
 import { apiService, CreateInquiryRequest } from '../../../services/api';
@@ -483,7 +483,7 @@ const complexityLevels = [
 // Animation variants
 const calculatorVariants = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
     transition: {
       duration: 0.5
@@ -493,16 +493,16 @@ const calculatorVariants = {
 
 const errorMessageVariants = {
   hidden: { opacity: 0, y: -10, height: 0 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     height: 'auto',
     transition: {
       duration: 0.3
     }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     y: -10,
     height: 0,
     transition: {
@@ -513,8 +513,8 @@ const errorMessageVariants = {
 
 const estimateVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: {
       duration: 0.5
@@ -524,15 +524,15 @@ const estimateVariants = {
 
 const successVariants = {
   hidden: { opacity: 0, height: 0 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     height: 'auto',
     transition: {
       duration: 0.3
     }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     height: 0,
     transition: {
       duration: 0.3
@@ -542,13 +542,13 @@ const successVariants = {
 
 const modalOverlayVariants = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
     transition: {
       duration: 0.2
     }
   },
-  exit: { 
+  exit: {
     opacity: 0,
     transition: {
       duration: 0.2
@@ -558,8 +558,8 @@ const modalOverlayVariants = {
 
 const modalContainerVariants = {
   hidden: { opacity: 0, y: 50, scale: 0.95 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     scale: 1,
     transition: {
@@ -567,7 +567,7 @@ const modalContainerVariants = {
       ease: 'easeOut'
     }
   },
-  exit: { 
+  exit: {
     opacity: 0,
     y: 50,
     scale: 0.95,
@@ -583,64 +583,64 @@ const PricingCalculator: React.FC = () => {
   const [count, setCount] = useState(5);
   const [success, setSuccess] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // Form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [company, setCompany] = useState('');
   const [requirements, setRequirements] = useState('');
-  
+
   // Form validation and status
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
-  
+
   const selectedService = serviceTypes.find(type => type.id === serviceType)!;
   const selectedComplexity = complexityLevels.find(level => level.id === complexity)!;
-  
+
   const basePrice = selectedService.basePrice;
-  const variablePrice = serviceType === 'optimization' 
+  const variablePrice = serviceType === 'optimization'
     ? selectedService.pricePerServer * count // For optimization, count = hours
     : selectedService.pricePerServer * count; // For others, count = servers/apps
   const complexityMultiplier = selectedComplexity.multiplier;
-  
+
   const totalEstimate = Math.round((basePrice + variablePrice) * complexityMultiplier);
-  
+
   const openModal = () => {
     setIsModalOpen(true);
   };
-  
+
   const closeModal = () => {
     setIsModalOpen(false);
   };
-  
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     // Required fields
     if (!name.trim()) {
       newErrors.name = 'Name is required';
     }
-    
+
     if (!email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(email.trim())) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
+
     // Phone is optional but validate format if provided
     if (phone.trim() && !/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im.test(phone.trim())) {
       newErrors.phone = 'Please enter a valid phone number';
     }
-        
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   const sendEmail = async () => {
     setIsSubmitting(true);
-    
+
     try {
       // Prepare detailed message with quote information
       const quoteDetails = `
@@ -667,10 +667,10 @@ ${requirements.trim() || 'No additional requirements specified.'}
         message: quoteDetails,
         source: 'quote_request'
       };
-      
+
       // Submit to backend API
       const response = await apiService.createInquiry(inquiryData);
-      
+
       if (response.success) {
         console.log('Quote request submitted successfully!', response.data);
         // Reset form and close modal
@@ -704,17 +704,17 @@ ${requirements.trim() || 'No additional requirements specified.'}
       setIsSubmitting(false);
     }
   };
-  
+
   const handleSubmit = () => {
     if (validateForm()) {
       sendEmail();
     }
   };
-  
+
   const handleRequestQuote = () => {
     openModal();
   };
-  
+
   return (
     <CalculatorContainer
       initial="hidden"
@@ -722,11 +722,11 @@ ${requirements.trim() || 'No additional requirements specified.'}
       variants={calculatorVariants}
     >
       <CalculatorTitle>Estimate Your Service Cost</CalculatorTitle>
-      
+
       <FormGroup>
         <Label>
           Service Type
-          <InfoIcon 
+          <InfoIcon
             data-tooltip="Select the specific service you need"
           >
             <Icon icon={FiInfo} size={16} />
@@ -734,8 +734,8 @@ ${requirements.trim() || 'No additional requirements specified.'}
         </Label>
         <OptionGrid>
           {serviceTypes.map(type => (
-            <OptionCard 
-              key={type.id} 
+            <OptionCard
+              key={type.id}
               selected={serviceType === type.id}
             >
               <RadioInput
@@ -755,11 +755,11 @@ ${requirements.trim() || 'No additional requirements specified.'}
           ))}
         </OptionGrid>
       </FormGroup>
-      
+
       <FormGroup>
         <Label>
           Project Complexity
-          <InfoIcon 
+          <InfoIcon
             data-tooltip="Assess your application's complexity level"
           >
             <Icon icon={FiInfo} size={16} />
@@ -767,8 +767,8 @@ ${requirements.trim() || 'No additional requirements specified.'}
         </Label>
         <OptionGrid>
           {complexityLevels.map(level => (
-            <OptionCard 
-              key={level.id} 
+            <OptionCard
+              key={level.id}
               selected={complexity === level.id}
             >
               <RadioInput
@@ -788,13 +788,13 @@ ${requirements.trim() || 'No additional requirements specified.'}
           ))}
         </OptionGrid>
       </FormGroup>
-      
+
       <FormGroup>
         <Label>
           {serviceType === 'optimization' ? 'Estimated Hours' : 'Number of Servers/Applications'}
-          <InfoIcon 
-            data-tooltip={serviceType === 'optimization' ? 
-              "Estimated hours of implementation assistance needed" : 
+          <InfoIcon
+            data-tooltip={serviceType === 'optimization' ?
+              "Estimated hours of implementation assistance needed" :
               "How many servers or applications are included in your project"}
           >
             <Icon icon={FiInfo} size={16} />
@@ -816,9 +816,9 @@ ${requirements.trim() || 'No additional requirements specified.'}
           </RangeLabels>
         </RangeContainer>
       </FormGroup>
-      
+
       <Divider />
-      
+
       <EstimateContainer
         initial="hidden"
         animate="visible"
@@ -842,13 +842,13 @@ ${requirements.trim() || 'No additional requirements specified.'}
           <TotalValue>${totalEstimate.toLocaleString()}</TotalValue>
         </TotalRow>
       </EstimateContainer>
-      
+
       <ButtonContainer>
         <Button onClick={handleRequestQuote} size="lg">
           Request Detailed Quote
         </Button>
       </ButtonContainer>
-      
+
       {success && (
         <SuccessMessage
           initial="hidden"
@@ -860,7 +860,7 @@ ${requirements.trim() || 'No additional requirements specified.'}
           <div>Your detailed quote request has been submitted successfully. We'll review it and get back to you within 24-48 hours.</div>
         </SuccessMessage>
       )}
-      
+
       <AnimatePresence>
         {isModalOpen && (
           <ModalOverlay
@@ -880,10 +880,10 @@ ${requirements.trim() || 'No additional requirements specified.'}
                   <Icon icon={FiX} size={24} />
                 </CloseButton>
               </ModalHeader>
-              
+
               <ModalBody>
 
-                
+
                 <AnimatePresence>
                   {emailError && (
                     <EmailErrorMessage
@@ -897,7 +897,7 @@ ${requirements.trim() || 'No additional requirements specified.'}
                     </EmailErrorMessage>
                   )}
                 </AnimatePresence>
-                
+
                 <QuoteDetail>
                   <QuoteDetailRow>
                     <QuoteDetailLabel>Service:</QuoteDetailLabel>
@@ -932,10 +932,10 @@ ${requirements.trim() || 'No additional requirements specified.'}
                     <div>${totalEstimate.toLocaleString()}</div>
                   </QuoteDetailTotal>
                 </QuoteDetail>
-                
+
                 <InputGroup>
                   <InputLabel>Your Name
-                  <RequiredIndicator>*</RequiredIndicator>
+                    <RequiredIndicator>*</RequiredIndicator>
                   </InputLabel>
                   <div style={{ position: 'relative' }}>
                     <InputIcon>
@@ -950,10 +950,10 @@ ${requirements.trim() || 'No additional requirements specified.'}
                   </div>
                   {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
                 </InputGroup>
-                
+
                 <InputGroup>
                   <InputLabel>Email Address
-                  <RequiredIndicator>*</RequiredIndicator>
+                    <RequiredIndicator>*</RequiredIndicator>
                   </InputLabel>
                   <div style={{ position: 'relative' }}>
                     <InputIcon>
@@ -968,7 +968,7 @@ ${requirements.trim() || 'No additional requirements specified.'}
                   </div>
                   {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                 </InputGroup>
-                
+
                 <InputGroup>
                   <InputLabel>Phone Number</InputLabel>
                   <div style={{ position: 'relative' }}>
@@ -984,7 +984,7 @@ ${requirements.trim() || 'No additional requirements specified.'}
                   </div>
                   {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
                 </InputGroup>
-                
+
                 <InputGroup>
                   <InputLabel>Company</InputLabel>
                   <div style={{ position: 'relative' }}>
@@ -1000,7 +1000,7 @@ ${requirements.trim() || 'No additional requirements specified.'}
                   </div>
                   {errors.company && <ErrorMessage>{errors.company}</ErrorMessage>}
                 </InputGroup>
-                
+
                 <InputLabel>Additional Requirements</InputLabel>
                 <Textarea
                   placeholder="Please provide any additional requirements or questions..."
@@ -1008,7 +1008,7 @@ ${requirements.trim() || 'No additional requirements specified.'}
                   onChange={(e) => setRequirements(e.target.value)}
                 />
               </ModalBody>
-              
+
               <ModalFooter>
                 <Button
                   variant="outline"

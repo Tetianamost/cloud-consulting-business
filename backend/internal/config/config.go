@@ -14,6 +14,7 @@ type Config struct {
 	LogLevel           int
 	GinMode            string
 	CORSAllowedOrigins []string
+	JWTSecret          string
 	Bedrock            BedrockConfig
 	SES                SESConfig
 }
@@ -47,6 +48,7 @@ func Load() (*Config, error) {
 		LogLevel:           getEnvAsInt("LOG_LEVEL", 4), // Info level
 		GinMode:            getEnv("GIN_MODE", "debug"),
 		CORSAllowedOrigins: getEnvAsSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+		JWTSecret:          getEnv("JWT_SECRET", "cloud-consulting-demo-secret"),
 		Bedrock: BedrockConfig{
 			APIKey:  getEnv("AWS_BEARER_TOKEN_BEDROCK", ""),
 			Region:  getEnv("BEDROCK_REGION", "us-east-1"),

@@ -1,168 +1,251 @@
-import React from 'react';
-import styled, { css } from 'styled-components';
-import { motion } from 'framer-motion';
-import { theme } from '../../styles/theme';
-
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
-type ButtonSize = 'sm' | 'md' | 'lg';
+import * as React from "react"
+import styled, { css } from "styled-components"
+import { theme } from "../../styles/theme"
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  fullWidth?: boolean;
-  isLoading?: boolean;
-  as?: any;
-  to?: string;
-  icon?: React.ReactElement;
-  iconPosition?: 'left' | 'right';
+  variant?: 'default' | 'primary' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
+  asChild?: boolean
+  children?: React.ReactNode
 }
 
-// Size variations
-const sizeStyles = {
-  sm: css`
-    font-size: ${theme.fontSizes.sm};
-    padding: ${theme.space[2]} ${theme.space[3]};
-    border-radius: ${theme.borderRadius.md};
-  `,
-  md: css`
-    font-size: ${theme.fontSizes.md};
-    padding: ${theme.space[3]} ${theme.space[5]};
-    border-radius: ${theme.borderRadius.md};
-  `,
-  lg: css`
-    font-size: ${theme.fontSizes.lg};
-    padding: ${theme.space[4]} ${theme.space[6]};
-    border-radius: ${theme.borderRadius.lg};
-  `,
-};
+const getVariantStyles = (variant: string) => {
+  switch (variant) {
+    case 'default':
+      return css`
+        background-color: ${theme.colors.secondary};
+        color: ${theme.colors.white};
+        border: none;
+        
+        &:hover:not(:disabled) {
+          background-color: #e6890a;
+        }
+        
+        &:active:not(:disabled) {
+          background-color: #cc7700;
+        }
+        
+        &:focus-visible {
+          outline: 2px solid ${theme.colors.secondary};
+          outline-offset: 2px;
+        }
+      `
+    case 'primary':
+      return css`
+        background-color: ${theme.colors.primary};
+        color: ${theme.colors.white};
+        border: none;
+        
+        &:hover:not(:disabled) {
+          background-color: #1a252f;
+        }
+        
+        &:active:not(:disabled) {
+          background-color: #0f1419;
+        }
+        
+        &:focus-visible {
+          outline: 2px solid ${theme.colors.primary};
+          outline-offset: 2px;
+        }
+      `
+    case 'outline':
+      return css`
+        background-color: transparent;
+        color: ${theme.colors.secondary};
+        border: 2px solid ${theme.colors.secondary};
+        
+        &:hover:not(:disabled) {
+          background-color: ${theme.colors.secondary};
+          color: ${theme.colors.white};
+        }
+        
+        &:active:not(:disabled) {
+          background-color: #e6890a;
+          color: ${theme.colors.white};
+        }
+        
+        &:focus-visible {
+          outline: 2px solid ${theme.colors.secondary};
+          outline-offset: 2px;
+        }
+      `
+    case 'secondary':
+      return css`
+        background-color: ${theme.colors.accent};
+        color: ${theme.colors.white};
+        border: none;
+        
+        &:hover:not(:disabled) {
+          background-color: #005a94;
+        }
+        
+        &:active:not(:disabled) {
+          background-color: #004173;
+        }
+        
+        &:focus-visible {
+          outline: 2px solid ${theme.colors.accent};
+          outline-offset: 2px;
+        }
+      `
+    case 'ghost':
+      return css`
+        background-color: transparent;
+        color: ${theme.colors.primary};
+        border: none;
+        
+        &:hover:not(:disabled) {
+          background-color: rgba(255, 153, 0, 0.1);
+          color: ${theme.colors.secondary};
+        }
+        
+        &:focus-visible {
+          outline: 2px solid ${theme.colors.secondary};
+          outline-offset: 2px;
+        }
+      `
+    case 'link':
+      return css`
+        background-color: transparent;
+        color: ${theme.colors.accent};
+        border: none;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+        
+        &:hover:not(:disabled) {
+          color: #005a94;
+        }
+        
+        &:focus-visible {
+          outline: 2px solid ${theme.colors.accent};
+          outline-offset: 2px;
+        }
+      `
+    case 'destructive':
+      return css`
+        background-color: ${theme.colors.danger};
+        color: ${theme.colors.white};
+        border: none;
+        
+        &:hover:not(:disabled) {
+          background-color: #c82333;
+        }
+        
+        &:active:not(:disabled) {
+          background-color: #bd2130;
+        }
+        
+        &:focus-visible {
+          outline: 2px solid ${theme.colors.danger};
+          outline-offset: 2px;
+        }
+      `
+    default:
+      return css`
+        background-color: ${theme.colors.secondary};
+        color: ${theme.colors.white};
+        border: none;
+      `
+  }
+}
 
-// Variant styles
-const variantStyles = {
-  primary: css`
-    background-color: ${theme.colors.accent};
-    color: ${theme.colors.white};
-    border: 2px solid ${theme.colors.accent};
-    
-    &:hover:not(:disabled) {
-      background-color: ${theme.colors.highlight};
-      border-color: ${theme.colors.highlight};
-    }
-  `,
-  secondary: css`
-    background-color: ${theme.colors.secondary};
-    color: ${theme.colors.primary};
-    border: 2px solid ${theme.colors.secondary};
-    
-    &:hover:not(:disabled) {
-      background-color: ${theme.colors.warning};
-      border-color: ${theme.colors.warning};
-    }
-  `,
-  outline: css`
-    background-color: transparent;
-    color: ${theme.colors.accent};
-    border: 2px solid ${theme.colors.accent};
-    
-    &:hover:not(:disabled) {
-      background-color: ${theme.colors.accent};
-      color: ${theme.colors.white};
-    }
-  `,
-  ghost: css`
-    background-color: transparent;
-    color: ${theme.colors.accent};
-    border: 2px solid transparent;
-    
-    &:hover:not(:disabled) {
-      background-color: ${theme.colors.gray100};
-    }
-  `,
-};
+const getSizeStyles = (size: string) => {
+  switch (size) {
+    case 'sm':
+      return css`
+        height: 32px;
+        padding: 0 12px;
+        font-size: ${theme.fontSizes.xs};
+        border-radius: ${theme.borderRadius.md};
+      `
+    case 'lg':
+      return css`
+        height: 48px;
+        padding: 0 32px;
+        font-size: ${theme.fontSizes.lg};
+        border-radius: ${theme.borderRadius.md};
+      `
+    case 'icon':
+      return css`
+        height: 40px;
+        width: 40px;
+        padding: 0;
+      `
+    default:
+      return css`
+        height: 40px;
+        padding: 0 16px;
+        font-size: ${theme.fontSizes.sm};
+      `
+  }
+}
 
-const ButtonContainer = styled(motion.button)<{
-  $fullWidth?: boolean;
-  $iconPosition?: 'left' | 'right';
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-}>`
+const StyledButton = styled.button<{ $variant: string; $size: string }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: ${theme.fontWeights.semibold};
-  cursor: pointer;
-  transition: ${theme.transitions.normal};
+  gap: 8px;
   white-space: nowrap;
-  position: relative;
-  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
-
-  // Apply variant styling
-  ${props => variantStyles[props.variant || 'primary']}
-  // Apply size styling
-  ${props => sizeStyles[props.size || 'md']}
-
+  border-radius: ${theme.borderRadius.md};
+  font-weight: ${theme.fontWeights.medium};
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-family: ${theme.fonts.primary};
+  
+  ${props => getVariantStyles(props.$variant)}
+  ${props => getSizeStyles(props.$size)}
+  
   &:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
-    opacity: 0.6;
   }
-
-  & > svg {
-    ${props => props.$iconPosition === 'left' && `margin-right: ${theme.space[2]};`}
-    ${props => props.$iconPosition === 'right' && `margin-left: ${theme.space[2]};`}
+  
+  svg {
+    flex-shrink: 0;
   }
-`;
+`
 
-const LoadingSpinner = styled.div`
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-top-color: white;
-  border-radius: 50%;
-  width: 1em;
-  height: 1em;
-  animation: spin 0.8s linear infinite;
-  margin-right: ${theme.space[2]};
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ variant = 'default', size = 'default', asChild = false, children, ...props }, ref) => {
+    if (asChild && React.isValidElement(children)) {
+      // For asChild, we'll use a simpler approach that works with styled-components
+      const childProps = children.props as any;
+      return React.cloneElement(children, {
+        ...props,
+        ...childProps,
+        style: {
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          whiteSpace: 'nowrap',
+          borderRadius: theme.borderRadius.md,
+          fontWeight: theme.fontWeights.medium,
+          transition: 'all 0.2s ease',
+          cursor: 'pointer',
+          fontFamily: theme.fonts.primary,
+          textDecoration: 'none',
+          border: 'none',
+          ...(childProps.style || {}),
+        },
+        className: `button-${variant} button-${size} ${childProps.className || ''}`.trim()
+      })
     }
+
+    return (
+      <StyledButton
+        ref={ref}
+        $variant={variant}
+        $size={size}
+        {...props}
+      >
+        {children}
+      </StyledButton>
+    )
   }
-`;
+)
 
-const buttonVariants = {
-  rest: { scale: 1 },
-  hover: { scale: 1.05 },
-  tap: { scale: 0.95 },
-};
+Button.displayName = "Button"
 
-const Button: React.FC<ButtonProps> = ({
-  children,
-  variant = 'primary',
-  size = 'md',
-  fullWidth = false,
-  icon,
-  iconPosition = 'left',
-  isLoading = false,
-  disabled,
-  type = 'button',
-  ...rest
-}) => (
-  <ButtonContainer
-    $fullWidth={fullWidth}
-    $iconPosition={iconPosition}
-    variant={variant}
-    size={size}
-    type={type}
-    disabled={disabled || isLoading}
-    whileHover="hover"
-    whileTap="tap"
-    initial="rest"
-    variants={buttonVariants}
-    {...rest}
-  >
-    {isLoading && <LoadingSpinner />}
-    {!isLoading && icon && iconPosition === 'left' && icon}
-    {children}
-    {!isLoading && icon && iconPosition === 'right' && icon}
-  </ButtonContainer>
-);
-
-export default Button;
+export { Button }

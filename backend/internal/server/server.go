@@ -23,6 +23,7 @@ type Server struct {
 	inquiryHandler *handlers.InquiryHandler
 	reportHandler  *handlers.ReportHandler
 	adminHandler   *handlers.AdminHandler
+	authHandler    *handlers.AuthHandler
 }
 
 // New creates a new server instance
@@ -70,6 +71,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	inquiryHandler := handlers.NewInquiryHandler(inquiryService, reportGenerator)
 	reportHandler := handlers.NewReportHandler(memStorage)
 	adminHandler := handlers.NewAdminHandler(memStorage, inquiryService, reportGenerator, emailService)
+	authHandler := handlers.NewAuthHandler(cfg.JWTSecret)
 
 	server := &Server{
 		config:         cfg,
@@ -78,6 +80,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 		inquiryHandler: inquiryHandler,
 		reportHandler:  reportHandler,
 		adminHandler:   adminHandler,
+		authHandler:    authHandler,
 	}
 
 	// Setup routes
@@ -114,8 +117,14 @@ func (s *Server) setupRoutes() {
 			inquiries.GET("/:id/report/download", s.inquiryHandler.DownloadInquiryReport)
 		}
 
-		// Admin routes
-		admin := v1.Group("/admin")
+		// Auth routes
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/login", s.authHandler.Login)
+		}
+
+		// Admin routes - protected by auth middleware
+		admin := v1.Group("/admin", s.authHandler.AuthMiddleware())
 		{
 			admin.GET("/inquiries", s.adminHandler.ListInquiries)
 			admin.GET("/metrics", s.adminHandler.GetSystemMetrics)

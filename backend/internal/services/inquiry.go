@@ -26,7 +26,7 @@ func NewInquiryService(storage *storage.InMemoryStorage, reportGenerator interfa
 }
 
 // CreateInquiry creates a new inquiry and generates a report
-func (s *inquiryService) CreateInquiry(ctx context.Context, req *domain.CreateInquiryRequest) (*domain.Inquiry, error) {
+func (s *inquiryService) CreateInquiry(ctx context.Context, req *interfaces.CreateInquiryRequest) (*domain.Inquiry, error) {
 	// Create the inquiry first
 	inquiry, err := s.storage.CreateInquiry(req)
 	if err != nil {
@@ -125,22 +125,22 @@ func (s *inquiryService) CreateInquiry(ctx context.Context, req *domain.CreateIn
 	}
 
 	// Return the inquiry (potentially with reports if generation succeeded)
-	return s.storage.GetInquiry(inquiry.ID)
+	return s.storage.GetInquiry(ctx, inquiry.ID)
 }
 
 // GetInquiry retrieves an inquiry by ID
 func (s *inquiryService) GetInquiry(ctx context.Context, id string) (*domain.Inquiry, error) {
-	return s.storage.GetInquiry(id)
+	return s.storage.GetInquiry(ctx, id)
 }
 
 // ListInquiries returns all inquiries with optional filters
 func (s *inquiryService) ListInquiries(ctx context.Context, filters *domain.InquiryFilters) ([]*domain.Inquiry, error) {
 	// For now, just return all inquiries (filtering can be added later)
-	return s.storage.ListInquiries()
+	return s.storage.ListInquiries(ctx, filters)
 }
 
 // UpdateInquiryStatus updates the status of an inquiry
-func (s *inquiryService) UpdateInquiryStatus(ctx context.Context, id string, status domain.InquiryStatus) error {
+func (s *inquiryService) UpdateInquiryStatus(ctx context.Context, id string, status string) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -151,7 +151,7 @@ func (s *inquiryService) AssignConsultant(ctx context.Context, id string, consul
 
 // GetInquiryCount returns the count of inquiries with optional filters
 func (s *inquiryService) GetInquiryCount(ctx context.Context, filters *domain.InquiryFilters) (int64, error) {
-	inquiries, err := s.storage.ListInquiries()
+	inquiries, err := s.storage.ListInquiries(ctx, nil)
 	if err != nil {
 		return 0, err
 	}
