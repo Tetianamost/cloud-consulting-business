@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link as RouterLink } from 'react-router-dom';
 import { Link } from 'react-scroll';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { theme } from '../../styles/theme';
@@ -278,6 +279,20 @@ const Header: React.FC = () => {
           >
             Pricing
           </NavLink>
+          {/* Admin link - only visible if admin is enabled */}
+          {process.env.REACT_APP_ENABLE_ADMIN !== 'false' && (
+            <NavLink
+              as="a"
+              href="/admin"
+              onClick={(e) => {
+                e.preventDefault();
+                closeMenu();
+                window.location.href = '/admin';
+              }}
+            >
+              Admin
+            </NavLink>
+          )}
           <NavButton>
             <Button
               onClick={() => {
