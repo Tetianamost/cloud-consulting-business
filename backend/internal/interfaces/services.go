@@ -110,6 +110,18 @@ type PDFService interface {
 	GetVersion() string
 }
 
+// PromptArchitect defines the interface for sophisticated prompt generation
+type PromptArchitect interface {
+	BuildReportPrompt(ctx context.Context, inquiry *domain.Inquiry, options *PromptOptions) (string, error)
+	BuildInterviewPrompt(ctx context.Context, inquiry *domain.Inquiry) (string, error)
+	BuildRiskAssessmentPrompt(ctx context.Context, inquiry *domain.Inquiry) (string, error)
+	BuildCompetitiveAnalysisPrompt(ctx context.Context, inquiry *domain.Inquiry) (string, error)
+	ValidatePrompt(prompt string) error
+	GetTemplate(templateName string) (*PromptTemplate, error)
+	RegisterTemplate(template *PromptTemplate) error
+	ListTemplates() []string
+}
+
 // Supporting types for services
 
 // ReportTemplate represents a template for report generation
@@ -275,4 +287,37 @@ type PDFOptions struct {
 	LoadTimeout     int               `json:"load_timeout"`     // Timeout in seconds
 	Quality         int               `json:"quality"`          // Image quality (0-100)
 	CustomOptions   map[string]string `json:"custom_options"`   // Additional wkhtmltopdf options
+}
+
+// PromptOptions defines options for prompt generation
+type PromptOptions struct {
+	IncludeDocumentationLinks  bool     `json:"include_documentation_links"`
+	IncludeCompetitiveAnalysis bool     `json:"include_competitive_analysis"`
+	IncludeRiskAssessment      bool     `json:"include_risk_assessment"`
+	IncludeImplementationSteps bool     `json:"include_implementation_steps"`
+	TargetAudience             string   `json:"target_audience"` // "technical", "business", "mixed"
+	IndustryContext            string   `json:"industry_context"`
+	CloudProviders             []string `json:"cloud_providers"`
+	MaxTokens                  int      `json:"max_tokens"`
+}
+
+// PromptTemplate represents a structured prompt template
+type PromptTemplate struct {
+	Name              string           `json:"name"`
+	Template          string           `json:"template"`
+	RequiredVariables []string         `json:"required_variables"`
+	OptionalVariables []string         `json:"optional_variables"`
+	ValidationRules   []ValidationRule `json:"validation_rules"`
+	Category          string           `json:"category"`
+	Description       string           `json:"description"`
+	CreatedAt         string           `json:"created_at"`
+	UpdatedAt         string           `json:"updated_at"`
+}
+
+// ValidationRule defines a rule for prompt validation
+type ValidationRule struct {
+	Name         string `json:"name"`
+	Pattern      string `json:"pattern"`
+	ErrorMessage string `json:"error_message"`
+	Required     bool   `json:"required"`
 }

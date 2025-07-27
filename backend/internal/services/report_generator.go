@@ -12,15 +12,45 @@ import (
 	"github.com/google/uuid"
 )
 
-// reportGenerator implements report generation using Bedrock
+// reportGenerator implements enhanced report generation using Bedrock with AI assistant capabilities
 type reportGenerator struct {
-	bedrockService  interfaces.BedrockService
-	templateService interfaces.TemplateService
-	pdfService      interfaces.PDFService
+	bedrockService     interfaces.BedrockService
+	templateService    interfaces.TemplateService
+	pdfService         interfaces.PDFService
+	promptArchitect    interfaces.PromptArchitect
+	knowledgeBase      interfaces.KnowledgeBase
+	multiCloudAnalyzer interfaces.MultiCloudAnalyzer
+	riskAssessor       interfaces.RiskAssessor
+	docLibrary         interfaces.DocumentationLibrary
+	audienceDetector   AudienceDetector
 }
 
-// NewReportGenerator creates a new report generator instance
-func NewReportGenerator(bedrockService interfaces.BedrockService, templateService interfaces.TemplateService, pdfService interfaces.PDFService) interfaces.ReportService {
+// NewReportGenerator creates a new enhanced report generator instance
+func NewReportGenerator(
+	bedrockService interfaces.BedrockService, 
+	templateService interfaces.TemplateService, 
+	pdfService interfaces.PDFService,
+	promptArchitect interfaces.PromptArchitect,
+	knowledgeBase interfaces.KnowledgeBase,
+	multiCloudAnalyzer interfaces.MultiCloudAnalyzer,
+	riskAssessor interfaces.RiskAssessor,
+	docLibrary interfaces.DocumentationLibrary,
+) interfaces.ReportService {
+	return &reportGenerator{
+		bedrockService:     bedrockService,
+		templateService:    templateService,
+		pdfService:         pdfService,
+		promptArchitect:    promptArchitect,
+		knowledgeBase:      knowledgeBase,
+		multiCloudAnalyzer: multiCloudAnalyzer,
+		riskAssessor:       riskAssessor,
+		docLibrary:         docLibrary,
+		audienceDetector:   NewAudienceDetector(),
+	}
+}
+
+// NewBasicReportGenerator creates a basic report generator for backward compatibility
+func NewBasicReportGenerator(bedrockService interfaces.BedrockService, templateService interfaces.TemplateService, pdfService interfaces.PDFService) interfaces.ReportService {
 	return &reportGenerator{
 		bedrockService:  bedrockService,
 		templateService: templateService,
@@ -28,15 +58,27 @@ func NewReportGenerator(bedrockService interfaces.BedrockService, templateServic
 	}
 }
 
-// GenerateReport generates a report for the given inquiry using Bedrock
+// GenerateReport generates an enhanced report for the given inquiry using AI assistant capabilities
 func (r *reportGenerator) GenerateReport(ctx context.Context, inquiry *domain.Inquiry) (*domain.Report, error) {
-	// Build the prompt based on inquiry details
-	prompt := r.buildPrompt(inquiry)
+	// Use enhanced prompt generation if PromptArchitect is available
+	var prompt string
+	var err error
 	
-	// Set Bedrock options
+	if r.promptArchitect != nil {
+		prompt, err = r.buildEnhancedPrompt(ctx, inquiry)
+		if err != nil {
+			// Fall back to basic prompt if enhanced fails
+			prompt = r.buildPrompt(inquiry)
+		}
+	} else {
+		// Use basic prompt for backward compatibility
+		prompt = r.buildPrompt(inquiry)
+	}
+	
+	// Set Bedrock options with higher token limit for enhanced reports
 	options := &interfaces.BedrockOptions{
 		ModelID:     "amazon.nova-lite-v1:0",
-		MaxTokens:   2000,
+		MaxTokens:   4000, // Increased for enhanced content
 		Temperature: 0.7,
 		TopP:        0.9,
 	}
@@ -44,11 +86,10 @@ func (r *reportGenerator) GenerateReport(ctx context.Context, inquiry *domain.In
 	// Generate content using Bedrock
 	response, err := r.bedrockService.GenerateText(ctx, prompt, options)
 	if err != nil {
-		// Return error but don't fail the entire process
 		return nil, fmt.Errorf("failed to generate report with Bedrock: %w", err)
 	}
 
-	// Create the report
+	// Create the enhanced report
 	report := &domain.Report{
 		ID:          uuid.New().String(),
 		InquiryID:   inquiry.ID,
@@ -56,7 +97,7 @@ func (r *reportGenerator) GenerateReport(ctx context.Context, inquiry *domain.In
 		Title:       r.generateTitle(inquiry),
 		Content:     response.Content,
 		Status:      domain.ReportStatusDraft,
-		GeneratedBy: "bedrock-ai",
+		GeneratedBy: "enhanced-bedrock-ai",
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -587,7 +628,7 @@ func (r *reportGenerator) GeneratePDF(ctx context.Context, inquiry *domain.Inqui
 	}
 	
 	// Get optimized PDF options for reports
-	options := getReportPDFOptions()
+	options := getEnhancedReportPDFOptions()
 	
 	// Generate PDF from HTML
 	pdfBytes, err := r.pdfService.GeneratePDF(ctx, htmlContent, options)
@@ -598,3 +639,432 @@ func (r *reportGenerator) GeneratePDF(ctx context.Context, inquiry *domain.Inqui
 	return pdfBytes, nil
 }
 
+// buildEnhancedPrompt creates an enhanced prompt using AI assistant capabilities
+func (r *reportGenerator) buildEnhancedPrompt(ctx context.Context, inquiry *domain.Inquiry) (string, error) {
+	// Detect audience for the inquiry
+	var audienceProfile *AudienceProfile
+	var err error
+	
+	if r.audienceDetector != nil {
+		audienceProfile, err = r.audienceDetector.DetectAudience(ctx, inquiry)
+		if err != nil {
+			// Fall back to mixed audience if detection fails
+			audienceProfile = &AudienceProfile{
+				PrimaryType:    AudienceMixed,
+				TechnicalDepth: 3,
+				BusinessFocus:  3,
+				Confidence:     0.5,
+			}
+		}
+	} else {
+		// Default audience profile if detector not available
+		audienceProfile = &AudienceProfile{
+			PrimaryType:    AudienceMixed,
+			TechnicalDepth: 3,
+			BusinessFocus:  3,
+			Confidence:     0.5,
+		}
+	}
+
+	// Determine prompt options based on detected audience and available services
+	options := &interfaces.PromptOptions{
+		TargetAudience:             string(audienceProfile.PrimaryType),
+		MaxTokens:                  4000,
+		IncludeDocumentationLinks:  r.docLibrary != nil,
+		IncludeCompetitiveAnalysis: r.multiCloudAnalyzer != nil,
+		IncludeRiskAssessment:      r.riskAssessor != nil,
+		IncludeImplementationSteps: true,
+		CloudProviders:             []string{"AWS", "Azure", "GCP"},
+	}
+
+	// Extract industry context if available
+	if r.knowledgeBase != nil {
+		options.IndustryContext = r.extractIndustryContext(inquiry)
+	}
+
+	// Build the enhanced prompt using PromptArchitect (which will use audience detection internally)
+	prompt, err := r.promptArchitect.BuildReportPrompt(ctx, inquiry, options)
+	if err != nil {
+		return "", fmt.Errorf("failed to build enhanced prompt: %w", err)
+	}
+
+	// Enhance the prompt with additional context from available services
+	enhancedPrompt, err := r.enrichPromptWithContext(ctx, prompt, inquiry, options)
+	if err != nil {
+		// Log error but continue with base prompt
+		return prompt, nil
+	}
+
+	return enhancedPrompt, nil
+}
+
+// enrichPromptWithContext adds additional context from knowledge base and other services
+func (r *reportGenerator) enrichPromptWithContext(ctx context.Context, basePrompt string, inquiry *domain.Inquiry, options *interfaces.PromptOptions) (string, error) {
+	var contextSections []string
+	
+	// Add knowledge base context
+	if r.knowledgeBase != nil && options.IncludeDocumentationLinks {
+		kbContext, err := r.buildKnowledgeBaseContext(ctx, inquiry)
+		if err == nil && kbContext != "" {
+			contextSections = append(contextSections, kbContext)
+		}
+	}
+
+	// Add multi-cloud analysis context
+	if r.multiCloudAnalyzer != nil && options.IncludeCompetitiveAnalysis {
+		mcContext, err := r.buildMultiCloudContext(ctx, inquiry)
+		if err == nil && mcContext != "" {
+			contextSections = append(contextSections, mcContext)
+		}
+	}
+
+	// Add risk assessment context
+	if r.riskAssessor != nil && options.IncludeRiskAssessment {
+		riskContext, err := r.buildRiskAssessmentContext(ctx, inquiry)
+		if err == nil && riskContext != "" {
+			contextSections = append(contextSections, riskContext)
+		}
+	}
+
+	// Add documentation links context
+	if r.docLibrary != nil && options.IncludeDocumentationLinks {
+		docContext, err := r.buildDocumentationContext(ctx, inquiry)
+		if err == nil && docContext != "" {
+			contextSections = append(contextSections, docContext)
+		}
+	}
+
+	// Combine base prompt with additional context
+	if len(contextSections) > 0 {
+		contextHeader := "\n\nADDITIONAL CONTEXT FOR ENHANCED RECOMMENDATIONS:\n"
+		contextContent := strings.Join(contextSections, "\n\n")
+		return basePrompt + contextHeader + contextContent, nil
+	}
+
+	return basePrompt, nil
+}
+
+// buildKnowledgeBaseContext builds context from the knowledge base
+func (r *reportGenerator) buildKnowledgeBaseContext(ctx context.Context, inquiry *domain.Inquiry) (string, error) {
+	var contextParts []string
+
+	// Get best practices for the requested services
+	for _, service := range inquiry.Services {
+		bestPractices, err := r.knowledgeBase.GetBestPractices(service, "")
+		if err == nil && len(bestPractices) > 0 {
+			var practices []string
+			for i, bp := range bestPractices {
+				if i >= 3 { // Limit to top 3 best practices per service
+					break
+				}
+				practices = append(practices, fmt.Sprintf("- %s: %s", bp.Title, bp.Description))
+			}
+			if len(practices) > 0 {
+				contextParts = append(contextParts, fmt.Sprintf("BEST PRACTICES FOR %s:\n%s", 
+					strings.ToUpper(service), strings.Join(practices, "\n")))
+			}
+		}
+	}
+
+	// Get industry-specific compliance requirements
+	industry := r.extractIndustryContext(inquiry)
+	if industry != "" {
+		complianceReqs, err := r.knowledgeBase.GetComplianceRequirements(industry)
+		if err == nil && len(complianceReqs) > 0 {
+			var requirements []string
+			for i, req := range complianceReqs {
+				if i >= 3 { // Limit to top 3 compliance requirements
+					break
+				}
+				requirements = append(requirements, fmt.Sprintf("- %s (%s): %s", 
+					req.Framework, req.Severity, req.Description))
+			}
+			if len(requirements) > 0 {
+				contextParts = append(contextParts, fmt.Sprintf("COMPLIANCE REQUIREMENTS FOR %s INDUSTRY:\n%s", 
+					strings.ToUpper(industry), strings.Join(requirements, "\n")))
+			}
+		}
+	}
+
+	if len(contextParts) > 0 {
+		return "KNOWLEDGE BASE CONTEXT:\n" + strings.Join(contextParts, "\n\n"), nil
+	}
+
+	return "", nil
+}
+
+// buildMultiCloudContext builds context from multi-cloud analysis
+func (r *reportGenerator) buildMultiCloudContext(ctx context.Context, inquiry *domain.Inquiry) (string, error) {
+	// Get provider recommendation based on inquiry
+	recommendation, err := r.multiCloudAnalyzer.GetProviderRecommendation(ctx, inquiry)
+	if err != nil {
+		return "", err
+	}
+
+	var contextParts []string
+
+	// Add recommended provider information
+	contextParts = append(contextParts, fmt.Sprintf("RECOMMENDED CLOUD PROVIDER: %s", 
+		strings.ToUpper(recommendation.RecommendedProvider)))
+	
+	if len(recommendation.Reasoning) > 0 {
+		contextParts = append(contextParts, fmt.Sprintf("REASONING:\n%s", 
+			strings.Join(recommendation.Reasoning, "\n- ")))
+	}
+
+	// Add alternative options
+	if len(recommendation.AlternativeOptions) > 0 {
+		contextParts = append(contextParts, fmt.Sprintf("ALTERNATIVE OPTIONS: %s", 
+			strings.Join(recommendation.AlternativeOptions, ", ")))
+	}
+
+	// Add cost implications
+	if recommendation.CostImplications != "" {
+		contextParts = append(contextParts, fmt.Sprintf("COST IMPLICATIONS: %s", 
+			recommendation.CostImplications))
+	}
+
+	if len(contextParts) > 0 {
+		return "MULTI-CLOUD ANALYSIS:\n" + strings.Join(contextParts, "\n\n"), nil
+	}
+
+	return "", nil
+}
+
+// buildRiskAssessmentContext builds context from risk assessment
+func (r *reportGenerator) buildRiskAssessmentContext(ctx context.Context, inquiry *domain.Inquiry) (string, error) {
+	// Create a basic proposed solution for risk assessment
+	solution := &interfaces.ProposedSolution{
+		ID:             uuid.New().String(),
+		InquiryID:      inquiry.ID,
+		CloudProviders: []string{"aws"}, // Default for assessment
+		Services:       r.buildBasicServices(inquiry),
+		Architecture:   r.buildBasicArchitecture(inquiry),
+		EstimatedCost:  "TBD",
+		Timeline:       "TBD",
+	}
+
+	// Perform risk assessment
+	riskAssessment, err := r.riskAssessor.AssessRisks(ctx, inquiry, solution)
+	if err != nil {
+		return "", err
+	}
+
+	var contextParts []string
+
+	// Add overall risk level
+	contextParts = append(contextParts, fmt.Sprintf("OVERALL RISK LEVEL: %s", 
+		strings.ToUpper(riskAssessment.OverallRiskLevel)))
+
+	// Add top risks by category
+	if len(riskAssessment.TechnicalRisks) > 0 {
+		var risks []string
+		for i, risk := range riskAssessment.TechnicalRisks {
+			if i >= 2 { // Limit to top 2 risks per category
+				break
+			}
+			risks = append(risks, fmt.Sprintf("- %s (%s impact)", risk.Title, risk.Impact))
+		}
+		contextParts = append(contextParts, fmt.Sprintf("KEY TECHNICAL RISKS:\n%s", 
+			strings.Join(risks, "\n")))
+	}
+
+	if len(riskAssessment.SecurityRisks) > 0 {
+		var risks []string
+		for i, risk := range riskAssessment.SecurityRisks {
+			if i >= 2 { // Limit to top 2 risks per category
+				break
+			}
+			risks = append(risks, fmt.Sprintf("- %s (%s impact)", risk.Title, risk.Impact))
+		}
+		contextParts = append(contextParts, fmt.Sprintf("KEY SECURITY RISKS:\n%s", 
+			strings.Join(risks, "\n")))
+	}
+
+	// Add recommended actions
+	if len(riskAssessment.RecommendedActions) > 0 {
+		actions := riskAssessment.RecommendedActions
+		if len(actions) > 3 {
+			actions = actions[:3] // Limit to top 3 actions
+		}
+		contextParts = append(contextParts, fmt.Sprintf("RECOMMENDED RISK MITIGATION ACTIONS:\n- %s", 
+			strings.Join(actions, "\n- ")))
+	}
+
+	if len(contextParts) > 0 {
+		return "RISK ASSESSMENT CONTEXT:\n" + strings.Join(contextParts, "\n\n"), nil
+	}
+
+	return "", nil
+}
+
+// buildDocumentationContext builds context from documentation library
+func (r *reportGenerator) buildDocumentationContext(ctx context.Context, inquiry *domain.Inquiry) (string, error) {
+	var contextParts []string
+
+	// Get relevant documentation links for each service
+	for _, service := range inquiry.Services {
+		docLinks, err := r.docLibrary.GetDocumentationLinks(ctx, "", service)
+		if err == nil && len(docLinks) > 0 {
+			var links []string
+			for i, link := range docLinks {
+				if i >= 3 { // Limit to top 3 links per service
+					break
+				}
+				if link.IsValid {
+					links = append(links, fmt.Sprintf("- %s: %s (%s)", 
+						link.Title, link.URL, link.Provider))
+				}
+			}
+			if len(links) > 0 {
+				contextParts = append(contextParts, fmt.Sprintf("DOCUMENTATION FOR %s:\n%s", 
+					strings.ToUpper(service), strings.Join(links, "\n")))
+			}
+		}
+	}
+
+	// Get general best practices documentation
+	bestPracticeLinks, err := r.docLibrary.GetLinksByType(ctx, "best-practice")
+	if err == nil && len(bestPracticeLinks) > 0 {
+		var links []string
+		for i, link := range bestPracticeLinks {
+			if i >= 3 { // Limit to top 3 best practice links
+				break
+			}
+			if link.IsValid {
+				links = append(links, fmt.Sprintf("- %s: %s (%s)", 
+					link.Title, link.URL, link.Provider))
+			}
+		}
+		if len(links) > 0 {
+			contextParts = append(contextParts, fmt.Sprintf("BEST PRACTICES DOCUMENTATION:\n%s", 
+				strings.Join(links, "\n")))
+		}
+	}
+
+	if len(contextParts) > 0 {
+		return "DOCUMENTATION REFERENCES:\n" + strings.Join(contextParts, "\n\n"), nil
+	}
+
+	return "", nil
+}
+
+// Helper methods for building basic structures for risk assessment
+
+func (r *reportGenerator) buildBasicServices(inquiry *domain.Inquiry) []interfaces.CloudService {
+	var services []interfaces.CloudService
+	
+	for _, serviceType := range inquiry.Services {
+		service := interfaces.CloudService{
+			Provider:     "aws", // Default provider
+			ServiceName:  r.mapServiceTypeToAWSService(serviceType),
+			ServiceType:  serviceType,
+			Configuration: make(map[string]interface{}),
+			Dependencies: []string{},
+			CriticalPath: true,
+		}
+		services = append(services, service)
+	}
+	
+	return services
+}
+
+func (r *reportGenerator) buildBasicArchitecture(inquiry *domain.Inquiry) *interfaces.Architecture {
+	return &interfaces.Architecture{
+		ID:   uuid.New().String(),
+		Type: "cloud-native",
+		Components: []interfaces.ArchitectureComponent{
+			{
+				Name:         "application-tier",
+				Type:         "compute",
+				Layer:        "application",
+				Dependencies: []string{},
+				Criticality:  "high",
+				Configuration: make(map[string]interface{}),
+			},
+		},
+		NetworkTopology: interfaces.NetworkTopology{
+			VPCConfiguration: make(map[string]interface{}),
+			SubnetStrategy:   "multi-az",
+			SecurityGroups:   []interfaces.SecurityGroup{},
+			LoadBalancers:    []interfaces.LoadBalancer{},
+			CDNConfiguration: make(map[string]interface{}),
+		},
+		DataStorage: []interfaces.DataStorageComponent{
+			{
+				Type:            "database",
+				Provider:        "aws",
+				ServiceName:     "RDS",
+				DataType:        "application",
+				SensitivityLevel: "medium",
+				BackupStrategy:  "automated",
+				Configuration:   make(map[string]interface{}),
+			},
+		},
+		SecurityLayers:   []interfaces.SecurityLayer{},
+		HighAvailability: true,
+		DisasterRecovery: false,
+	}
+}
+
+func (r *reportGenerator) mapServiceTypeToAWSService(serviceType string) string {
+	serviceMap := map[string]string{
+		"assessment":         "Well-Architected Review",
+		"migration":          "Migration Hub",
+		"optimization":       "Cost Explorer",
+		"architecture-review": "Well-Architected Tool",
+		"security":           "Security Hub",
+		"compliance":         "Config",
+		"monitoring":         "CloudWatch",
+		"backup":             "Backup",
+	}
+	
+	if awsService, exists := serviceMap[serviceType]; exists {
+		return awsService
+	}
+	return "EC2" // Default fallback
+}
+
+func (r *reportGenerator) extractIndustryContext(inquiry *domain.Inquiry) string {
+	// Extract industry hints from company name and message
+	text := strings.ToLower(inquiry.Company + " " + inquiry.Message)
+	
+	industryKeywords := map[string][]string{
+		"healthcare": {"healthcare", "hospital", "medical", "patient", "hipaa", "health", "clinic"},
+		"financial":  {"bank", "financial", "finance", "payment", "pci", "trading", "credit", "loan"},
+		"retail":     {"retail", "ecommerce", "store", "shopping", "customer", "sales", "commerce"},
+		"manufacturing": {"manufacturing", "factory", "production", "supply chain", "industrial", "plant"},
+		"education":  {"education", "school", "university", "student", "learning", "academic", "campus"},
+		"government": {"government", "public", "federal", "state", "municipal", "agency", "civic"},
+		"technology": {"software", "tech", "saas", "platform", "development", "startup", "app"},
+		"media":      {"media", "entertainment", "content", "streaming", "publishing", "broadcast"},
+	}
+	
+	for industry, keywords := range industryKeywords {
+		for _, keyword := range keywords {
+			if strings.Contains(text, keyword) {
+				return industry
+			}
+		}
+	}
+	
+	return ""
+}
+
+// getEnhancedReportPDFOptions returns optimized PDF options for enhanced reports
+func getEnhancedReportPDFOptions() *interfaces.PDFOptions {
+	return &interfaces.PDFOptions{
+		PageSize:     "A4",
+		Orientation:  "Portrait",
+		MarginTop:    "1in",
+		MarginRight:  "0.75in",
+		MarginBottom: "1in",
+		MarginLeft:   "0.75in",
+		Quality:      90,
+		LoadTimeout:  30,
+		CustomOptions: map[string]string{
+			"enable-local-file-access": "true",
+			"print-media-type":         "true",
+		},
+	}
+}
