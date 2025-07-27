@@ -383,15 +383,15 @@ func (t *templateService) detectHighPriority(content string) bool {
 	return false
 }
 
-// formatReportContent converts plain text report content to HTML
+// formatReportContent converts plain text report content to structured HTML
 func (t *templateService) formatReportContent(content string) string {
 	if content == "" {
 		return "<p>No content available.</p>"
 	}
 	
-	// Split content into sections by double line breaks
+	// Enhanced HTML formatting with better structure detection
 	sections := strings.Split(content, "\n\n")
-	var formattedSections []string
+	var htmlSections []string
 	
 	for _, section := range sections {
 		section = strings.TrimSpace(section)
@@ -399,19 +399,293 @@ func (t *templateService) formatReportContent(content string) string {
 			continue
 		}
 		
-		// Check if this is a header
-		if t.isHeader(section) {
-			level := t.getHeaderLevel(section)
-			cleanHeader := t.cleanHeaderText(section)
-			formattedSections = append(formattedSections, fmt.Sprintf("<h%d>%s</h%d>", level, cleanHeader, level))
-		} else {
-			// Regular content - format as paragraph with proper handling
-			formatted := t.formatParagraph(section)
-			formattedSections = append(formattedSections, formatted)
+		// Format the section based on its content type
+		formattedSection := t.formatSection(section)
+		htmlSections = append(htmlSections, formattedSection)
+	}
+	
+	return strings.Join(htmlSections, "\n\n")
+}
+
+// formatSection formats a single section of content
+func (t *templateService) formatSection(section string) string {
+	// Check if this is a main header (numbered or all caps)
+	if t.isMainHeader(section) {
+		return t.formatMainHeader(section)
+	}
+	
+	// Check if this is a sub-header
+	if t.isSubHeader(section) {
+		return t.formatSubHeader(section)
+	}
+	
+	// Check if this contains a list
+	if t.containsList(section) {
+		return t.formatListSection(section)
+	}
+	
+	// Format as regular paragraph content
+	return t.formatParagraphSection(section)
+}
+
+// isMainHeader checks if a section is a main header
+func (t *templateService) isMainHeader(text string) bool {
+	text = strings.TrimSpace(text)
+	
+	// Don't treat multi-line content as headers
+	if strings.Count(text, "\n") > 1 {
+		return false
+	}
+	
+	// Don't treat long sentences as headers
+	if len(text) > 150 {
+		return false
+	}
+	
+	// Check for numbered headers (1., 2., etc.)
+	if regexp.MustCompile(`^\d+\.\s+[A-Z]`).MatchString(text) {
+		return true
+	}
+	
+	// Check for main section headers (must be exact matches or start with the header)
+	mainHeaders := []string{
+		"EXECUTIVE SUMMARY", "CURRENT STATE ASSESSMENT", "RECOMMENDATIONS",
+		"NEXT STEPS", "URGENCY ASSESSMENT", "CONTACT INFORMATION",
+		"PRIORITY LEVEL", "MEETING SCHEDULING",
+	}
+	
+	textUpper := strings.ToUpper(text)
+	for _, header := range mainHeaders {
+		// Exact match or starts with header followed by colon or space
+		if textUpper == header || 
+		   strings.HasPrefix(textUpper, header+":") ||
+		   (strings.HasPrefix(textUpper, header+" ") && len(text) < 100) {
+			return true
 		}
 	}
 	
-	return strings.Join(formattedSections, "\n\n")
+	// Check if it's all caps and short (likely a header)
+	if strings.ToUpper(text) == text && len(text) < 80 && !strings.Contains(text, ".") {
+		return true
+	}
+	
+	return false
+}
+
+// isSubHeader checks if a section is a sub-header
+func (t *templateService) isSubHeader(text string) bool {
+	text = strings.TrimSpace(text)
+	
+	// Single line ending with colon
+	if !strings.Contains(text, "\n") && strings.HasSuffix(text, ":") && len(text) < 100 {
+		return true
+	}
+	
+	// Bold text that looks like a header
+	if strings.HasPrefix(text, "**") && strings.HasSuffix(text, "**") && !strings.Contains(text, "\n") {
+		return true
+	}
+	
+	return false
+}
+
+// containsList checks if a section contains list items
+func (t *templateService) containsList(text string) bool {
+	lines := strings.Split(text, "\n")
+	listCount := 0
+	
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") || 
+		   regexp.MustCompile(`^\d+\.\s`).MatchString(line) {
+			listCount++
+		}
+	}
+	
+	return listCount >= 2 // At least 2 list items
+}
+
+// formatMainHeader formats a main header
+func (t *templateService) formatMainHeader(text string) string {
+	text = strings.TrimSpace(text)
+	
+	// Remove numbered prefixes for cleaner headers
+	text = regexp.MustCompile(`^\d+\.\s*`).ReplaceAllString(text, "")
+	
+	// Convert to title case if all caps
+	if strings.ToUpper(text) == text {
+		text = t.toTitleCase(text)
+	}
+	
+	// Remove trailing colons
+	text = strings.TrimSuffix(text, ":")
+	
+	return fmt.Sprintf("<h2 class=\"section-header\">%s</h2>", text)
+}
+
+// formatSubHeader formats a sub-header
+func (t *templateService) formatSubHeader(text string) string {
+	text = strings.TrimSpace(text)
+	
+	// Remove bold markdown
+	text = strings.Trim(text, "*")
+	
+	// Remove trailing colons
+	text = strings.TrimSuffix(text, ":")
+	
+	return fmt.Sprintf("<h3 class=\"subsection-header\">%s</h3>", text)
+}
+
+// formatListSection formats a section containing lists
+func (t *templateService) formatListSection(text string) string {
+	lines := strings.Split(text, "\n")
+	var result []string
+	var currentParagraph []string
+	inList := false
+	listType := ""
+	
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		
+		// Check if this is a list item
+		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") {
+			// Close any open paragraph
+			if len(currentParagraph) > 0 {
+				result = append(result, t.formatParagraphContent(strings.Join(currentParagraph, " ")))
+				currentParagraph = nil
+			}
+			
+			// Start or continue unordered list
+			if !inList || listType != "ul" {
+				if inList && listType == "ol" {
+					result = append(result, "</ol>")
+				}
+				if !inList {
+					result = append(result, "<ul class=\"report-list\">")
+				}
+				inList = true
+				listType = "ul"
+			}
+			
+			item := strings.TrimPrefix(line, "- ")
+			item = strings.TrimPrefix(item, "• ")
+			result = append(result, fmt.Sprintf("  <li>%s</li>", t.formatInlineText(item)))
+			
+		} else if regexp.MustCompile(`^\d+\.\s`).MatchString(line) {
+			// Close any open paragraph
+			if len(currentParagraph) > 0 {
+				result = append(result, t.formatParagraphContent(strings.Join(currentParagraph, " ")))
+				currentParagraph = nil
+			}
+			
+			// Start or continue ordered list
+			if !inList || listType != "ol" {
+				if inList && listType == "ul" {
+					result = append(result, "</ul>")
+				}
+				if !inList {
+					result = append(result, "<ol class=\"report-list\">")
+				}
+				inList = true
+				listType = "ol"
+			}
+			
+			item := regexp.MustCompile(`^\d+\.\s`).ReplaceAllString(line, "")
+			result = append(result, fmt.Sprintf("  <li>%s</li>", t.formatInlineText(item)))
+			
+		} else {
+			// Regular text - add to current paragraph
+			currentParagraph = append(currentParagraph, line)
+		}
+	}
+	
+	// Close any open list
+	if inList {
+		if listType == "ul" {
+			result = append(result, "</ul>")
+		} else {
+			result = append(result, "</ol>")
+		}
+	}
+	
+	// Add any remaining paragraph
+	if len(currentParagraph) > 0 {
+		result = append(result, t.formatParagraphContent(strings.Join(currentParagraph, " ")))
+	}
+	
+	return strings.Join(result, "\n")
+}
+
+// formatParagraphSection formats a regular paragraph section
+func (t *templateService) formatParagraphSection(text string) string {
+	// Split into individual lines and rejoin as a paragraph
+	lines := strings.Split(text, "\n")
+	var cleanLines []string
+	
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			cleanLines = append(cleanLines, line)
+		}
+	}
+	
+	if len(cleanLines) == 0 {
+		return ""
+	}
+	
+	paragraph := strings.Join(cleanLines, " ")
+	return t.formatParagraphContent(paragraph)
+}
+
+// formatParagraphContent formats a single paragraph with inline formatting
+func (t *templateService) formatParagraphContent(text string) string {
+	if text == "" {
+		return ""
+	}
+	
+	formatted := t.formatInlineText(text)
+	return fmt.Sprintf("<p class=\"report-paragraph\">%s</p>", formatted)
+}
+
+// formatInlineText applies inline formatting (bold, italic, etc.)
+func (t *templateService) formatInlineText(text string) string {
+	// Convert **bold** to <strong>
+	text = regexp.MustCompile(`\*\*(.*?)\*\*`).ReplaceAllString(text, "<strong>$1</strong>")
+	
+	// Convert *italic* to <em>
+	text = regexp.MustCompile(`\*(.*?)\*`).ReplaceAllString(text, "<em>$1</em>")
+	
+	// Convert URLs to links (basic implementation)
+	text = regexp.MustCompile(`https?://[^\s]+`).ReplaceAllStringFunc(text, func(url string) string {
+		return fmt.Sprintf("<a href=\"%s\" target=\"_blank\">%s</a>", url, url)
+	})
+	
+	return text
+}
+
+// toTitleCase converts text to title case
+func (t *templateService) toTitleCase(text string) string {
+	words := strings.Fields(text)
+	for i, word := range words {
+		if len(word) > 0 {
+			// Keep certain words lowercase (articles, prepositions)
+			lowercaseWords := map[string]bool{
+				"a": true, "an": true, "the": true, "and": true, "or": true, "but": true,
+				"in": true, "on": true, "at": true, "to": true, "for": true, "of": true,
+				"with": true, "by": true,
+			}
+			
+			if i == 0 || !lowercaseWords[strings.ToLower(word)] {
+				words[i] = strings.ToUpper(word[:1]) + strings.ToLower(word[1:])
+			} else {
+				words[i] = strings.ToLower(word)
+			}
+		}
+	}
+	return strings.Join(words, " ")
 }
 
 // isHeader determines if a section is a header

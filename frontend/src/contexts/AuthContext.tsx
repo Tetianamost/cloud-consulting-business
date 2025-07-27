@@ -11,7 +11,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   login: async () => false,
-  logout: () => {},
+  logout: () => { },
   loading: true,
 });
 
@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const response = await apiService.login(username, password);
-      
+
       if (response.success && response.token) {
         apiService.setAuthToken(response.token);
         setIsAuthenticated(true);

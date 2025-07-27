@@ -13,7 +13,7 @@ import (
 
 // AdminHandler handles admin-related HTTP requests
 type AdminHandler struct {
-	storage       *storage.InMemoryStorage
+	storage        *storage.InMemoryStorage
 	inquiryService interfaces.InquiryService
 	reportService  interfaces.ReportService
 	emailService   interfaces.EmailService
@@ -142,6 +142,177 @@ func (h *AdminHandler) ListInquiries(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// AdminReportFilters represents filters for admin report listing
+type AdminReportFilters struct {
+	Status     string `form:"status"`
+	Type       string `form:"type"`
+	DateFrom   string `form:"date_from"`
+	DateTo     string `form:"date_to"`
+	Limit      int    `form:"limit"`
+	Offset     int    `form:"offset"`
+}
+
+// AdminReportsResponse represents the response for admin reports listing
+type AdminReportsResponse struct {
+	Success bool              `json:"success"`
+	Data    []*ReportWithInquiry `json:"data"`
+	Count   int               `json:"count"`
+	Total   int64             `json:"total"`
+	Page    int               `json:"page"`
+	Pages   int               `json:"pages"`
+}
+
+// ReportWithInquiry represents a report with its associated inquiry information
+type ReportWithInquiry struct {
+	*domain.Report
+	Inquiry *domain.Inquiry `json:"inquiry"`
+}
+
+// ListReports handles GET /api/v1/admin/reports
+func (h *AdminHandler) ListReports(c *gin.Context) {
+	var filters AdminReportFilters
+	if err := c.ShouldBindQuery(&filters); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid filter parameters: " + err.Error(),
+		})
+		return
+	}
+
+	// Set default limit and offset if not provided
+	if filters.Limit <= 0 {
+		filters.Limit = 20
+	}
+	if filters.Limit > 100 {
+		filters.Limit = 100 // Cap maximum limit
+	}
+
+	// Get all inquiries to extract reports
+	inquiries, err := h.inquiryService.ListInquiries(c.Request.Context(), nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to retrieve inquiries",
+		})
+		return
+	}
+
+	// Extract all reports with their inquiry information
+	// Initialize with empty slice to ensure JSON marshals as [] not null
+	allReports := make([]*ReportWithInquiry, 0)
+	for _, inquiry := range inquiries {
+		if len(inquiry.Reports) > 0 {
+			for _, report := range inquiry.Reports {
+				reportWithInquiry := &ReportWithInquiry{
+					Report:  report,
+					Inquiry: inquiry,
+				}
+				
+				// Apply filters
+				if filters.Status != "" && string(report.Status) != filters.Status {
+					continue
+				}
+				if filters.Type != "" && string(report.Type) != filters.Type {
+					continue
+				}
+				
+				allReports = append(allReports, reportWithInquiry)
+			}
+		}
+	}
+
+	// Sort reports by creation date (newest first)
+	for i := 0; i < len(allReports)-1; i++ {
+		for j := i + 1; j < len(allReports); j++ {
+			if allReports[i].CreatedAt.Before(allReports[j].CreatedAt) {
+				allReports[i], allReports[j] = allReports[j], allReports[i]
+			}
+		}
+	}
+
+	// Apply pagination
+	total := int64(len(allReports))
+	start := filters.Offset
+	end := start + filters.Limit
+	
+	if start > len(allReports) {
+		start = len(allReports)
+	}
+	if end > len(allReports) {
+		end = len(allReports)
+	}
+	
+	paginatedReports := allReports[start:end]
+
+	// Calculate pagination info
+	page := (filters.Offset / filters.Limit) + 1
+	pages := int(total) / filters.Limit
+	if int(total)%filters.Limit > 0 {
+		pages++
+	}
+
+	response := AdminReportsResponse{
+		Success: true,
+		Data:    paginatedReports,
+		Count:   len(paginatedReports),
+		Total:   total,
+		Page:    page,
+		Pages:   pages,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetReport handles GET /api/v1/admin/reports/:reportId
+func (h *AdminHandler) GetReport(c *gin.Context) {
+	reportID := c.Param("reportId")
+	
+	// Get all inquiries to find the report
+	inquiries, err := h.inquiryService.ListInquiries(c.Request.Context(), nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to retrieve inquiries",
+		})
+		return
+	}
+
+	// Find the report by ID
+	var foundReport *domain.Report
+	var foundInquiry *domain.Inquiry
+	
+	for _, inquiry := range inquiries {
+		for _, report := range inquiry.Reports {
+			if report.ID == reportID {
+				foundReport = report
+				foundInquiry = inquiry
+				break
+			}
+		}
+		if foundReport != nil {
+			break
+		}
+	}
+
+	if foundReport == nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "Report not found",
+		})
+		return
+	}
+
+	reportWithInquiry := &ReportWithInquiry{
+		Report:  foundReport,
+		Inquiry: foundInquiry,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    reportWithInquiry,
+	})
 }
 
 // GetSystemMetrics handles GET /api/v1/admin/metrics

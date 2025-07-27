@@ -88,27 +88,28 @@ Convert the feature design into a series of prompts for implementing the v0.dev 
     - Test that active navigation states work properly
     - _Requirements: 1.1, 1.2, 6.1, 6.2_
 
-- [ ] 6. Create V0 email delivery monitoring dashboard
-  - [ ] 6.1 Build V0EmailDeliveryDashboard component
+- [x] 6. Create V0 email delivery monitoring dashboard
+  - [x] 6.1 Build V0EmailDeliveryDashboard component
     - Recreate the email delivery metrics section from v0.dev
     - Implement delivery rate, open rate, click rate, and failed emails cards
     - Create horizontal progress bars for delivery status overview
     - Add time range selector with proper Tailwind styling
     - _Requirements: 1.1, 1.3, 6.2_
 
-  - [ ] 6.2 Implement email metrics data integration
+  - [x] 6.2 Implement email metrics data integration
     - Create adapter for email status data to match v0 component format
     - Connect to existing email monitoring APIs
     - Handle loading states and data errors gracefully
     - Test email metrics display correctly with real data
     - _Requirements: 4.1, 4.3_
 
-- [ ] 7. Enhance V0 inquiry list with advanced features
-  - [ ] 7.1 Upgrade existing inquiry list to match v0 design
+- [-] 7. Enhance V0 inquiry list with advanced features
+  - [x] 7.1 Upgrade existing inquiry list to match v0 design
     - Apply v0.dev table styling to existing InquiryList component
     - Improve typography, spacing, and visual hierarchy
     - Add proper badges and status indicators with v0 colors
     - Implement better responsive design for mobile screens
+    - make preview working and report download working from this page
     - _Requirements: 1.1, 1.2, 5.3_
 
   - [ ] 7.2 Add advanced filtering and search features

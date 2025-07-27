@@ -17,6 +17,14 @@
     --migration-color: #28a745;
     --optimization-color: #ffc107;
     --architecture-color: #6f42c1;
+    
+    /* Compatibility aliases for existing variables */
+    --text-color: var(--text-primary);
+    --text-muted: var(--text-muted);
+    --dark-gray: var(--gray-700);
+    --medium-gray: var(--gray-500);
+    --light-gray: var(--gray-100);
+    --primary-dark: var(--primary-dark);
 }
 
 /* Base report styles */
@@ -323,6 +331,78 @@
 .report-content em {
     font-style: italic;
     color: var(--text-muted);
+}
+
+/* Enhanced structured content classes */
+.section-header {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 35px 0 20px 0;
+    border-bottom: 3px solid var(--primary-color);
+    padding-bottom: 12px;
+    text-transform: none;
+    letter-spacing: 0.5px;
+}
+
+.subsection-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin: 25px 0 15px 0;
+    border-left: 4px solid var(--primary-color);
+    padding-left: 15px;
+    background: var(--light-gray);
+    padding: 10px 15px;
+    border-radius: 4px;
+}
+
+.report-paragraph {
+    margin: 15px 0;
+    text-align: justify;
+    line-height: 1.7;
+    color: var(--text-color);
+}
+
+.report-list {
+    margin: 20px 0;
+    padding-left: 30px;
+}
+
+.report-list li {
+    margin: 10px 0;
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+.report-list li strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.report-list li em {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Links in report content */
+.report-content a,
+.report-paragraph a,
+.report-list a {
+    color: var(--primary-color);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--primary-color);
+    transition: all 0.2s ease;
+}
+
+.report-content a:hover,
+.report-paragraph a:hover,
+.report-list a:hover {
+    color: var(--primary-dark);
+    border-bottom-style: solid;
+    background: rgba(0, 124, 186, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
 }
 
 /* Service-specific content styling */

@@ -60,13 +60,10 @@ func (s *sesService) SendEmail(ctx context.Context, email *interfaces.EmailMessa
 	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(s.config.Timeout)*time.Second)
 	defer cancel()
 
-	// If there are attachments, use SendRawEmail
-	if len(email.Attachments) > 0 {
-		return s.sendRawEmail(timeoutCtx, email)
-	}
-
-	// Use regular SendEmail for emails without attachments
-	return s.sendSimpleEmail(timeoutCtx, email)
+	// Always use SendRawEmail for better email client compatibility
+	// This ensures proper MIME headers and multipart/alternative structure
+	// which improves HTML rendering across different email clients
+	return s.sendRawEmail(timeoutCtx, email)
 }
 
 // sendSimpleEmail sends an email without attachments using the simple SES API
@@ -181,22 +178,22 @@ func (s *sesService) buildRawMessage(email *interfaces.EmailMessage) ([]byte, er
 	// Add text/HTML body as multipart alternative
 	if email.HTMLBody != "" || email.TextBody != "" {
 		// Create alternative part for text and HTML
-		altWriter := multipart.NewWriter(&buf)
 		altHeader := textproto.MIMEHeader{}
-		altHeader.Set("Content-Type", fmt.Sprintf("multipart/alternative; boundary=%s", altWriter.Boundary()))
+		altHeader.Set("Content-Type", fmt.Sprintf("multipart/alternative; boundary=%s", writer.Boundary()))
 		
 		part, err := writer.CreatePart(altHeader)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create alternative part: %w", err)
 		}
 		
-		altBuf := bytes.NewBuffer(nil)
+		// Create a separate writer for the alternative content
+		altWriter := multipart.NewWriter(part)
 		
 		// Add text part
 		if email.TextBody != "" {
 			textHeader := textproto.MIMEHeader{}
 			textHeader.Set("Content-Type", "text/plain; charset=UTF-8")
-			textHeader.Set("Content-Transfer-Encoding", "quoted-printable")
+			textHeader.Set("Content-Transfer-Encoding", "7bit")
 			
 			textPart, err := altWriter.CreatePart(textHeader)
 			if err != nil {
@@ -210,7 +207,7 @@ func (s *sesService) buildRawMessage(email *interfaces.EmailMessage) ([]byte, er
 		if email.HTMLBody != "" {
 			htmlHeader := textproto.MIMEHeader{}
 			htmlHeader.Set("Content-Type", "text/html; charset=UTF-8")
-			htmlHeader.Set("Content-Transfer-Encoding", "quoted-printable")
+			htmlHeader.Set("Content-Transfer-Encoding", "7bit")
 			
 			htmlPart, err := altWriter.CreatePart(htmlHeader)
 			if err != nil {
@@ -221,7 +218,6 @@ func (s *sesService) buildRawMessage(email *interfaces.EmailMessage) ([]byte, er
 		}
 		
 		altWriter.Close()
-		part.Write(altBuf.Bytes())
 	}
 
 	// Add attachments

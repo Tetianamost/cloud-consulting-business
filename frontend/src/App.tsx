@@ -21,6 +21,7 @@ import Login from './components/admin/Login';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import V0DashboardNew from './components/admin/V0DashboardNew';
 import V0Dashboard from './components/admin/V0Dashboard';
+import AIReportsPage from './components/admin/AIReportsPage';
 
 // Main site layout component
 const MainSite: React.FC = () => (
@@ -78,6 +79,11 @@ function App() {
                 <Route path="/admin/email-status" element={
                   <ProtectedRoute>
                     <V0DashboardNew />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/reports" element={
+                  <ProtectedRoute>
+                    <AIReportsPage />
                   </ProtectedRoute>
                 } />
               </>

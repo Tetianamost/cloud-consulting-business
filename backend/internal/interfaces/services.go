@@ -79,7 +79,7 @@ type EmailService interface {
 	SendReportEmailWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error
 	SendInquiryNotification(ctx context.Context, inquiry *domain.Inquiry) error
 	SendCustomerConfirmation(ctx context.Context, inquiry *domain.Inquiry) error
-	SendCustomerConfirmationWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error
+	// SendCustomerConfirmationWithPDF has been REMOVED - reports should never be sent to customers
 	IsHealthy() bool
 }
 

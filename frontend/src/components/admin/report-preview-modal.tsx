@@ -16,7 +16,7 @@ interface ReportPreviewModalProps {
   report: any
   isOpen: boolean
   onClose: () => void
-  onDownload: (report: any, format: string) => void
+  onDownload: (report: any, format: 'pdf' | 'html') => Promise<void>
 }
 
 export function ReportPreviewModal({ report, isOpen, onClose, onDownload }: ReportPreviewModalProps) {
@@ -112,10 +112,6 @@ export function ReportPreviewModal({ report, isOpen, onClose, onDownload }: Repo
                 <DropdownMenuItem onClick={() => onDownload(report, "html")}>
                   <Globe className="mr-2 h-4 w-4" />
                   Download HTML
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDownload(report, "csv")}>
-                  <Table className="mr-2 h-4 w-4" />
-                  Download CSV
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

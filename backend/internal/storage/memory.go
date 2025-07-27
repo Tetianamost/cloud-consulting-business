@@ -76,7 +76,7 @@ func (s *InMemoryStorage) GetInquiry(ctx context.Context, id string) (*domain.In
 	}
 	
 	// Load associated reports
-	var reports []*domain.Report
+	reports := make([]*domain.Report, 0)
 	for _, report := range s.reports {
 		if report.InquiryID == id {
 			reports = append(reports, report)
@@ -117,7 +117,7 @@ func (s *InMemoryStorage) ListInquiries(ctx context.Context, filters *domain.Inq
 		}
 		
 		// Load associated reports
-		var reports []*domain.Report
+		reports := make([]*domain.Report, 0)
 		for _, report := range s.reports {
 			if report.InquiryID == inquiry.ID {
 				reports = append(reports, report)

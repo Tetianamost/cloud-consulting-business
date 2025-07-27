@@ -137,6 +137,7 @@ func (e *emailService) SendInquiryNotification(ctx context.Context, inquiry *dom
 }
 
 // SendCustomerConfirmation sends a confirmation email to the customer
+// NOTE: This function NEVER includes AI-generated reports - those are for internal use only
 func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *domain.Inquiry) error {
 	// Validate and clean customer email
 	customerEmail := e.validateAndCleanEmail(inquiry.Email)
@@ -147,58 +148,34 @@ func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *do
 
 	subject := "Thank you for your cloud consulting inquiry - CloudPartner Pro"
 	
-	// Check if inquiry has reports
-	hasReport := len(inquiry.Reports) > 0
-	var report *domain.Report
-	if hasReport {
-		report = inquiry.Reports[0] // Use the first report
-	}
-	
 	// Use branded template if available, fallback to basic template
 	var htmlBody string
 	var textBody string
 	
 	if e.templateService != nil {
-		// Prepare template data
+		// Prepare template data - NO REPORT INFORMATION FOR CUSTOMERS
 		templateData := &CustomerConfirmationTemplateData{
 			Name:     inquiry.Name,
 			Company:  inquiry.Company,
 			Services: strings.Join(inquiry.Services, ", "),
 			ID:       inquiry.ID,
-		}
-		
-		// Add report information if available
-		if hasReport {
-			templateData.ReportID = report.ID
-			templateData.ReportType = string(report.Type)
+			// Reports are NEVER included in customer emails
 		}
 		
 		// Render branded HTML template
 		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "customer_confirmation", templateData)
 		if err != nil {
 			e.logger.WithError(err).WithField("inquiry_id", inquiry.ID).Warn("Failed to render branded template, using fallback")
-			if hasReport {
-				htmlBody = e.buildCustomerConfirmationHTMLWithReport(inquiry, report)
-			} else {
-				htmlBody = e.buildCustomerConfirmationHTML(inquiry)
-			}
+			htmlBody = e.buildCustomerConfirmationHTML(inquiry)
 		} else {
 			htmlBody = brandedHTML
 		}
 	} else {
-		if hasReport {
-			htmlBody = e.buildCustomerConfirmationHTMLWithReport(inquiry, report)
-		} else {
-			htmlBody = e.buildCustomerConfirmationHTML(inquiry)
-		}
+		htmlBody = e.buildCustomerConfirmationHTML(inquiry)
 	}
 	
-	// Always use the text version as fallback
-	if hasReport {
-		textBody = e.buildCustomerConfirmationTextWithReport(inquiry, report)
-	} else {
-		textBody = e.buildCustomerConfirmationText(inquiry)
-	}
+	// Always use the text version as fallback - NO REPORTS
+	textBody = e.buildCustomerConfirmationText(inquiry)
 
 	email := &interfaces.EmailMessage{
 		From:     e.config.SenderEmail,
@@ -214,7 +191,6 @@ func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *do
 		e.logger.WithError(err).WithFields(logrus.Fields{
 			"inquiry_id":     inquiry.ID,
 			"customer_email": customerEmail,
-			"has_report":     hasReport,
 		}).Error("Failed to send customer confirmation email")
 		return fmt.Errorf("failed to send customer confirmation email: %w", err)
 	}
@@ -223,7 +199,6 @@ func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *do
 		"inquiry_id":     inquiry.ID,
 		"customer_email": customerEmail,
 		"template_used":  "branded",
-		"has_report":     hasReport,
 	}).Info("Customer confirmation email sent successfully")
 
 	return nil
@@ -692,14 +667,13 @@ func (e *emailService) buildInquiryEmailHTML(inquiry *domain.Inquiry) string {
 // Template data structures for branded email templates
 
 // CustomerConfirmationTemplateData represents the data structure for customer confirmation emails
+// NOTE: This struct NEVER includes report information - reports are for internal use only
 type CustomerConfirmationTemplateData struct {
-	Name       string
-	Company    string
-	Services   string
-	ID         string
-	ReportID   string // Optional report ID if available
-	ReportType string // Optional report type if available
-	HasReport  bool   // Flag indicating if a report is available
+	Name     string
+	Company  string
+	Services string
+	ID       string
+	// Report fields have been REMOVED - customers should never receive AI-generated reports
 }
 
 
@@ -739,47 +713,8 @@ func (e *emailService) buildCustomerConfirmationText(inquiry *domain.Inquiry) st
 	return builder.String()
 }
 
-// buildCustomerConfirmationTextWithReport creates the plain text version of the customer confirmation email with report information
-func (e *emailService) buildCustomerConfirmationTextWithReport(inquiry *domain.Inquiry, report *domain.Report) string {
-	var builder strings.Builder
-	
-	builder.WriteString("Thank you for your cloud consulting inquiry!\r\n\r\n")
-	
-	builder.WriteString(fmt.Sprintf("Dear %s,\r\n\r\n", inquiry.Name))
-	
-	builder.WriteString("We have received your inquiry for cloud consulting services and wanted to confirm that it has been successfully submitted. We've also prepared an initial assessment report for your review.\r\n\r\n")
-	
-	builder.WriteString("Inquiry Details\r\n")
-	builder.WriteString("===============\r\n")
-	builder.WriteString(fmt.Sprintf("Services Requested: %s\r\n", strings.Join(inquiry.Services, ", ")))
-	builder.WriteString(fmt.Sprintf("Company: %s\r\n", inquiry.Company))
-	builder.WriteString(fmt.Sprintf("Reference ID: %s\r\n\r\n", inquiry.ID))
-	
-	builder.WriteString("Report Information\r\n")
-	builder.WriteString("=================\r\n")
-	builder.WriteString(fmt.Sprintf("Report Type: %s\r\n", report.Type))
-	builder.WriteString(fmt.Sprintf("Report ID: %s\r\n", report.ID))
-	builder.WriteString("A PDF version of your report is attached to this email.\r\n\r\n")
-	builder.WriteString(fmt.Sprintf("You can also view your report online at: https://cloudpartner.pro/reports/%s\r\n\r\n", report.ID))
-	
-	builder.WriteString("What happens next?\r\n")
-	builder.WriteString("==================\r\n")
-	builder.WriteString("• Review the attached report for our initial assessment\r\n")
-	builder.WriteString("• Our team will follow up within 24 hours\r\n")
-	builder.WriteString("• A senior cloud consultant will reach out to discuss your project in detail\r\n")
-	builder.WriteString("• We'll provide you with a detailed proposal and timeline\r\n\r\n")
-	
-	builder.WriteString("If you have any immediate questions or need to provide additional information, please don't hesitate to contact us.\r\n\r\n")
-	
-	builder.WriteString("Best regards,\r\n")
-	builder.WriteString("Cloud Consulting Team\r\n")
-	builder.WriteString("info@cloudpartner.pro\r\n\r\n")
-	
-	builder.WriteString("---\r\n")
-	builder.WriteString("This is an automated confirmation email. Please do not reply to this message.")
-	
-	return builder.String()
-}
+// NOTE: buildCustomerConfirmationTextWithReport function has been REMOVED
+// AI-generated reports should NEVER be sent to customers - they are for internal use only
 
 // SendReportEmailWithPDF sends an internal email notification with PDF attachment when a report is generated
 func (e *emailService) SendReportEmailWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error {
@@ -987,164 +922,8 @@ func (e *emailService) buildCustomerConfirmationHTML(inquiry *domain.Inquiry) st
 		inquiry.ID)
 }
 
-// buildCustomerConfirmationHTMLWithReport creates the HTML version of the customer confirmation email with report information
-func (e *emailService) buildCustomerConfirmationHTMLWithReport(inquiry *domain.Inquiry, report *domain.Report) string {
-	return fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thank You for Your Cloud Consulting Inquiry</title>
-    <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            line-height: 1.6; 
-            color: #333; 
-            margin: 0; 
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container { max-width: 600px; margin: 0 auto; background-color: white; }
-        .header { 
-            background: linear-gradient(135deg, #007cba, #005a8b);
-            color: white; 
-            padding: 30px 20px; 
-            text-align: center; 
-        }
-        .header h1 { margin: 0; font-size: 24px; }
-        .content { padding: 30px; }
-        .success-banner {
-            background-color: #28a745;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        .inquiry-details { 
-            background-color: #f8f9fa; 
-            padding: 20px; 
-            margin: 20px 0; 
-            border-left: 5px solid #007cba; 
-            border-radius: 5px;
-        }
-        .report-details { 
-            background-color: #fff3cd; 
-            padding: 20px; 
-            margin: 20px 0; 
-            border-left: 5px solid #ffc107; 
-            border-radius: 5px;
-        }
-        .report-download {
-            background-color: #007cba;
-            color: white;
-            padding: 10px 15px;
-            text-decoration: none;
-            border-radius: 4px;
-            display: inline-block;
-            margin-top: 10px;
-        }
-        .next-steps { 
-            background-color: #e7f3ff; 
-            padding: 20px; 
-            margin: 20px 0; 
-            border-left: 5px solid #28a745; 
-            border-radius: 5px;
-        }
-        .steps-list {
-            list-style: none;
-            padding: 0;
-        }
-        .steps-list li {
-            margin-bottom: 10px;
-            padding-left: 25px;
-            position: relative;
-        }
-        .steps-list li:before {
-            content: "•";
-            color: #28a745;
-            font-weight: bold;
-            position: absolute;
-            left: 0;
-        }
-        .footer { 
-            background-color: #6c757d; 
-            color: white; 
-            padding: 15px; 
-            text-align: center; 
-            font-size: 12px; 
-        }
-        h2, h3 { color: #007cba; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>CloudPartner Pro</h1>
-            <p>Your Trusted Cloud Consulting Partner</p>
-        </div>
-        
-        <div class="success-banner">
-            ✅ Inquiry Successfully Received!
-        </div>
-        
-        <div class="content">
-            <h2>Dear %s,</h2>
-            
-            <p>Thank you for reaching out to CloudPartner Pro! We have successfully received your cloud consulting inquiry and are excited to help you achieve your cloud transformation goals.</p>
-            
-            <div class="inquiry-details">
-                <h3>Your Inquiry Details</h3>
-                <p><strong>Services Requested:</strong> %s</p>
-                <p><strong>Company:</strong> %s</p>
-                <p><strong>Reference ID:</strong> %s</p>
-            </div>
-            
-            <div class="report-details">
-                <h3>Your Initial Assessment Report</h3>
-                <p>We've prepared an initial assessment report based on your inquiry. You can:</p>
-                <p>1. <strong>Review the attached PDF</strong> - We've attached a PDF version of your report to this email.</p>
-                <p>2. <strong>View online</strong> - You can also view your report online:</p>
-                <p><a href="https://cloudpartner.pro/reports/%s" class="report-download">View Your Report</a></p>
-                <p>3. <strong>Download formats</strong> - Additional formats are available online:</p>
-                <p>
-                    <a href="https://cloudpartner.pro/reports/%s/download?format=pdf" style="margin-right: 10px;">Download PDF</a>
-                    <a href="https://cloudpartner.pro/reports/%s/download?format=html">Download HTML</a>
-                </p>
-            </div>
-            
-            <div class="next-steps">
-                <h3>What Happens Next?</h3>
-                <ul class="steps-list">
-                    <li>Review the attached report for our initial assessment</li>
-                    <li>Our team will follow up within <strong>24 hours</strong></li>
-                    <li>A senior cloud consultant will <strong>reach out personally</strong> to discuss your project</li>
-                    <li>You'll receive a <strong>detailed proposal</strong> with timeline and next steps</li>
-                </ul>
-            </div>
-            
-            <p>If you have any immediate questions or additional information to share, please don't hesitate to contact us at <a href="mailto:info@cloudpartner.pro">info@cloudpartner.pro</a>.</p>
-            
-            <p>Best regards,<br>
-            The CloudPartner Pro Team<br>
-            <a href="mailto:info@cloudpartner.pro">info@cloudpartner.pro</a></p>
-        </div>
-        
-        <div class="footer">
-            <p>This is an automated confirmation email. Please do not reply directly to this message.<br>
-            For support, please contact us at info@cloudpartner.pro</p>
-        </div>
-    </div>
-</body>
-</html>`,
-		html.EscapeString(inquiry.Name),
-		html.EscapeString(strings.Join(inquiry.Services, ", ")),
-		html.EscapeString(inquiry.Company),
-		inquiry.ID,
-		report.ID,
-		report.ID,
-		report.ID)
-}
+// NOTE: buildCustomerConfirmationHTMLWithReport function has been REMOVED
+// AI-generated reports should NEVER be sent to customers - they are for internal use only
 
 // generatePDFFilename creates a filename for PDF attachments
 func (e *emailService) generatePDFFilename(inquiry *domain.Inquiry, report *domain.Report) string {
@@ -1171,115 +950,8 @@ func (e *emailService) generatePDFFilename(inquiry *domain.Inquiry, report *doma
 	return sanitized + "_" + string(report.Type) + "_report.pdf"
 }
 
-// SendCustomerConfirmationWithPDF sends a confirmation email to the customer with PDF attachment
-func (e *emailService) SendCustomerConfirmationWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error {
-	// Validate and clean customer email
-	customerEmail := e.validateAndCleanEmail(inquiry.Email)
-	if customerEmail == "" {
-		e.logger.WithField("inquiry_id", inquiry.ID).Warn("Invalid customer email, skipping confirmation")
-		return nil // Don't fail the inquiry creation for invalid email
-	}
-
-	subject := "Thank you for your cloud consulting inquiry - CloudPartner Pro"
-	
-	// Use branded template if available, fallback to basic template
-	var htmlBody string
-	var textBody string
-	
-	if e.templateService != nil {
-		// Prepare template data with report information
-		templateData := &CustomerConfirmationTemplateData{
-			Name:     inquiry.Name,
-			Company:  inquiry.Company,
-			Services: strings.Join(inquiry.Services, ", "),
-			ID:       inquiry.ID,
-			// Add report information if needed in the template
-			ReportID:   report.ID,
-			ReportType: string(report.Type),
-		}
-		
-		// Render branded HTML template
-		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "customer_confirmation", templateData)
-		if err != nil {
-			e.logger.WithError(err).WithField("inquiry_id", inquiry.ID).Warn("Failed to render branded template, using fallback")
-			htmlBody = e.buildCustomerConfirmationHTMLWithReport(inquiry, report)
-		} else {
-			htmlBody = brandedHTML
-		}
-	} else {
-		htmlBody = e.buildCustomerConfirmationHTMLWithReport(inquiry, report)
-	}
-	
-	// Always use the text version as fallback
-	textBody = e.buildCustomerConfirmationTextWithReport(inquiry, report)
-
-	// Create PDF attachment if provided
-	var attachments []interfaces.EmailAttachment
-	if pdfData != nil && len(pdfData) > 0 && report != nil {
-		filename := e.generatePDFFilename(inquiry, report)
-		attachments = append(attachments, interfaces.EmailAttachment{
-			Filename:    filename,
-			ContentType: "application/pdf",
-			Data:        pdfData,
-		})
-	}
-
-	email := &interfaces.EmailMessage{
-		From:        e.config.SenderEmail,
-		To:          []string{customerEmail},
-		Subject:     subject,
-		TextBody:    textBody,
-		HTMLBody:    htmlBody,
-		ReplyTo:     e.config.ReplyToEmail,
-		Attachments: attachments,
-	}
-
-	err := e.sesService.SendEmail(ctx, email)
-	if err != nil {
-		e.logger.WithError(err).WithFields(logrus.Fields{
-			"inquiry_id":     inquiry.ID,
-			"customer_email": customerEmail,
-			"report_id":      report.ID,
-			"has_pdf":        len(pdfData) > 0,
-		}).Error("Failed to send customer confirmation email with PDF")
-		
-		// Graceful fallback - try sending without PDF attachment
-		if len(attachments) > 0 {
-			e.logger.WithField("inquiry_id", inquiry.ID).Info("Attempting fallback to send confirmation without PDF attachment")
-			
-			// Create new email without attachments
-			fallbackEmail := &interfaces.EmailMessage{
-				From:     e.config.SenderEmail,
-				To:       []string{customerEmail},
-				Subject:  subject,
-				TextBody: textBody,
-				HTMLBody: htmlBody,
-				ReplyTo:  e.config.ReplyToEmail,
-			}
-			
-			fallbackErr := e.sesService.SendEmail(ctx, fallbackEmail)
-			if fallbackErr != nil {
-				e.logger.WithError(fallbackErr).WithField("inquiry_id", inquiry.ID).Error("Fallback email delivery also failed")
-				return fmt.Errorf("failed to send customer confirmation email with PDF and fallback also failed: %w", err)
-			}
-			
-			e.logger.WithField("inquiry_id", inquiry.ID).Info("Fallback email without PDF sent successfully")
-			return nil // Return success since fallback worked
-		}
-		
-		return fmt.Errorf("failed to send customer confirmation email with PDF: %w", err)
-	}
-
-	e.logger.WithFields(logrus.Fields{
-		"inquiry_id":     inquiry.ID,
-		"customer_email": customerEmail,
-		"report_id":      report.ID,
-		"template_used":  "branded",
-		"pdf_attached":   len(pdfData) > 0,
-		"pdf_size":       len(pdfData),
-	}).Info("Customer confirmation email with PDF sent successfully")
-
-	return nil
-}
+// NOTE: SendCustomerConfirmationWithPDF function has been REMOVED
+// AI-generated reports should NEVER be sent to customers - they are for internal use only
+// Customers only receive simple confirmation emails via SendCustomerConfirmation
 
 // Additional helper methods for the email service

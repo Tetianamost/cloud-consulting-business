@@ -168,36 +168,33 @@ This implementation plan transforms the existing backend into a comprehensive, d
   - Implement customer confirmation email template
   - Create consultant notification email template
   - Add company logo, colors, and professional styling
+  - fix emails formatting so it looks modern and polished; currently format is off
   - _Requirements: 9.3, 10.3_
 
-- [x] 26. Implement HTML report formatting
+- [ ] 26. Implement HTML report formatting
   - Create professional HTML report templates by service type
   - Add CSS styling for print-friendly layouts
   - Implement template rendering with Go html/template
   - Format AI-generated content into structured reports
   - _Requirements: 10.1, 10.2_
 
-- [x] 27. Add PDF generation capability
+- [x] 27. Check PDF generation already implementated capability so it does the following correctly:
   - Integrate PDF generation library
   - Create PDF generation service with proper error handling
   - Implement PDF download endpoints for reports
   - Ensure professional formatting and layout for printing
   - _Requirements: 10.2, 10.4, 10.5_
 
-- [x] 28. Enhance email service with customer confirmations
+- [x] 28. Check already implemented ennhanced email service with customer confirmations so it does the following correctly:
   - Send immediate confirmation emails to customers upon inquiry submission(if not done already)
   - Include branded templates with professional messaging
-  - Add download links for reports when available
+  - Add download links for reports when available(only to consultants, never send attach reports to the customers)
   - Implement graceful fallback if email delivery fails
   - _Requirements: 9.2, 9.3, 10.3, 10.5_
 
 ## Phase 3: Admin Dashboard and Monitoring
 
-- [x] 29. Create admin API endpoints
-  - Implement GET /api/v1/admin/inquiries with filtering and pagination
-  - Add GET /api/v1/admin/metrics for system statistics
-  - Create GET /api/v1/admin/email-status/{inquiryId} for delivery tracking
-  - Implement report download endpoints with format selection
+- [x] 29. Check already created admin API endpoints, make sure we have enough endpoints for this V0 dashboard; please verify this spec /Users/tm/personal-projects/cloud-consulting-business/.kiro/specs/v0-admin-dashboard-integration/tasks.md; to make sure we have needed backend endpoints; if some of them are not appropriate for our scenario, don't do it; just provide a summary;
   - _Requirements: 11.1, 11.3, 11.4, 11.5_
 
 - [x] 30. Build admin dashboard components in React frontend
@@ -214,11 +211,10 @@ This implementation plan transforms the existing backend into a comprehensive, d
   - Secure admin API endpoints with basic authentication
   - _Requirements: 15.2, 15.3_
 
-- [x] 32. Implement report download functionality
-  - Add download buttons for HTML and PDF formats in admin interface
-  - Create report preview functionality in admin dashboard
-  - Implement bulk download capabilities for multiple reports
-  - Add proper file naming and organization for downloads
+- [x] 32. Check implemented report download functionality in admin dashboard, make sure consult
+  - _Requirements: 11.4, 10.5_
+
+  - [ ] 33. we don't have ui and backend implementewd for ai generated reports; we need to add ai generated repors admin dashboard path; and integrate it with backend ; this reports are bedrock reports
   - _Requirements: 11.4, 10.5_
 
 ## Phase 4: Archival and Compliance

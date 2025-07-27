@@ -96,16 +96,9 @@ func (s *inquiryService) CreateInquiry(ctx context.Context, req *interfaces.Crea
 						}
 					}
 					
-					// Send customer confirmation with PDF if available
-					if pdfData != nil && len(pdfData) > 0 {
-						if err := s.emailService.SendCustomerConfirmationWithPDF(ctx, inquiry, report, pdfData); err != nil {
-							fmt.Printf("Warning: Failed to send customer confirmation with PDF for inquiry %s: %v\n", inquiry.ID, err)
-						}
-					} else {
-						// The regular SendCustomerConfirmation will include report links if a report exists
-						if err := s.emailService.SendCustomerConfirmation(ctx, inquiry); err != nil {
-							fmt.Printf("Warning: Failed to send customer confirmation email for inquiry %s: %v\n", inquiry.ID, err)
-						}
+					// Send customer confirmation (NEVER includes reports - reports are for internal use only)
+					if err := s.emailService.SendCustomerConfirmation(ctx, inquiry); err != nil {
+						fmt.Printf("Warning: Failed to send customer confirmation email for inquiry %s: %v\n", inquiry.ID, err)
 					}
 				}
 			}

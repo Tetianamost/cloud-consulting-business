@@ -61,29 +61,29 @@ const EmailStatusBadge = styled.span<{ $status: string }>`
   }
   
   ${props => {
-    switch (props.$status) {
-      case 'delivered':
-        return `
+        switch (props.$status) {
+            case 'delivered':
+                return `
           background-color: ${theme.colors.success};
           color: ${theme.colors.white};
         `;
-      case 'sending':
-        return `
+            case 'sending':
+                return `
           background-color: ${theme.colors.info};
           color: ${theme.colors.white};
         `;
-      case 'failed':
-        return `
+            case 'failed':
+                return `
           background-color: ${theme.colors.danger};
           color: ${theme.colors.white};
         `;
-      default:
-        return `
+            default:
+                return `
           background-color: ${theme.colors.gray100};
           color: ${theme.colors.gray800};
         `;
-    }
-  }}
+        }
+    }}
 `;
 
 const EmailStatusGrid = styled.div`
@@ -136,29 +136,29 @@ const TimelineIcon = styled.div<{ $status: string }>`
   margin-right: ${theme.space[3]};
   
   ${props => {
-    switch (props.$status) {
-      case 'complete':
-        return `
+        switch (props.$status) {
+            case 'complete':
+                return `
           background-color: ${theme.colors.success};
           color: ${theme.colors.white};
         `;
-      case 'pending':
-        return `
+            case 'pending':
+                return `
           background-color: ${theme.colors.info};
           color: ${theme.colors.white};
         `;
-      case 'error':
-        return `
+            case 'error':
+                return `
           background-color: ${theme.colors.danger};
           color: ${theme.colors.white};
         `;
-      default:
-        return `
+            default:
+                return `
           background-color: ${theme.colors.gray500};
           color: ${theme.colors.white};
         `;
-    }
-  }}
+        }
+    }}
 `;
 
 const TimelineContent = styled.div`
@@ -254,244 +254,244 @@ const IconWrapper = styled.div<{ $marginBottom?: string; $opacity?: number }>`
 `;
 
 const EmailStatusMonitor: React.FC = () => {
-  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
-  const [selectedInquiryId, setSelectedInquiryId] = useState<string>('');
-  const [emailStatus, setEmailStatus] = useState<EmailStatus | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const fetchInquiries = async () => {
-    try {
-      const response = await apiService.listInquiries({ limit: 100 });
-      setInquiries(response.data);
-      
-      // Select the first inquiry by default
-      if (response.data.length > 0 && !selectedInquiryId) {
-        setSelectedInquiryId(response.data[0].id);
-      }
-      
-      setLoading(false);
-    } catch (err) {
-      console.error('Failed to fetch inquiries:', err);
-      setError('Failed to load inquiries. Please try again later.');
-      setLoading(false);
+    const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+    const [selectedInquiryId, setSelectedInquiryId] = useState<string>('');
+    const [emailStatus, setEmailStatus] = useState<EmailStatus | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchInquiries = async () => {
+        try {
+            const response = await apiService.listInquiries({ limit: 100 });
+            setInquiries(response.data);
+
+            // Select the first inquiry by default
+            if (response.data.length > 0 && !selectedInquiryId) {
+                setSelectedInquiryId(response.data[0].id);
+            }
+
+            setLoading(false);
+        } catch (err) {
+            console.error('Failed to fetch inquiries:', err);
+            setError('Failed to load inquiries. Please try again later.');
+            setLoading(false);
+        }
+    };
+
+    const fetchEmailStatus = async (inquiryId: string) => {
+        if (!inquiryId) return;
+
+        try {
+            setLoading(true);
+            const response = await apiService.getEmailStatus(inquiryId);
+            setEmailStatus(response.data);
+            setLoading(false);
+        } catch (err) {
+            console.error('Failed to fetch email status:', err);
+            setError('Failed to load email status. Please try again later.');
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchInquiries();
+    }, []);
+
+    useEffect(() => {
+        if (selectedInquiryId) {
+            fetchEmailStatus(selectedInquiryId);
+        }
+    }, [selectedInquiryId]);
+
+    const handleInquiryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedInquiryId(e.target.value);
+    };
+
+    const handleRefresh = () => {
+        if (selectedInquiryId) {
+            fetchEmailStatus(selectedInquiryId);
+        }
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'delivered':
+                return <Icon icon={FiCheck} size={16} />;
+            case 'sending':
+                return <Icon icon={FiClock} size={16} />;
+            case 'failed':
+                return <Icon icon={FiX} size={16} />;
+            default:
+                return null;
+        }
+    };
+
+    if (loading && !inquiries.length) {
+        return <LoadingState>Loading email status data...</LoadingState>;
     }
-  };
-  
-  const fetchEmailStatus = async (inquiryId: string) => {
-    if (!inquiryId) return;
-    
-    try {
-      setLoading(true);
-      const response = await apiService.getEmailStatus(inquiryId);
-      setEmailStatus(response.data);
-      setLoading(false);
-    } catch (err) {
-      console.error('Failed to fetch email status:', err);
-      setError('Failed to load email status. Please try again later.');
-      setLoading(false);
+
+    if (error) {
+        return <ErrorState>{error}</ErrorState>;
     }
-  };
-  
-  useEffect(() => {
-    fetchInquiries();
-  }, []);
-  
-  useEffect(() => {
-    if (selectedInquiryId) {
-      fetchEmailStatus(selectedInquiryId);
+
+    if (inquiries.length === 0) {
+        return (
+            <NoDataState>
+                <IconWrapper $marginBottom={theme.space[4]} $opacity={0.5}>
+                    <Icon icon={FiMail} size={48} />
+                </IconWrapper>
+                <h3>No inquiries found</h3>
+                <p>There are no inquiries available to check email status.</p>
+            </NoDataState>
+        );
     }
-  }, [selectedInquiryId]);
-  
-  const handleInquiryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedInquiryId(e.target.value);
-  };
-  
-  const handleRefresh = () => {
-    if (selectedInquiryId) {
-      fetchEmailStatus(selectedInquiryId);
-    }
-  };
-  
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return <Icon icon={FiCheck} size={16} />;
-      case 'sending':
-        return <Icon icon={FiClock} size={16} />;
-      case 'failed':
-        return <Icon icon={FiX} size={16} />;
-      default:
-        return null;
-    }
-  };
-  
-  if (loading && !inquiries.length) {
-    return <LoadingState>Loading email status data...</LoadingState>;
-  }
-  
-  if (error) {
-    return <ErrorState>{error}</ErrorState>;
-  }
-  
-  if (inquiries.length === 0) {
+
     return (
-      <NoDataState>
-        <IconWrapper $marginBottom={theme.space[4]} $opacity={0.5}>
-          <Icon icon={FiMail} size={48} />
-        </IconWrapper>
-        <h3>No inquiries found</h3>
-        <p>There are no inquiries available to check email status.</p>
-      </NoDataState>
+        <EmailStatusContainer>
+            <PageTitle>Email Status Monitor</PageTitle>
+
+            <InquirySelector>
+                <InquirySelect value={selectedInquiryId} onChange={handleInquiryChange}>
+                    {inquiries.map(inquiry => (
+                        <option key={inquiry.id} value={inquiry.id}>
+                            {inquiry.name} ({inquiry.email}) - {new Date(inquiry.created_at).toLocaleDateString()}
+                        </option>
+                    ))}
+                </InquirySelect>
+
+                <RefreshButton onClick={handleRefresh}>
+                    <Icon icon={FiRefreshCw} size={18} />
+                    Refresh
+                </RefreshButton>
+            </InquirySelector>
+
+            {loading ? (
+                <LoadingState>Loading email status...</LoadingState>
+            ) : emailStatus ? (
+                <EmailStatusCard>
+                    <EmailStatusHeader>
+                        <EmailStatusTitle>
+                            <Icon icon={FiMail} size={24} />
+                            Email Delivery Status
+                        </EmailStatusTitle>
+
+                        <EmailStatusBadge $status={emailStatus.status}>
+                            {getStatusIcon(emailStatus.status)}
+                            {emailStatus.status.charAt(0).toUpperCase() + emailStatus.status.slice(1)}
+                        </EmailStatusBadge>
+                    </EmailStatusHeader>
+
+                    <EmailStatusGrid>
+                        <EmailStatusItem>
+                            <EmailStatusLabel>Inquiry ID</EmailStatusLabel>
+                            <EmailStatusValue>{emailStatus.inquiry_id}</EmailStatusValue>
+                        </EmailStatusItem>
+
+                        <EmailStatusItem>
+                            <EmailStatusLabel>Customer Email</EmailStatusLabel>
+                            <EmailStatusValue>{emailStatus.customer_email}</EmailStatusValue>
+                        </EmailStatusItem>
+
+                        <EmailStatusItem>
+                            <EmailStatusLabel>Consultant Email</EmailStatusLabel>
+                            <EmailStatusValue>{emailStatus.consultant_email}</EmailStatusValue>
+                        </EmailStatusItem>
+
+                        {emailStatus.sent_at && (
+                            <EmailStatusItem>
+                                <EmailStatusLabel>Sent At</EmailStatusLabel>
+                                <EmailStatusValue>{new Date(emailStatus.sent_at).toLocaleString()}</EmailStatusValue>
+                            </EmailStatusItem>
+                        )}
+
+                        {emailStatus.delivered_at && (
+                            <EmailStatusItem>
+                                <EmailStatusLabel>Delivered At</EmailStatusLabel>
+                                <EmailStatusValue>{new Date(emailStatus.delivered_at).toLocaleString()}</EmailStatusValue>
+                            </EmailStatusItem>
+                        )}
+
+                        {emailStatus.error_message && (
+                            <EmailStatusItem>
+                                <EmailStatusLabel>Error Message</EmailStatusLabel>
+                                <EmailStatusValue style={{ color: theme.colors.danger }}>
+                                    {emailStatus.error_message}
+                                </EmailStatusValue>
+                            </EmailStatusItem>
+                        )}
+                    </EmailStatusGrid>
+
+                    <EmailStatusTimeline>
+                        <TimelineTitle>Email Delivery Timeline</TimelineTitle>
+
+                        <TimelineItem>
+                            <TimelineIcon $status="complete">
+                                <Icon icon={FiCheck} size={16} />
+                            </TimelineIcon>
+                            <TimelineContent>
+                                <TimelineText>Inquiry received</TimelineText>
+                                <TimelineTime>
+                                    {emailStatus.sent_at
+                                        ? new Date(new Date(emailStatus.sent_at).getTime() - 60000).toLocaleString()
+                                        : 'N/A'}
+                                </TimelineTime>
+                            </TimelineContent>
+                        </TimelineItem>
+
+                        <TimelineItem>
+                            <TimelineIcon $status={emailStatus.sent_at ? "complete" : "pending"}>
+                                {emailStatus.sent_at
+                                    ? <Icon icon={FiCheck} size={16} />
+                                    : <Icon icon={FiClock} size={16} />}
+                            </TimelineIcon>
+                            <TimelineContent>
+                                <TimelineText>Email sent to customer and consultant</TimelineText>
+                                <TimelineTime>
+                                    {emailStatus.sent_at
+                                        ? new Date(emailStatus.sent_at).toLocaleString()
+                                        : 'Pending'}
+                                </TimelineTime>
+                            </TimelineContent>
+                        </TimelineItem>
+
+                        <TimelineItem>
+                            <TimelineIcon $status={emailStatus.delivered_at ? "complete" : emailStatus.status === 'failed' ? "error" : "pending"}>
+                                {emailStatus.delivered_at
+                                    ? <Icon icon={FiCheck} size={16} />
+                                    : emailStatus.status === 'failed'
+                                        ? <Icon icon={FiX} size={16} />
+                                        : <Icon icon={FiClock} size={16} />}
+                            </TimelineIcon>
+                            <TimelineContent>
+                                <TimelineText>
+                                    {emailStatus.delivered_at
+                                        ? 'Email delivered successfully'
+                                        : emailStatus.status === 'failed'
+                                            ? 'Email delivery failed'
+                                            : 'Awaiting delivery confirmation'}
+                                </TimelineText>
+                                <TimelineTime>
+                                    {emailStatus.delivered_at
+                                        ? new Date(emailStatus.delivered_at).toLocaleString()
+                                        : emailStatus.status === 'failed'
+                                            ? 'Error occurred'
+                                            : 'Pending'}
+                                </TimelineTime>
+                            </TimelineContent>
+                        </TimelineItem>
+                    </EmailStatusTimeline>
+                </EmailStatusCard>
+            ) : (
+                <NoDataState>
+                    <IconWrapper $marginBottom={theme.space[4]} $opacity={0.5}>
+                        <Icon icon={FiMail} size={48} />
+                    </IconWrapper>
+                    <h3>No email status data available</h3>
+                    <p>Select an inquiry to view its email delivery status.</p>
+                </NoDataState>
+            )}
+        </EmailStatusContainer>
     );
-  }
-  
-  return (
-    <EmailStatusContainer>
-      <PageTitle>Email Status Monitor</PageTitle>
-      
-      <InquirySelector>
-        <InquirySelect value={selectedInquiryId} onChange={handleInquiryChange}>
-          {inquiries.map(inquiry => (
-            <option key={inquiry.id} value={inquiry.id}>
-              {inquiry.name} ({inquiry.email}) - {new Date(inquiry.created_at).toLocaleDateString()}
-            </option>
-          ))}
-        </InquirySelect>
-        
-        <RefreshButton onClick={handleRefresh}>
-          <Icon icon={FiRefreshCw} size={18} />
-          Refresh
-        </RefreshButton>
-      </InquirySelector>
-      
-      {loading ? (
-        <LoadingState>Loading email status...</LoadingState>
-      ) : emailStatus ? (
-        <EmailStatusCard>
-          <EmailStatusHeader>
-            <EmailStatusTitle>
-              <Icon icon={FiMail} size={24} />
-              Email Delivery Status
-            </EmailStatusTitle>
-            
-            <EmailStatusBadge $status={emailStatus.status}>
-              {getStatusIcon(emailStatus.status)}
-              {emailStatus.status.charAt(0).toUpperCase() + emailStatus.status.slice(1)}
-            </EmailStatusBadge>
-          </EmailStatusHeader>
-          
-          <EmailStatusGrid>
-            <EmailStatusItem>
-              <EmailStatusLabel>Inquiry ID</EmailStatusLabel>
-              <EmailStatusValue>{emailStatus.inquiry_id}</EmailStatusValue>
-            </EmailStatusItem>
-            
-            <EmailStatusItem>
-              <EmailStatusLabel>Customer Email</EmailStatusLabel>
-              <EmailStatusValue>{emailStatus.customer_email}</EmailStatusValue>
-            </EmailStatusItem>
-            
-            <EmailStatusItem>
-              <EmailStatusLabel>Consultant Email</EmailStatusLabel>
-              <EmailStatusValue>{emailStatus.consultant_email}</EmailStatusValue>
-            </EmailStatusItem>
-            
-            {emailStatus.sent_at && (
-              <EmailStatusItem>
-                <EmailStatusLabel>Sent At</EmailStatusLabel>
-                <EmailStatusValue>{new Date(emailStatus.sent_at).toLocaleString()}</EmailStatusValue>
-              </EmailStatusItem>
-            )}
-            
-            {emailStatus.delivered_at && (
-              <EmailStatusItem>
-                <EmailStatusLabel>Delivered At</EmailStatusLabel>
-                <EmailStatusValue>{new Date(emailStatus.delivered_at).toLocaleString()}</EmailStatusValue>
-              </EmailStatusItem>
-            )}
-            
-            {emailStatus.error_message && (
-              <EmailStatusItem>
-                <EmailStatusLabel>Error Message</EmailStatusLabel>
-                <EmailStatusValue style={{ color: theme.colors.danger }}>
-                  {emailStatus.error_message}
-                </EmailStatusValue>
-              </EmailStatusItem>
-            )}
-          </EmailStatusGrid>
-          
-          <EmailStatusTimeline>
-            <TimelineTitle>Email Delivery Timeline</TimelineTitle>
-            
-            <TimelineItem>
-              <TimelineIcon $status="complete">
-                <Icon icon={FiCheck} size={16} />
-              </TimelineIcon>
-              <TimelineContent>
-                <TimelineText>Inquiry received</TimelineText>
-                <TimelineTime>
-                  {emailStatus.sent_at 
-                    ? new Date(new Date(emailStatus.sent_at).getTime() - 60000).toLocaleString()
-                    : 'N/A'}
-                </TimelineTime>
-              </TimelineContent>
-            </TimelineItem>
-            
-            <TimelineItem>
-              <TimelineIcon $status={emailStatus.sent_at ? "complete" : "pending"}>
-                {emailStatus.sent_at 
-                  ? <Icon icon={FiCheck} size={16} />
-                  : <Icon icon={FiClock} size={16} />}
-              </TimelineIcon>
-              <TimelineContent>
-                <TimelineText>Email sent to customer and consultant</TimelineText>
-                <TimelineTime>
-                  {emailStatus.sent_at 
-                    ? new Date(emailStatus.sent_at).toLocaleString()
-                    : 'Pending'}
-                </TimelineTime>
-              </TimelineContent>
-            </TimelineItem>
-            
-            <TimelineItem>
-              <TimelineIcon $status={emailStatus.delivered_at ? "complete" : emailStatus.status === 'failed' ? "error" : "pending"}>
-                {emailStatus.delivered_at 
-                  ? <Icon icon={FiCheck} size={16} />
-                  : emailStatus.status === 'failed'
-                    ? <Icon icon={FiX} size={16} />
-                    : <Icon icon={FiClock} size={16} />}
-              </TimelineIcon>
-              <TimelineContent>
-                <TimelineText>
-                  {emailStatus.delivered_at 
-                    ? 'Email delivered successfully'
-                    : emailStatus.status === 'failed'
-                      ? 'Email delivery failed'
-                      : 'Awaiting delivery confirmation'}
-                </TimelineText>
-                <TimelineTime>
-                  {emailStatus.delivered_at 
-                    ? new Date(emailStatus.delivered_at).toLocaleString()
-                    : emailStatus.status === 'failed'
-                      ? 'Error occurred'
-                      : 'Pending'}
-                </TimelineTime>
-              </TimelineContent>
-            </TimelineItem>
-          </EmailStatusTimeline>
-        </EmailStatusCard>
-      ) : (
-        <NoDataState>
-          <IconWrapper $marginBottom={theme.space[4]} $opacity={0.5}>
-            <Icon icon={FiMail} size={48} />
-          </IconWrapper>
-          <h3>No email status data available</h3>
-          <p>Select an inquiry to view its email delivery status.</p>
-        </NoDataState>
-      )}
-    </EmailStatusContainer>
-  );
 };
 
 export default EmailStatusMonitor;

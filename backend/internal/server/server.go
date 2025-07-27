@@ -127,9 +127,11 @@ func (s *Server) setupRoutes() {
 		admin := v1.Group("/admin", s.authHandler.AuthMiddleware())
 		{
 			admin.GET("/inquiries", s.adminHandler.ListInquiries)
+			admin.GET("/inquiries/:inquiryId/download/:format", s.adminHandler.DownloadReport)
+			admin.GET("/reports", s.adminHandler.ListReports)
+			admin.GET("/reports/:reportId", s.adminHandler.GetReport)
 			admin.GET("/metrics", s.adminHandler.GetSystemMetrics)
 			admin.GET("/email-status/:inquiryId", s.adminHandler.GetEmailStatus)
-			admin.GET("/reports/:inquiryId/download/:format", s.adminHandler.DownloadReport)
 		}
 
 		// System management routes

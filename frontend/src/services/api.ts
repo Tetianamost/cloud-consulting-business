@@ -72,6 +72,19 @@ export interface Report {
   updated_at: string;
 }
 
+export interface ReportWithInquiry extends Report {
+  inquiry: Inquiry;
+}
+
+export interface AdminReportsResponse {
+  success: boolean;
+  data: ReportWithInquiry[];
+  count: number;
+  total: number;
+  page: number;
+  pages: number;
+}
+
 export interface AdminInquiriesResponse {
   success: boolean;
   data: Inquiry[];
@@ -231,6 +244,34 @@ class ApiService {
   // Get email delivery status for an inquiry
   async getEmailStatus(inquiryId: string): Promise<{ success: boolean; data: EmailStatus }> {
     return this.request<{ success: boolean; data: EmailStatus }>(`/api/v1/admin/email-status/${inquiryId}`);
+  }
+  
+  // List reports with filtering and pagination
+  async listReports(filters?: {
+    status?: string;
+    type?: string;
+    date_from?: string;
+    date_to?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<AdminReportsResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, String(value));
+        }
+      });
+    }
+    
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return this.request<AdminReportsResponse>(`/api/v1/admin/reports${queryString}`);
+  }
+  
+  // Get a specific report by ID
+  async getReport(reportId: string): Promise<{ success: boolean; data: ReportWithInquiry }> {
+    return this.request<{ success: boolean; data: ReportWithInquiry }>(`/api/v1/admin/reports/${reportId}`);
   }
   
   // Download report in specified format
