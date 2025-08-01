@@ -27,8 +27,8 @@ type reportGenerator struct {
 
 // NewReportGenerator creates a new enhanced report generator instance
 func NewReportGenerator(
-	bedrockService interfaces.BedrockService, 
-	templateService interfaces.TemplateService, 
+	bedrockService interfaces.BedrockService,
+	templateService interfaces.TemplateService,
 	pdfService interfaces.PDFService,
 	promptArchitect interfaces.PromptArchitect,
 	knowledgeBase interfaces.KnowledgeBase,
@@ -63,7 +63,7 @@ func (r *reportGenerator) GenerateReport(ctx context.Context, inquiry *domain.In
 	// Use enhanced prompt generation if PromptArchitect is available
 	var prompt string
 	var err error
-	
+
 	if r.promptArchitect != nil {
 		prompt, err = r.buildEnhancedPrompt(ctx, inquiry)
 		if err != nil {
@@ -74,7 +74,7 @@ func (r *reportGenerator) GenerateReport(ctx context.Context, inquiry *domain.In
 		// Use basic prompt for backward compatibility
 		prompt = r.buildPrompt(inquiry)
 	}
-	
+
 	// Set Bedrock options with higher token limit for enhanced reports
 	options := &interfaces.BedrockOptions{
 		ModelID:     "amazon.nova-lite-v1:0",
@@ -176,9 +176,9 @@ Keep the tone professional and focus on actionable insights. The report should b
 func (r *reportGenerator) generateTitle(inquiry *domain.Inquiry) string {
 	serviceType := r.getReportType(inquiry.Services)
 	companyName := r.getCompanyOrDefault(inquiry.Company)
-	
-	return fmt.Sprintf("%s Report for %s", 
-		strings.Title(string(serviceType)), 
+
+	return fmt.Sprintf("%s Report for %s",
+		strings.Title(string(serviceType)),
 		companyName)
 }
 
@@ -187,7 +187,7 @@ func (r *reportGenerator) getReportType(services []string) domain.ReportType {
 	if len(services) == 0 {
 		return domain.ReportTypeGeneral
 	}
-	
+
 	// Use the first service as the primary type
 	switch strings.ToLower(services[0]) {
 	case domain.ServiceTypeAssessment:
@@ -252,19 +252,19 @@ func (r *reportGenerator) GenerateHTML(ctx context.Context, inquiry *domain.Inqu
 	if r.templateService == nil {
 		return "", fmt.Errorf("template service not available")
 	}
-	
+
 	// Determine template name based on report type
 	templateName := r.getTemplateName(report.Type)
-	
+
 	// Prepare template data
 	templateData := r.prepareTemplateData(inquiry, report)
-	
+
 	// Render the template
 	htmlContent, err := r.templateService.RenderReportTemplate(ctx, templateName, templateData)
 	if err != nil {
 		return "", fmt.Errorf("failed to render HTML report: %w", err)
 	}
-	
+
 	return htmlContent, nil
 }
 
@@ -290,7 +290,7 @@ func (r *reportGenerator) prepareTemplateData(inquiry *domain.Inquiry, report *d
 	if r.templateService != nil {
 		return r.templateService.PrepareReportTemplateData(inquiry, report)
 	}
-	
+
 	// Fallback to basic data structure
 	return map[string]interface{}{
 		"ID":               report.ID,
@@ -313,7 +313,7 @@ func (r *reportGenerator) detectHighPriority(content string) bool {
 		"urgent", "critical", "emergency", "deadline", "time-sensitive",
 		"meeting", "schedule", "call", "discuss", "today", "tomorrow",
 	}
-	
+
 	contentLower := strings.ToLower(content)
 	for _, keyword := range priorityKeywords {
 		if strings.Contains(contentLower, strings.ToLower(keyword)) {
@@ -328,22 +328,22 @@ func (r *reportGenerator) formatContentForHTML(content string) string {
 	if content == "" {
 		return "<p>No content available.</p>"
 	}
-	
+
 	// Enhanced HTML formatting with better structure detection
 	sections := strings.Split(content, "\n\n")
 	var htmlSections []string
-	
+
 	for _, section := range sections {
 		section = strings.TrimSpace(section)
 		if section == "" {
 			continue
 		}
-		
+
 		// Format the section based on its content type
 		formattedSection := r.formatSection(section)
 		htmlSections = append(htmlSections, formattedSection)
 	}
-	
+
 	return strings.Join(htmlSections, "\n\n")
 }
 
@@ -353,17 +353,17 @@ func (r *reportGenerator) formatSection(section string) string {
 	if r.isMainHeader(section) {
 		return r.formatMainHeader(section)
 	}
-	
+
 	// Check if this is a sub-header
 	if r.isSubHeader(section) {
 		return r.formatSubHeader(section)
 	}
-	
+
 	// Check if this contains a list
 	if r.containsList(section) {
 		return r.formatListSection(section)
 	}
-	
+
 	// Format as regular paragraph content
 	return r.formatParagraphSection(section)
 }
@@ -371,48 +371,48 @@ func (r *reportGenerator) formatSection(section string) string {
 // isMainHeader checks if a section is a main header
 func (r *reportGenerator) isMainHeader(text string) bool {
 	text = strings.TrimSpace(text)
-	
+
 	// Don't treat multi-line content as headers
 	if strings.Count(text, "\n") > 1 {
 		return false
 	}
-	
+
 	// Check for numbered headers (1., 2., etc.)
 	if regexp.MustCompile(`^\d+\.\s+[A-Z]`).MatchString(text) {
 		return true
 	}
-	
+
 	// Check for main section headers
 	mainHeaders := []string{
 		"EXECUTIVE SUMMARY", "CURRENT STATE ASSESSMENT", "RECOMMENDATIONS",
 		"NEXT STEPS", "URGENCY ASSESSMENT", "CONTACT INFORMATION",
 		"PRIORITY LEVEL", "MEETING SCHEDULING",
 	}
-	
+
 	textUpper := strings.ToUpper(text)
 	for _, header := range mainHeaders {
 		if strings.Contains(textUpper, header) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
 // isSubHeader checks if a section is a sub-header
 func (r *reportGenerator) isSubHeader(text string) bool {
 	text = strings.TrimSpace(text)
-	
+
 	// Single line ending with colon
 	if !strings.Contains(text, "\n") && strings.HasSuffix(text, ":") && len(text) < 100 {
 		return true
 	}
-	
+
 	// Bold text that looks like a header
 	if strings.HasPrefix(text, "**") && strings.HasSuffix(text, "**") && !strings.Contains(text, "\n") {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -420,46 +420,46 @@ func (r *reportGenerator) isSubHeader(text string) bool {
 func (r *reportGenerator) containsList(text string) bool {
 	lines := strings.Split(text, "\n")
 	listCount := 0
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") || 
-		   regexp.MustCompile(`^\d+\.\s`).MatchString(line) {
+		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") ||
+			regexp.MustCompile(`^\d+\.\s`).MatchString(line) {
 			listCount++
 		}
 	}
-	
+
 	return listCount >= 2 // At least 2 list items
 }
 
 // formatMainHeader formats a main header
 func (r *reportGenerator) formatMainHeader(text string) string {
 	text = strings.TrimSpace(text)
-	
+
 	// Remove numbered prefixes for cleaner headers
 	text = regexp.MustCompile(`^\d+\.\s*`).ReplaceAllString(text, "")
-	
+
 	// Convert to title case if all caps
 	if strings.ToUpper(text) == text {
 		text = r.toTitleCase(text)
 	}
-	
+
 	// Remove trailing colons
 	text = strings.TrimSuffix(text, ":")
-	
+
 	return fmt.Sprintf("<h2 class=\"section-header\">%s</h2>", text)
 }
 
 // formatSubHeader formats a sub-header
 func (r *reportGenerator) formatSubHeader(text string) string {
 	text = strings.TrimSpace(text)
-	
+
 	// Remove bold markdown
 	text = strings.Trim(text, "*")
-	
+
 	// Remove trailing colons
 	text = strings.TrimSuffix(text, ":")
-	
+
 	return fmt.Sprintf("<h3 class=\"subsection-header\">%s</h3>", text)
 }
 
@@ -470,13 +470,13 @@ func (r *reportGenerator) formatListSection(text string) string {
 	var currentParagraph []string
 	inList := false
 	listType := ""
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		
+
 		// Check if this is a list item
 		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") {
 			// Close any open paragraph
@@ -484,7 +484,7 @@ func (r *reportGenerator) formatListSection(text string) string {
 				result = append(result, r.formatParagraph(strings.Join(currentParagraph, " ")))
 				currentParagraph = nil
 			}
-			
+
 			// Start or continue unordered list
 			if !inList || listType != "ul" {
 				if inList && listType == "ol" {
@@ -496,18 +496,18 @@ func (r *reportGenerator) formatListSection(text string) string {
 				inList = true
 				listType = "ul"
 			}
-			
+
 			item := strings.TrimPrefix(line, "- ")
 			item = strings.TrimPrefix(item, "• ")
 			result = append(result, fmt.Sprintf("  <li>%s</li>", r.formatInlineText(item)))
-			
+
 		} else if regexp.MustCompile(`^\d+\.\s`).MatchString(line) {
 			// Close any open paragraph
 			if len(currentParagraph) > 0 {
 				result = append(result, r.formatParagraph(strings.Join(currentParagraph, " ")))
 				currentParagraph = nil
 			}
-			
+
 			// Start or continue ordered list
 			if !inList || listType != "ol" {
 				if inList && listType == "ul" {
@@ -519,16 +519,16 @@ func (r *reportGenerator) formatListSection(text string) string {
 				inList = true
 				listType = "ol"
 			}
-			
+
 			item := regexp.MustCompile(`^\d+\.\s`).ReplaceAllString(line, "")
 			result = append(result, fmt.Sprintf("  <li>%s</li>", r.formatInlineText(item)))
-			
+
 		} else {
 			// Regular text - add to current paragraph
 			currentParagraph = append(currentParagraph, line)
 		}
 	}
-	
+
 	// Close any open list
 	if inList {
 		if listType == "ul" {
@@ -537,12 +537,12 @@ func (r *reportGenerator) formatListSection(text string) string {
 			result = append(result, "</ol>")
 		}
 	}
-	
+
 	// Add any remaining paragraph
 	if len(currentParagraph) > 0 {
 		result = append(result, r.formatParagraph(strings.Join(currentParagraph, " ")))
 	}
-	
+
 	return strings.Join(result, "\n")
 }
 
@@ -551,18 +551,18 @@ func (r *reportGenerator) formatParagraphSection(text string) string {
 	// Split into individual lines and rejoin as a paragraph
 	lines := strings.Split(text, "\n")
 	var cleanLines []string
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line != "" {
 			cleanLines = append(cleanLines, line)
 		}
 	}
-	
+
 	if len(cleanLines) == 0 {
 		return ""
 	}
-	
+
 	paragraph := strings.Join(cleanLines, " ")
 	return r.formatParagraph(paragraph)
 }
@@ -572,7 +572,7 @@ func (r *reportGenerator) formatParagraph(text string) string {
 	if text == "" {
 		return ""
 	}
-	
+
 	formatted := r.formatInlineText(text)
 	return fmt.Sprintf("<p class=\"report-paragraph\">%s</p>", formatted)
 }
@@ -581,15 +581,15 @@ func (r *reportGenerator) formatParagraph(text string) string {
 func (r *reportGenerator) formatInlineText(text string) string {
 	// Convert **bold** to <strong>
 	text = regexp.MustCompile(`\*\*(.*?)\*\*`).ReplaceAllString(text, "<strong>$1</strong>")
-	
+
 	// Convert *italic* to <em>
 	text = regexp.MustCompile(`\*(.*?)\*`).ReplaceAllString(text, "<em>$1</em>")
-	
+
 	// Convert URLs to links (basic implementation)
 	text = regexp.MustCompile(`https?://[^\s]+`).ReplaceAllStringFunc(text, func(url string) string {
 		return fmt.Sprintf("<a href=\"%s\" target=\"_blank\">%s</a>", url, url)
 	})
-	
+
 	return text
 }
 
@@ -604,7 +604,7 @@ func (r *reportGenerator) toTitleCase(text string) string {
 				"in": true, "on": true, "at": true, "to": true, "for": true, "of": true,
 				"with": true, "by": true,
 			}
-			
+
 			if i == 0 || !lowercaseWords[strings.ToLower(word)] {
 				words[i] = strings.ToUpper(word[:1]) + strings.ToLower(word[1:])
 			} else {
@@ -620,22 +620,22 @@ func (r *reportGenerator) GeneratePDF(ctx context.Context, inquiry *domain.Inqui
 	if r.pdfService == nil {
 		return nil, fmt.Errorf("PDF service not available")
 	}
-	
+
 	// First generate the HTML version
 	htmlContent, err := r.GenerateHTML(ctx, inquiry, report)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate HTML for PDF: %w", err)
 	}
-	
+
 	// Get optimized PDF options for reports
 	options := getEnhancedReportPDFOptions()
-	
+
 	// Generate PDF from HTML
 	pdfBytes, err := r.pdfService.GeneratePDF(ctx, htmlContent, options)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate PDF: %w", err)
 	}
-	
+
 	return pdfBytes, nil
 }
 
@@ -644,7 +644,7 @@ func (r *reportGenerator) buildEnhancedPrompt(ctx context.Context, inquiry *doma
 	// Detect audience for the inquiry
 	var audienceProfile *AudienceProfile
 	var err error
-	
+
 	if r.audienceDetector != nil {
 		audienceProfile, err = r.audienceDetector.DetectAudience(ctx, inquiry)
 		if err != nil {
@@ -701,7 +701,7 @@ func (r *reportGenerator) buildEnhancedPrompt(ctx context.Context, inquiry *doma
 // enrichPromptWithContext adds additional context from knowledge base and other services
 func (r *reportGenerator) enrichPromptWithContext(ctx context.Context, basePrompt string, inquiry *domain.Inquiry, options *interfaces.PromptOptions) (string, error) {
 	var contextSections []string
-	
+
 	// Add knowledge base context
 	if r.knowledgeBase != nil && options.IncludeDocumentationLinks {
 		kbContext, err := r.buildKnowledgeBaseContext(ctx, inquiry)
@@ -750,7 +750,7 @@ func (r *reportGenerator) buildKnowledgeBaseContext(ctx context.Context, inquiry
 
 	// Get best practices for the requested services
 	for _, service := range inquiry.Services {
-		bestPractices, err := r.knowledgeBase.GetBestPractices(service, "")
+		bestPractices, err := r.knowledgeBase.GetBestPractices(ctx, service)
 		if err == nil && len(bestPractices) > 0 {
 			var practices []string
 			for i, bp := range bestPractices {
@@ -760,7 +760,7 @@ func (r *reportGenerator) buildKnowledgeBaseContext(ctx context.Context, inquiry
 				practices = append(practices, fmt.Sprintf("- %s: %s", bp.Title, bp.Description))
 			}
 			if len(practices) > 0 {
-				contextParts = append(contextParts, fmt.Sprintf("BEST PRACTICES FOR %s:\n%s", 
+				contextParts = append(contextParts, fmt.Sprintf("BEST PRACTICES FOR %s:\n%s",
 					strings.ToUpper(service), strings.Join(practices, "\n")))
 			}
 		}
@@ -769,18 +769,18 @@ func (r *reportGenerator) buildKnowledgeBaseContext(ctx context.Context, inquiry
 	// Get industry-specific compliance requirements
 	industry := r.extractIndustryContext(inquiry)
 	if industry != "" {
-		complianceReqs, err := r.knowledgeBase.GetComplianceRequirements(industry)
+		complianceReqs, err := r.knowledgeBase.GetComplianceRequirements(ctx, industry)
 		if err == nil && len(complianceReqs) > 0 {
 			var requirements []string
 			for i, req := range complianceReqs {
 				if i >= 3 { // Limit to top 3 compliance requirements
 					break
 				}
-				requirements = append(requirements, fmt.Sprintf("- %s (%s): %s", 
+				requirements = append(requirements, fmt.Sprintf("- %s (%s): %s",
 					req.Framework, req.Severity, req.Description))
 			}
 			if len(requirements) > 0 {
-				contextParts = append(contextParts, fmt.Sprintf("COMPLIANCE REQUIREMENTS FOR %s INDUSTRY:\n%s", 
+				contextParts = append(contextParts, fmt.Sprintf("COMPLIANCE REQUIREMENTS FOR %s INDUSTRY:\n%s",
 					strings.ToUpper(industry), strings.Join(requirements, "\n")))
 			}
 		}
@@ -804,23 +804,23 @@ func (r *reportGenerator) buildMultiCloudContext(ctx context.Context, inquiry *d
 	var contextParts []string
 
 	// Add recommended provider information
-	contextParts = append(contextParts, fmt.Sprintf("RECOMMENDED CLOUD PROVIDER: %s", 
+	contextParts = append(contextParts, fmt.Sprintf("RECOMMENDED CLOUD PROVIDER: %s",
 		strings.ToUpper(recommendation.RecommendedProvider)))
-	
+
 	if len(recommendation.Reasoning) > 0 {
-		contextParts = append(contextParts, fmt.Sprintf("REASONING:\n%s", 
+		contextParts = append(contextParts, fmt.Sprintf("REASONING:\n%s",
 			strings.Join(recommendation.Reasoning, "\n- ")))
 	}
 
 	// Add alternative options
 	if len(recommendation.AlternativeOptions) > 0 {
-		contextParts = append(contextParts, fmt.Sprintf("ALTERNATIVE OPTIONS: %s", 
+		contextParts = append(contextParts, fmt.Sprintf("ALTERNATIVE OPTIONS: %s",
 			strings.Join(recommendation.AlternativeOptions, ", ")))
 	}
 
 	// Add cost implications
 	if recommendation.CostImplications != "" {
-		contextParts = append(contextParts, fmt.Sprintf("COST IMPLICATIONS: %s", 
+		contextParts = append(contextParts, fmt.Sprintf("COST IMPLICATIONS: %s",
 			recommendation.CostImplications))
 	}
 
@@ -853,7 +853,7 @@ func (r *reportGenerator) buildRiskAssessmentContext(ctx context.Context, inquir
 	var contextParts []string
 
 	// Add overall risk level
-	contextParts = append(contextParts, fmt.Sprintf("OVERALL RISK LEVEL: %s", 
+	contextParts = append(contextParts, fmt.Sprintf("OVERALL RISK LEVEL: %s",
 		strings.ToUpper(riskAssessment.OverallRiskLevel)))
 
 	// Add top risks by category
@@ -865,7 +865,7 @@ func (r *reportGenerator) buildRiskAssessmentContext(ctx context.Context, inquir
 			}
 			risks = append(risks, fmt.Sprintf("- %s (%s impact)", risk.Title, risk.Impact))
 		}
-		contextParts = append(contextParts, fmt.Sprintf("KEY TECHNICAL RISKS:\n%s", 
+		contextParts = append(contextParts, fmt.Sprintf("KEY TECHNICAL RISKS:\n%s",
 			strings.Join(risks, "\n")))
 	}
 
@@ -877,7 +877,7 @@ func (r *reportGenerator) buildRiskAssessmentContext(ctx context.Context, inquir
 			}
 			risks = append(risks, fmt.Sprintf("- %s (%s impact)", risk.Title, risk.Impact))
 		}
-		contextParts = append(contextParts, fmt.Sprintf("KEY SECURITY RISKS:\n%s", 
+		contextParts = append(contextParts, fmt.Sprintf("KEY SECURITY RISKS:\n%s",
 			strings.Join(risks, "\n")))
 	}
 
@@ -887,7 +887,7 @@ func (r *reportGenerator) buildRiskAssessmentContext(ctx context.Context, inquir
 		if len(actions) > 3 {
 			actions = actions[:3] // Limit to top 3 actions
 		}
-		contextParts = append(contextParts, fmt.Sprintf("RECOMMENDED RISK MITIGATION ACTIONS:\n- %s", 
+		contextParts = append(contextParts, fmt.Sprintf("RECOMMENDED RISK MITIGATION ACTIONS:\n- %s",
 			strings.Join(actions, "\n- ")))
 	}
 
@@ -912,12 +912,12 @@ func (r *reportGenerator) buildDocumentationContext(ctx context.Context, inquiry
 					break
 				}
 				if link.IsValid {
-					links = append(links, fmt.Sprintf("- %s: %s (%s)", 
+					links = append(links, fmt.Sprintf("- %s: %s (%s)",
 						link.Title, link.URL, link.Provider))
 				}
 			}
 			if len(links) > 0 {
-				contextParts = append(contextParts, fmt.Sprintf("DOCUMENTATION FOR %s:\n%s", 
+				contextParts = append(contextParts, fmt.Sprintf("DOCUMENTATION FOR %s:\n%s",
 					strings.ToUpper(service), strings.Join(links, "\n")))
 			}
 		}
@@ -932,12 +932,12 @@ func (r *reportGenerator) buildDocumentationContext(ctx context.Context, inquiry
 				break
 			}
 			if link.IsValid {
-				links = append(links, fmt.Sprintf("- %s: %s (%s)", 
+				links = append(links, fmt.Sprintf("- %s: %s (%s)",
 					link.Title, link.URL, link.Provider))
 			}
 		}
 		if len(links) > 0 {
-			contextParts = append(contextParts, fmt.Sprintf("BEST PRACTICES DOCUMENTATION:\n%s", 
+			contextParts = append(contextParts, fmt.Sprintf("BEST PRACTICES DOCUMENTATION:\n%s",
 				strings.Join(links, "\n")))
 		}
 	}
@@ -953,19 +953,19 @@ func (r *reportGenerator) buildDocumentationContext(ctx context.Context, inquiry
 
 func (r *reportGenerator) buildBasicServices(inquiry *domain.Inquiry) []interfaces.CloudService {
 	var services []interfaces.CloudService
-	
+
 	for _, serviceType := range inquiry.Services {
 		service := interfaces.CloudService{
-			Provider:     "aws", // Default provider
-			ServiceName:  r.mapServiceTypeToAWSService(serviceType),
-			ServiceType:  serviceType,
+			Provider:      "aws", // Default provider
+			ServiceName:   r.mapServiceTypeToAWSService(serviceType),
+			ServiceType:   serviceType,
 			Configuration: make(map[string]interface{}),
-			Dependencies: []string{},
-			CriticalPath: true,
+			Dependencies:  []string{},
+			CriticalPath:  true,
 		}
 		services = append(services, service)
 	}
-	
+
 	return services
 }
 
@@ -975,11 +975,11 @@ func (r *reportGenerator) buildBasicArchitecture(inquiry *domain.Inquiry) *inter
 		Type: "cloud-native",
 		Components: []interfaces.ArchitectureComponent{
 			{
-				Name:         "application-tier",
-				Type:         "compute",
-				Layer:        "application",
-				Dependencies: []string{},
-				Criticality:  "high",
+				Name:          "application-tier",
+				Type:          "compute",
+				Layer:         "application",
+				Dependencies:  []string{},
+				Criticality:   "high",
 				Configuration: make(map[string]interface{}),
 			},
 		},
@@ -992,13 +992,13 @@ func (r *reportGenerator) buildBasicArchitecture(inquiry *domain.Inquiry) *inter
 		},
 		DataStorage: []interfaces.DataStorageComponent{
 			{
-				Type:            "database",
-				Provider:        "aws",
-				ServiceName:     "RDS",
-				DataType:        "application",
+				Type:             "database",
+				Provider:         "aws",
+				ServiceName:      "RDS",
+				DataType:         "application",
 				SensitivityLevel: "medium",
-				BackupStrategy:  "automated",
-				Configuration:   make(map[string]interface{}),
+				BackupStrategy:   "automated",
+				Configuration:    make(map[string]interface{}),
 			},
 		},
 		SecurityLayers:   []interfaces.SecurityLayer{},
@@ -1009,16 +1009,16 @@ func (r *reportGenerator) buildBasicArchitecture(inquiry *domain.Inquiry) *inter
 
 func (r *reportGenerator) mapServiceTypeToAWSService(serviceType string) string {
 	serviceMap := map[string]string{
-		"assessment":         "Well-Architected Review",
-		"migration":          "Migration Hub",
-		"optimization":       "Cost Explorer",
+		"assessment":          "Well-Architected Review",
+		"migration":           "Migration Hub",
+		"optimization":        "Cost Explorer",
 		"architecture-review": "Well-Architected Tool",
-		"security":           "Security Hub",
-		"compliance":         "Config",
-		"monitoring":         "CloudWatch",
-		"backup":             "Backup",
+		"security":            "Security Hub",
+		"compliance":          "Config",
+		"monitoring":          "CloudWatch",
+		"backup":              "Backup",
 	}
-	
+
 	if awsService, exists := serviceMap[serviceType]; exists {
 		return awsService
 	}
@@ -1028,18 +1028,18 @@ func (r *reportGenerator) mapServiceTypeToAWSService(serviceType string) string 
 func (r *reportGenerator) extractIndustryContext(inquiry *domain.Inquiry) string {
 	// Extract industry hints from company name and message
 	text := strings.ToLower(inquiry.Company + " " + inquiry.Message)
-	
+
 	industryKeywords := map[string][]string{
-		"healthcare": {"healthcare", "hospital", "medical", "patient", "hipaa", "health", "clinic"},
-		"financial":  {"bank", "financial", "finance", "payment", "pci", "trading", "credit", "loan"},
-		"retail":     {"retail", "ecommerce", "store", "shopping", "customer", "sales", "commerce"},
+		"healthcare":    {"healthcare", "hospital", "medical", "patient", "hipaa", "health", "clinic"},
+		"financial":     {"bank", "financial", "finance", "payment", "pci", "trading", "credit", "loan"},
+		"retail":        {"retail", "ecommerce", "store", "shopping", "customer", "sales", "commerce"},
 		"manufacturing": {"manufacturing", "factory", "production", "supply chain", "industrial", "plant"},
-		"education":  {"education", "school", "university", "student", "learning", "academic", "campus"},
-		"government": {"government", "public", "federal", "state", "municipal", "agency", "civic"},
-		"technology": {"software", "tech", "saas", "platform", "development", "startup", "app"},
-		"media":      {"media", "entertainment", "content", "streaming", "publishing", "broadcast"},
+		"education":     {"education", "school", "university", "student", "learning", "academic", "campus"},
+		"government":    {"government", "public", "federal", "state", "municipal", "agency", "civic"},
+		"technology":    {"software", "tech", "saas", "platform", "development", "startup", "app"},
+		"media":         {"media", "entertainment", "content", "streaming", "publishing", "broadcast"},
 	}
-	
+
 	for industry, keywords := range industryKeywords {
 		for _, keyword := range keywords {
 			if strings.Contains(text, keyword) {
@@ -1047,7 +1047,7 @@ func (r *reportGenerator) extractIndustryContext(inquiry *domain.Inquiry) string
 			}
 		}
 	}
-	
+
 	return ""
 }
 

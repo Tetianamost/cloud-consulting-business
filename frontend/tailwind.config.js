@@ -4,8 +4,46 @@ module.exports = {
     './src/**/*.{js,jsx,ts,tsx}',
     './src/components/admin/**/*.{js,jsx,ts,tsx}',
     './src/components/ui/**/*.{js,jsx,ts,tsx}',
+    './public/index.html',
   ],
   darkMode: 'class',
+  // Safelist important classes that might be dynamically generated
+  safelist: [
+    'bg-blue-50',
+    'bg-green-50', 
+    'bg-red-50',
+    'bg-yellow-50',
+    'bg-purple-50',
+    'bg-amber-50',
+    'text-blue-700',
+    'text-green-700',
+    'text-red-700',
+    'text-yellow-700',
+    'text-purple-700',
+    'text-amber-700',
+    'border-blue-200',
+    'border-green-200',
+    'border-red-200',
+    'border-yellow-200',
+    'border-purple-200',
+    'border-amber-200',
+    // Grid responsive classes
+    'grid-cols-1',
+    'sm:grid-cols-2',
+    'md:grid-cols-2',
+    'lg:grid-cols-4',
+    'xl:grid-cols-4',
+    // Responsive display classes
+    'hidden',
+    'sm:block',
+    'md:block',
+    'lg:block',
+    'lg:flex',
+    'lg:w-64',
+    // Animation classes
+    'animate-spin',
+    'animate-pulse',
+  ],
   theme: {
     extend: {
       colors: {

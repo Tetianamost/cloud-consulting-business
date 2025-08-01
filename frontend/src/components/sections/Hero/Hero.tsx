@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, easeInOut, easeOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { Button } from '../../ui/button';
 import CloudAnimation from './CloudAnimation';
@@ -184,7 +184,7 @@ const textVariants = {
     y: 0,
     transition: {
       duration: 0.8,
-      ease: "easeOut"
+      ease: easeOut
     }
   }
 };
@@ -218,7 +218,7 @@ const shapeVariants = {
       duration: 3,
       repeat: Infinity,
       repeatType: 'loop' as const,
-      ease: 'easeInOut'
+      ease: easeInOut
     }
   }
 };

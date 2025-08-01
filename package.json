@@ -1,0 +1,22 @@
+{
+  "dependencies": {
+    "@types/axios": "^0.14.4",
+    "@types/markdown-it": "^14.1.2",
+    "axios": "^1.11.0",
+    "dompurify": "^3.2.6",
+    "markdown-it": "^14.1.0",
+    "markdown-to-jsx": "^7.7.12",
+    "marked": "^16.1.1",
+    "mdurl": "^1.0.1",
+    "react-markdown": "^7.0.1",
+    "remark-html": "^16.0.1",
+    "remark-parse": "^11.0.0",
+    "style-to-object": "^0.3.0",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.2.0",
+    "@types/marked": "^6.0.0",
+    "typescript": "^5.8.3"
+  }
+}

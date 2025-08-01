@@ -20,8 +20,8 @@ import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ReportPreviewModal } from './report-preview-modal';
-import V0AdminLayout from './V0AdminLayout';
-import apiService, { ReportWithInquiry } from '../../services/api';
+import { fetchReports, ReportWithInquiry, downloadReport } from '../../services/reportService';
+
 
 interface AIReportsPageProps {}
 
@@ -38,26 +38,21 @@ const AIReportsPage: React.FC<AIReportsPageProps> = () => {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchReports();
+    loadReports();
   }, []);
 
   useEffect(() => {
     filterReports();
   }, [reports, searchTerm, statusFilter, typeFilter]);
 
-  const fetchReports = async () => {
+  const loadReports = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Use the new dedicated reports API endpoint
-      const response = await apiService.listReports({ limit: 100 });
-      
-      if (response.success && response.data) {
-        setReports(response.data);
-      } else {
-        setError('Failed to load reports');
-      }
+      const data = await fetchReports();
+      setReports(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load reports');
     } finally {
@@ -72,8 +67,8 @@ const AIReportsPage: React.FC<AIReportsPageProps> = () => {
     if (searchTerm) {
       filtered = filtered.filter(report => 
         report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.inquiry?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.inquiry?.company.toLowerCase().includes(searchTerm.toLowerCase())
+        (report.inquiry?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (report.inquiry?.company?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
     }
 
@@ -97,8 +92,8 @@ const AIReportsPage: React.FC<AIReportsPageProps> = () => {
 
   const handleDownloadReport = async (report: ReportWithInquiry, format: 'pdf' | 'html') => {
     try {
-      const blob = await apiService.downloadReport(report.inquiry_id, format);
-      
+      const blob = await downloadReport(report.inquiry_id, format);
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -173,13 +168,14 @@ const AIReportsPage: React.FC<AIReportsPageProps> = () => {
     );
   }
 
+
   if (error) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <AlertCircle className="w-8 h-8 mx-auto mb-4 text-red-600" />
           <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={fetchReports} variant="outline">
+          <Button onClick={loadReports} variant="outline">
             <RefreshCw className="w-4 h-4 mr-2" />
             Retry
           </Button>
@@ -189,15 +185,14 @@ const AIReportsPage: React.FC<AIReportsPageProps> = () => {
   }
 
   return (
-    <V0AdminLayout currentPath={location.pathname}>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">AI-Generated Reports</h1>
             <p className="text-gray-600">Bedrock-powered analysis of customer inquiries with actionable insights</p>
           </div>
-          <Button onClick={fetchReports} variant="outline">
+          <Button onClick={loadReports} variant="outline">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
@@ -411,8 +406,7 @@ const AIReportsPage: React.FC<AIReportsPageProps> = () => {
           onDownload={handleDownloadReport}
         />
       )}
-      </div>
-    </V0AdminLayout>
+    </div>
   );
 };
 

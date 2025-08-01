@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloud-consulting/backend/internal/domain"
+	"github.com/cloud-consulting/backend/internal/interfaces"
 	"github.com/cloud-consulting/backend/internal/services"
 	"github.com/sirupsen/logrus"
 )
@@ -24,13 +25,13 @@ func main() {
 
 	// Create mock inquiry and report
 	inquiry := &domain.Inquiry{
-		ID:       "test_inquiry_123",
-		Name:     "customer1",
-		Email:    "customer1email",
-		Company:  "Partner",
-		Phone:    "customer1phone",
-		Services: []string{"assessment"},
-		Message:  "Quote Request Details: - Service: Initial Assessment - Complexity: Moderate - Servers/Applications: 5 - Base Fee: $750 - Per-Server/App Cost: $250 - Complexity Multiplier: 1.5x - Total Estimate: $1,500 Additional Requirements: test",
+		ID:        "test_inquiry_123",
+		Name:      "customer1",
+		Email:     "customer1email",
+		Company:   "Partner",
+		Phone:     "customer1phone",
+		Services:  []string{"assessment"},
+		Message:   "Quote Request Details: - Service: Initial Assessment - Complexity: Moderate - Servers/Applications: 5 - Base Fee: $750 - Per-Server/App Cost: $250 - Complexity Multiplier: 1.5x - Total Estimate: $1,500 Additional Requirements: test",
 		CreatedAt: time.Now(),
 	}
 
@@ -89,10 +90,10 @@ Client's Needs: customer1 from Partner has requested an initial assessment for a
 
 	// Test consultant notification email
 	fmt.Println("=== TESTING CONSULTANT NOTIFICATION EMAIL ===")
-	
+
 	// Prepare template data
 	templateData := templateService.PrepareConsultantNotificationData(inquiry, report, false)
-	
+
 	// Render the HTML template
 	htmlContent, err := templateService.RenderEmailTemplate(context.Background(), "consultant_notification", templateData)
 	if err != nil {
@@ -109,15 +110,15 @@ Client's Needs: customer1 from Partner has requested an initial assessment for a
 
 	// Test customer confirmation email
 	fmt.Println("\n=== TESTING CUSTOMER CONFIRMATION EMAIL ===")
-	
+
 	// Prepare customer template data using the template service method
-	customerData := &services.CustomerConfirmationData{
+	customerData := &interfaces.CustomerConfirmationData{
 		Name:     inquiry.Name,
 		Company:  inquiry.Company,
 		Services: "assessment",
 		ID:       inquiry.ID,
 	}
-	
+
 	// Render the customer HTML template
 	customerHTML, err := templateService.RenderEmailTemplate(context.Background(), "customer_confirmation", customerData)
 	if err != nil {

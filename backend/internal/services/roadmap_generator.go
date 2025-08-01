@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/cloud-consulting/backend/internal/domain"
 	"github.com/cloud-consulting/backend/internal/interfaces"
+	"github.com/google/uuid"
 )
 
 // RoadmapGeneratorService implements the RoadmapGenerator interface
@@ -24,10 +24,10 @@ func NewRoadmapGeneratorService(bedrockService interfaces.BedrockService) *Roadm
 		bedrockService: bedrockService,
 		templates:      make(map[string]*interfaces.RoadmapTemplate),
 	}
-	
+
 	// Initialize default templates
 	service.initializeDefaultTemplates()
-	
+
 	return service
 }
 
@@ -36,35 +36,35 @@ func (r *RoadmapGeneratorService) GenerateImplementationRoadmap(ctx context.Cont
 	if inquiry == nil {
 		return nil, fmt.Errorf("inquiry cannot be nil")
 	}
-	
+
 	// Determine project type and constraints from inquiry
 	projectType := r.determineProjectType(inquiry)
 	constraints := r.extractConstraints(inquiry)
-	
+
 	// Generate phases based on project requirements
 	phases, err := r.GeneratePhases(ctx, r.extractRequirements(inquiry), constraints)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate phases: %w", err)
 	}
-	
+
 	// Calculate dependencies between phases
 	dependencies, err := r.CalculateDependencies(ctx, phases)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate dependencies: %w", err)
 	}
-	
+
 	// Generate milestones for all phases
 	_, err = r.GenerateMilestones(ctx, phases)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate milestones: %w", err)
 	}
-	
+
 	// Estimate resources
 	resourceEstimate, err := r.EstimateResources(ctx, phases)
 	if err != nil {
 		return nil, fmt.Errorf("failed to estimate resources: %w", err)
 	}
-	
+
 	// Create the roadmap
 	roadmap := &interfaces.ImplementationRoadmap{
 		ID:              uuid.New().String(),
@@ -83,17 +83,17 @@ func (r *RoadmapGeneratorService) GenerateImplementationRoadmap(ctx context.Cont
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
 	}
-	
+
 	// Validate the roadmap
 	validation, err := r.ValidateRoadmap(ctx, roadmap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate roadmap: %w", err)
 	}
-	
+
 	if !validation.IsValid {
 		return nil, fmt.Errorf("generated roadmap is invalid: %v", validation.Errors)
 	}
-	
+
 	return roadmap, nil
 }
 
@@ -101,9 +101,9 @@ func (r *RoadmapGeneratorService) GenerateImplementationRoadmap(ctx context.Cont
 func (r *RoadmapGeneratorService) GeneratePhases(ctx context.Context, requirements []string, constraints *interfaces.ProjectConstraints) ([]interfaces.RoadmapPhase, error) {
 	// Select appropriate template
 	template := r.selectTemplate(requirements, constraints)
-	
+
 	var phases []interfaces.RoadmapPhase
-	
+
 	for i, phaseTemplate := range template.PhaseTemplates {
 		phase := interfaces.RoadmapPhase{
 			ID:          uuid.New().String(),
@@ -113,36 +113,36 @@ func (r *RoadmapGeneratorService) GeneratePhases(ctx context.Context, requiremen
 			Priority:    r.calculatePhasePriority(i, len(template.PhaseTemplates)),
 			RiskLevel:   r.assessPhaseRisk(phaseTemplate, constraints),
 		}
-		
+
 		// Generate tasks for this phase
 		tasks, err := r.generateTasks(ctx, phaseTemplate.TaskTemplates, requirements, constraints)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate tasks for phase %s: %w", phase.Name, err)
 		}
 		phase.Tasks = tasks
-		
+
 		// Generate deliverables
 		deliverables := r.generateDeliverables(phaseTemplate.DeliverableTemplates)
 		phase.Deliverables = deliverables
-		
+
 		// Generate milestones for this phase
 		milestones := r.generatePhaseMilestones(phaseTemplate.MilestoneTemplates, phase.ID)
 		phase.Milestones = milestones
-		
+
 		// Set resource requirements
 		phase.ResourceRequirements = r.adaptResourceRequirements(phaseTemplate.ResourceTemplate, constraints)
-		
+
 		// Calculate estimated cost for this phase
 		phase.EstimatedCost = r.calculatePhaseCost(phase.ResourceRequirements, phase.Duration)
-		
+
 		// Set prerequisites
 		if i > 0 {
 			phase.Prerequisites = []string{phases[i-1].ID}
 		}
-		
+
 		phases = append(phases, phase)
 	}
-	
+
 	return phases, nil
 }
 
@@ -154,49 +154,49 @@ func (r *RoadmapGeneratorService) EstimateResources(ctx context.Context, phases 
 		CostBreakdown:       make(map[string]string),
 		ResourceUtilization: make(map[string]float64),
 	}
-	
+
 	totalHours := 0
 	totalCostFloat := 0.0
-	
+
 	for _, phase := range phases {
 		phaseHours := 0
-		
+
 		// Calculate hours from tasks
 		for _, task := range phase.Tasks {
 			phaseHours += task.EstimatedHours
 			totalHours += task.EstimatedHours
-			
+
 			// Track role breakdown
 			for _, skill := range task.SkillsRequired {
 				estimate.RoleBreakdown[skill] += task.EstimatedHours
 			}
 		}
-		
+
 		estimate.PhaseBreakdown[phase.Name] = phaseHours
-		
+
 		// Parse and add phase cost
 		if phaseCost := r.parseCostString(phase.EstimatedCost); phaseCost > 0 {
 			totalCostFloat += phaseCost
 			estimate.CostBreakdown[phase.Name] = phase.EstimatedCost
 		}
 	}
-	
+
 	estimate.TotalHours = totalHours
 	estimate.TotalCost = fmt.Sprintf("$%.2f", totalCostFloat)
-	
+
 	// Calculate resource utilization (simplified)
 	for role, hours := range estimate.RoleBreakdown {
 		utilization := float64(hours) / float64(totalHours) * 100
 		estimate.ResourceUtilization[role] = utilization
 	}
-	
+
 	return estimate, nil
 }
 
 // CalculateDependencies calculates dependencies between phases
 func (r *RoadmapGeneratorService) CalculateDependencies(ctx context.Context, phases []interfaces.RoadmapPhase) ([]interfaces.Dependency, error) {
 	var dependencies []interfaces.Dependency
-	
+
 	// Create sequential dependencies between phases
 	for i := 1; i < len(phases); i++ {
 		dependency := interfaces.Dependency{
@@ -209,7 +209,7 @@ func (r *RoadmapGeneratorService) CalculateDependencies(ctx context.Context, pha
 		}
 		dependencies = append(dependencies, dependency)
 	}
-	
+
 	// Add task-level dependencies within phases
 	for _, phase := range phases {
 		for _, task := range phase.Tasks {
@@ -226,14 +226,14 @@ func (r *RoadmapGeneratorService) CalculateDependencies(ctx context.Context, pha
 			}
 		}
 	}
-	
+
 	return dependencies, nil
 }
 
 // GenerateMilestones generates milestones for all phases
 func (r *RoadmapGeneratorService) GenerateMilestones(ctx context.Context, phases []interfaces.RoadmapPhase) ([]interfaces.Milestone, error) {
 	var allMilestones []interfaces.Milestone
-	
+
 	for _, phase := range phases {
 		// Add phase completion milestone
 		milestone := interfaces.Milestone{
@@ -247,11 +247,11 @@ func (r *RoadmapGeneratorService) GenerateMilestones(ctx context.Context, phases
 			Importance:   "high",
 		}
 		allMilestones = append(allMilestones, milestone)
-		
+
 		// Add existing phase milestones
 		allMilestones = append(allMilestones, phase.Milestones...)
 	}
-	
+
 	// Add project-level milestones
 	projectMilestones := []interfaces.Milestone{
 		{
@@ -275,9 +275,9 @@ func (r *RoadmapGeneratorService) GenerateMilestones(ctx context.Context, phases
 			Importance:   "critical",
 		},
 	}
-	
+
 	allMilestones = append(allMilestones, projectMilestones...)
-	
+
 	return allMilestones, nil
 }
 
@@ -286,40 +286,40 @@ func (r *RoadmapGeneratorService) ValidateRoadmap(ctx context.Context, roadmap *
 	result := &interfaces.ValidationResult{
 		IsValid: true,
 	}
-	
+
 	// Validate basic structure
 	if roadmap.Title == "" {
 		result.Errors = append(result.Errors, "Roadmap title is required")
 		result.IsValid = false
 	}
-	
+
 	if len(roadmap.Phases) == 0 {
 		result.Errors = append(result.Errors, "Roadmap must have at least one phase")
 		result.IsValid = false
 	}
-	
+
 	// Validate phases
 	for i, phase := range roadmap.Phases {
 		if phase.Name == "" {
 			result.Errors = append(result.Errors, fmt.Sprintf("Phase %d is missing a name", i+1))
 			result.IsValid = false
 		}
-		
+
 		if len(phase.Tasks) == 0 {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Phase '%s' has no tasks", phase.Name))
 		}
-		
+
 		if phase.Duration == "" {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Phase '%s' has no duration estimate", phase.Name))
 		}
 	}
-	
+
 	// Validate dependencies
 	phaseIDs := make(map[string]bool)
 	for _, phase := range roadmap.Phases {
 		phaseIDs[phase.ID] = true
 	}
-	
+
 	for _, dep := range roadmap.Dependencies {
 		if !phaseIDs[dep.FromID] && !r.isTaskID(dep.FromID, roadmap.Phases) {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Dependency references unknown ID: %s", dep.FromID))
@@ -328,20 +328,20 @@ func (r *RoadmapGeneratorService) ValidateRoadmap(ctx context.Context, roadmap *
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Dependency references unknown ID: %s", dep.ToID))
 		}
 	}
-	
+
 	// Calculate quality scores
 	result.QualityScore = r.calculateQualityScore(roadmap)
 	result.CompletenessScore = r.calculateCompletenessScore(roadmap)
-	
+
 	// Add suggestions
 	if result.QualityScore < 0.7 {
 		result.Suggestions = append(result.Suggestions, "Consider adding more detailed task descriptions and acceptance criteria")
 	}
-	
+
 	if result.CompletenessScore < 0.8 {
 		result.Suggestions = append(result.Suggestions, "Consider adding more milestones and deliverables to track progress")
 	}
-	
+
 	return result, nil
 }
 
@@ -382,9 +382,6 @@ func (r *RoadmapGeneratorService) initializeDefaultTemplates() {
 					{
 						Name:        "Assessment Report",
 						Description: "Comprehensive analysis of current infrastructure",
-						Type:        "document",
-						Format:      "PDF",
-						Reviewers:   []string{"Technical Lead", "Business Stakeholder"},
 					},
 				},
 				MilestoneTemplates: []interfaces.MilestoneTemplate{
@@ -460,9 +457,9 @@ func (r *RoadmapGeneratorService) initializeDefaultTemplates() {
 			},
 		},
 	}
-	
+
 	r.templates["migration"] = migrationTemplate
-	
+
 	// Add more templates for other project types
 	r.templates["optimization"] = r.createOptimizationTemplate()
 	r.templates["assessment"] = r.createAssessmentTemplate()
@@ -568,7 +565,7 @@ func (r *RoadmapGeneratorService) createArchitectureTemplate() *interfaces.Roadm
 func (r *RoadmapGeneratorService) determineProjectType(inquiry *domain.Inquiry) string {
 	services := strings.Join(inquiry.Services, " ")
 	message := strings.ToLower(inquiry.Message)
-	
+
 	if strings.Contains(services, "migration") || strings.Contains(message, "migrate") {
 		return "migration"
 	}
@@ -581,27 +578,27 @@ func (r *RoadmapGeneratorService) determineProjectType(inquiry *domain.Inquiry) 
 	if strings.Contains(services, "architecture") || strings.Contains(message, "architecture") {
 		return "architecture"
 	}
-	
+
 	return "general"
 }
 
 func (r *RoadmapGeneratorService) extractConstraints(inquiry *domain.Inquiry) *interfaces.ProjectConstraints {
 	// Extract constraints from inquiry message and context
 	// This is a simplified implementation - in practice, this would use NLP or structured input
-	
+
 	constraints := &interfaces.ProjectConstraints{
 		RiskTolerance:   "medium",
 		CloudProviders:  []string{"AWS"}, // Default
 		TechnologyStack: []string{},
 	}
-	
+
 	message := strings.ToLower(inquiry.Message)
-	
+
 	// Extract budget constraints
 	if strings.Contains(message, "budget") || strings.Contains(message, "cost") {
 		constraints.Budget = "medium"
 	}
-	
+
 	// Extract timeline constraints
 	if strings.Contains(message, "urgent") || strings.Contains(message, "asap") {
 		constraints.Timeline = "aggressive"
@@ -610,7 +607,7 @@ func (r *RoadmapGeneratorService) extractConstraints(inquiry *domain.Inquiry) *i
 	} else {
 		constraints.Timeline = "standard"
 	}
-	
+
 	// Extract cloud provider preferences
 	if strings.Contains(message, "azure") {
 		constraints.CloudProviders = append(constraints.CloudProviders, "Azure")
@@ -618,21 +615,21 @@ func (r *RoadmapGeneratorService) extractConstraints(inquiry *domain.Inquiry) *i
 	if strings.Contains(message, "gcp") || strings.Contains(message, "google") {
 		constraints.CloudProviders = append(constraints.CloudProviders, "GCP")
 	}
-	
+
 	return constraints
 }
 
 func (r *RoadmapGeneratorService) extractRequirements(inquiry *domain.Inquiry) []string {
 	requirements := []string{}
-	
+
 	// Extract requirements from services
 	for _, service := range inquiry.Services {
 		requirements = append(requirements, service)
 	}
-	
+
 	// Extract additional requirements from message
 	message := strings.ToLower(inquiry.Message)
-	
+
 	if strings.Contains(message, "compliance") || strings.Contains(message, "hipaa") || strings.Contains(message, "pci") {
 		requirements = append(requirements, "compliance")
 	}
@@ -645,7 +642,7 @@ func (r *RoadmapGeneratorService) extractRequirements(inquiry *domain.Inquiry) [
 	if strings.Contains(message, "scalability") || strings.Contains(message, "scale") {
 		requirements = append(requirements, "scalability")
 	}
-	
+
 	return requirements
 }
 
@@ -656,14 +653,14 @@ func (r *RoadmapGeneratorService) selectTemplate(requirements []string, constrai
 			return template
 		}
 	}
-	
+
 	// Default to migration template
 	return r.templates["migration"]
 }
 
 func (r *RoadmapGeneratorService) generateTasks(ctx context.Context, taskTemplates []interfaces.TaskTemplate, requirements []string, constraints *interfaces.ProjectConstraints) ([]interfaces.Task, error) {
 	var tasks []interfaces.Task
-	
+
 	for _, template := range taskTemplates {
 		task := interfaces.Task{
 			ID:                 uuid.New().String(),
@@ -676,40 +673,37 @@ func (r *RoadmapGeneratorService) generateTasks(ctx context.Context, taskTemplat
 			CompletionCriteria: template.CompletionCriteria,
 			Status:             "not_started",
 		}
-		
+
 		// Adjust task based on constraints
 		if constraints.Timeline == "aggressive" {
 			task.EstimatedHours = int(float64(task.EstimatedHours) * 0.8) // Reduce time estimate for aggressive timeline
 		}
-		
+
 		tasks = append(tasks, task)
 	}
-	
+
 	return tasks, nil
 }
 
 func (r *RoadmapGeneratorService) generateDeliverables(templates []interfaces.DeliverableTemplate) []interfaces.Deliverable {
 	var deliverables []interfaces.Deliverable
-	
+
 	for _, template := range templates {
 		deliverable := interfaces.Deliverable{
 			ID:          uuid.New().String(),
 			Name:        template.Name,
 			Description: template.Description,
-			Type:        template.Type,
-			Format:      template.Format,
-			Reviewers:   template.Reviewers,
 			Status:      "not_started",
 		}
 		deliverables = append(deliverables, deliverable)
 	}
-	
+
 	return deliverables
 }
 
 func (r *RoadmapGeneratorService) generatePhaseMilestones(templates []interfaces.MilestoneTemplate, phaseID string) []interfaces.Milestone {
 	var milestones []interfaces.Milestone
-	
+
 	for _, template := range templates {
 		milestone := interfaces.Milestone{
 			ID:           uuid.New().String(),
@@ -723,19 +717,19 @@ func (r *RoadmapGeneratorService) generatePhaseMilestones(templates []interfaces
 		}
 		milestones = append(milestones, milestone)
 	}
-	
+
 	return milestones
 }
 
 func (r *RoadmapGeneratorService) adaptResourceRequirements(template interfaces.ResourceRequirements, constraints *interfaces.ProjectConstraints) interfaces.ResourceRequirements {
 	adapted := template
-	
+
 	// Adjust based on constraints
 	if constraints.TeamSize > 0 && constraints.TeamSize < 5 {
 		// For small teams, combine roles
 		adapted.TechnicalRoles = r.consolidateRoles(adapted.TechnicalRoles)
 	}
-	
+
 	return adapted
 }
 
@@ -744,7 +738,7 @@ func (r *RoadmapGeneratorService) consolidateRoles(roles []interfaces.Role) []in
 	if len(roles) <= 2 {
 		return roles
 	}
-	
+
 	// Combine similar roles
 	consolidated := []interfaces.Role{}
 	for i, role := range roles {
@@ -755,23 +749,23 @@ func (r *RoadmapGeneratorService) consolidateRoles(roles []interfaces.Role) []in
 			consolidated[i%2].SkillsRequired = append(consolidated[i%2].SkillsRequired, role.SkillsRequired...)
 		}
 	}
-	
+
 	return consolidated
 }
 
 func (r *RoadmapGeneratorService) calculatePhaseCost(requirements interfaces.ResourceRequirements, duration string) string {
 	// Simplified cost calculation
 	baseCost := 10000.0 // Base cost per phase
-	
+
 	// Adjust based on roles
 	roleCost := float64(len(requirements.TechnicalRoles)+len(requirements.BusinessRoles)) * 5000.0
-	
+
 	// Adjust based on duration (extract weeks from duration string)
 	weeks := r.extractWeeksFromDuration(duration)
 	durationMultiplier := float64(weeks) * 0.5
-	
+
 	totalCost := baseCost + roleCost + (baseCost * durationMultiplier)
-	
+
 	return fmt.Sprintf("$%.2f", totalCost)
 }
 
@@ -818,8 +812,8 @@ func (r *RoadmapGeneratorService) assessPhaseRisk(template interfaces.PhaseTempl
 }
 
 func (r *RoadmapGeneratorService) generateTitle(inquiry *domain.Inquiry, projectType string) string {
-	return fmt.Sprintf("%s Implementation Roadmap - %s", 
-		strings.Title(projectType), 
+	return fmt.Sprintf("%s Implementation Roadmap - %s",
+		strings.Title(projectType),
 		inquiry.Company)
 }
 
@@ -832,12 +826,12 @@ func (r *RoadmapGeneratorService) generateOverview(inquiry *domain.Inquiry, phas
 
 func (r *RoadmapGeneratorService) calculateTotalDuration(phases []interfaces.RoadmapPhase) string {
 	totalWeeks := 0
-	
+
 	for _, phase := range phases {
 		weeks := r.extractWeeksFromDuration(phase.Duration)
 		totalWeeks += weeks
 	}
-	
+
 	if totalWeeks <= 4 {
 		return fmt.Sprintf("%d weeks", totalWeeks)
 	} else {
@@ -852,30 +846,30 @@ func (r *RoadmapGeneratorService) calculateTotalDuration(phases []interfaces.Roa
 
 func (r *RoadmapGeneratorService) identifyRisks(phases []interfaces.RoadmapPhase, constraints *interfaces.ProjectConstraints) []string {
 	risks := []string{}
-	
+
 	// Common risks
 	risks = append(risks, "Resource availability constraints")
 	risks = append(risks, "Technical complexity underestimation")
 	risks = append(risks, "Stakeholder alignment challenges")
-	
+
 	// Timeline-based risks
 	if constraints.Timeline == "aggressive" {
 		risks = append(risks, "Aggressive timeline may impact quality")
 		risks = append(risks, "Limited time for thorough testing")
 	}
-	
+
 	// Budget-based risks
 	if constraints.Budget == "tight" {
 		risks = append(risks, "Budget constraints may limit scope")
 	}
-	
+
 	// Phase-specific risks
 	for _, phase := range phases {
 		if phase.RiskLevel == "high" {
 			risks = append(risks, fmt.Sprintf("High risk in %s phase", phase.Name))
 		}
 	}
-	
+
 	return risks
 }
 
@@ -886,7 +880,7 @@ func (r *RoadmapGeneratorService) generateSuccessMetrics(inquiry *domain.Inquiry
 		"Zero critical issues in production",
 		"User acceptance criteria satisfied",
 	}
-	
+
 	// Project-type specific metrics
 	switch projectType {
 	case "migration":
@@ -899,13 +893,13 @@ func (r *RoadmapGeneratorService) generateSuccessMetrics(inquiry *domain.Inquiry
 		metrics = append(metrics, "Comprehensive assessment report delivered")
 		metrics = append(metrics, "Actionable recommendations provided")
 	}
-	
+
 	return metrics
 }
 
 func (r *RoadmapGeneratorService) extractCloudProviders(inquiry *domain.Inquiry) []string {
 	providers := []string{"AWS"} // Default
-	
+
 	message := strings.ToLower(inquiry.Message)
 	if strings.Contains(message, "azure") {
 		providers = append(providers, "Azure")
@@ -913,13 +907,13 @@ func (r *RoadmapGeneratorService) extractCloudProviders(inquiry *domain.Inquiry)
 	if strings.Contains(message, "gcp") || strings.Contains(message, "google") {
 		providers = append(providers, "GCP")
 	}
-	
+
 	return providers
 }
 
 func (r *RoadmapGeneratorService) extractIndustryContext(inquiry *domain.Inquiry) string {
 	message := strings.ToLower(inquiry.Message)
-	
+
 	if strings.Contains(message, "healthcare") || strings.Contains(message, "hipaa") {
 		return "healthcare"
 	}
@@ -929,7 +923,7 @@ func (r *RoadmapGeneratorService) extractIndustryContext(inquiry *domain.Inquiry
 	if strings.Contains(message, "retail") || strings.Contains(message, "ecommerce") {
 		return "retail"
 	}
-	
+
 	return "general"
 }
 
@@ -937,11 +931,11 @@ func (r *RoadmapGeneratorService) parseCostString(costStr string) float64 {
 	// Remove $ and parse
 	cleaned := strings.ReplaceAll(costStr, "$", "")
 	cleaned = strings.ReplaceAll(cleaned, ",", "")
-	
+
 	if cost, err := strconv.ParseFloat(cleaned, 64); err == nil {
 		return cost
 	}
-	
+
 	return 0.0
 }
 
@@ -959,52 +953,52 @@ func (r *RoadmapGeneratorService) isTaskID(id string, phases []interfaces.Roadma
 func (r *RoadmapGeneratorService) calculateQualityScore(roadmap *interfaces.ImplementationRoadmap) float64 {
 	score := 0.0
 	maxScore := 0.0
-	
+
 	// Check roadmap completeness
 	if roadmap.Title != "" {
 		score += 1.0
 	}
 	maxScore += 1.0
-	
+
 	if roadmap.Overview != "" {
 		score += 1.0
 	}
 	maxScore += 1.0
-	
+
 	if len(roadmap.Phases) > 0 {
 		score += 1.0
 	}
 	maxScore += 1.0
-	
+
 	// Check phase quality
 	for _, phase := range roadmap.Phases {
 		if phase.Description != "" {
 			score += 0.5
 		}
 		maxScore += 0.5
-		
+
 		if len(phase.Tasks) > 0 {
 			score += 0.5
 		}
 		maxScore += 0.5
-		
+
 		if len(phase.Deliverables) > 0 {
 			score += 0.3
 		}
 		maxScore += 0.3
 	}
-	
+
 	if maxScore == 0 {
 		return 0.0
 	}
-	
+
 	return score / maxScore
 }
 
 func (r *RoadmapGeneratorService) calculateCompletenessScore(roadmap *interfaces.ImplementationRoadmap) float64 {
 	score := 0.0
 	maxScore := 0.0
-	
+
 	// Check for essential elements
 	elements := []bool{
 		roadmap.TotalDuration != "",
@@ -1013,14 +1007,14 @@ func (r *RoadmapGeneratorService) calculateCompletenessScore(roadmap *interfaces
 		len(roadmap.Risks) > 0,
 		len(roadmap.SuccessMetrics) > 0,
 	}
-	
+
 	for _, hasElement := range elements {
 		if hasElement {
 			score += 1.0
 		}
 		maxScore += 1.0
 	}
-	
+
 	// Check phase completeness
 	for _, phase := range roadmap.Phases {
 		phaseElements := []bool{
@@ -1030,7 +1024,7 @@ func (r *RoadmapGeneratorService) calculateCompletenessScore(roadmap *interfaces
 			len(phase.Deliverables) > 0,
 			len(phase.Milestones) > 0,
 		}
-		
+
 		for _, hasElement := range phaseElements {
 			if hasElement {
 				score += 0.2
@@ -1038,10 +1032,10 @@ func (r *RoadmapGeneratorService) calculateCompletenessScore(roadmap *interfaces
 			maxScore += 0.2
 		}
 	}
-	
+
 	if maxScore == 0 {
 		return 0.0
 	}
-	
+
 	return score / maxScore
 }

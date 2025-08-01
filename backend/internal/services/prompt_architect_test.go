@@ -6,31 +6,32 @@ import (
 	"testing"
 
 	"github.com/cloud-consulting/backend/internal/domain"
+	"github.com/cloud-consulting/backend/internal/interfaces"
 )
 
 func TestNewPromptArchitect(t *testing.T) {
 	pa := NewPromptArchitect()
-	
+
 	if pa == nil {
 		t.Fatal("NewPromptArchitect returned nil")
 	}
-	
+
 	// Check that default templates are loaded
 	templates := pa.ListTemplates()
 	expectedTemplates := []string{
 		"enhanced_report",
-		"technical_report", 
+		"technical_report",
 		"business_report",
 		"interview_guide",
 		"risk_assessment",
 		"competitive_analysis",
 		"comprehensive_report",
 	}
-	
+
 	if len(templates) != len(expectedTemplates) {
 		t.Errorf("Expected %d templates, got %d", len(expectedTemplates), len(templates))
 	}
-	
+
 	for _, expected := range expectedTemplates {
 		found := false
 		for _, actual := range templates {
@@ -47,7 +48,7 @@ func TestNewPromptArchitect(t *testing.T) {
 
 func TestBuildReportPrompt(t *testing.T) {
 	pa := NewPromptArchitect()
-	
+
 	inquiry := &domain.Inquiry{
 		ID:       "test-123",
 		Name:     "John Doe",
@@ -58,8 +59,8 @@ func TestBuildReportPrompt(t *testing.T) {
 		Message:  "We need help migrating our infrastructure to the cloud",
 		Priority: "high",
 	}
-	
-	options := &PromptOptions{
+
+	options := &interfaces.PromptOptions{
 		TargetAudience:             "mixed",
 		IncludeDocumentationLinks:  true,
 		IncludeCompetitiveAnalysis: true,
@@ -67,16 +68,16 @@ func TestBuildReportPrompt(t *testing.T) {
 		CloudProviders:             []string{"AWS", "Azure"},
 		MaxTokens:                  2000,
 	}
-	
+
 	prompt, err := pa.BuildReportPrompt(context.Background(), inquiry, options)
 	if err != nil {
 		t.Fatalf("BuildReportPrompt failed: %v", err)
 	}
-	
+
 	// Verify prompt contains expected content
 	expectedContent := []string{
 		"John Doe",
-		"john@example.com", 
+		"john@example.com",
 		"Test Corp",
 		"555-1234",
 		"assessment, migration",
@@ -85,18 +86,18 @@ func TestBuildReportPrompt(t *testing.T) {
 		"RECOMMENDATIONS",
 		"NEXT STEPS",
 	}
-	
+
 	for _, content := range expectedContent {
 		if !strings.Contains(prompt, content) {
 			t.Errorf("Prompt missing expected content: %s", content)
 		}
 	}
-	
+
 	// Verify multi-cloud content is included
 	if !strings.Contains(prompt, "AWS, Azure") {
 		t.Error("Prompt should include specified cloud providers")
 	}
-	
+
 	// Verify enhanced features are included
 	if !strings.Contains(prompt, "DOCUMENTATION REQUIREMENTS") {
 		t.Error("Prompt should include documentation requirements when requested")
@@ -105,7 +106,7 @@ func TestBuildReportPrompt(t *testing.T) {
 
 func TestBuildReportPromptWithDefaults(t *testing.T) {
 	pa := NewPromptArchitect()
-	
+
 	inquiry := &domain.Inquiry{
 		ID:       "test-123",
 		Name:     "Jane Smith",
@@ -113,22 +114,22 @@ func TestBuildReportPromptWithDefaults(t *testing.T) {
 		Services: []string{"optimization"},
 		Message:  "Looking to optimize our cloud costs",
 	}
-	
+
 	// Test with nil options (should use defaults)
 	prompt, err := pa.BuildReportPrompt(context.Background(), inquiry, nil)
 	if err != nil {
 		t.Fatalf("BuildReportPrompt with nil options failed: %v", err)
 	}
-	
+
 	// Should use default values
 	if !strings.Contains(prompt, "Jane Smith") {
 		t.Error("Prompt should contain client name")
 	}
-	
+
 	if !strings.Contains(prompt, "Client Organization") {
 		t.Error("Prompt should use default company name")
 	}
-	
+
 	if !strings.Contains(prompt, "Not provided") {
 		t.Error("Prompt should use default phone")
 	}
@@ -136,19 +137,19 @@ func TestBuildReportPromptWithDefaults(t *testing.T) {
 
 func TestBuildInterviewPrompt(t *testing.T) {
 	pa := NewPromptArchitect()
-	
+
 	inquiry := &domain.Inquiry{
 		Name:     "Alice Johnson",
 		Company:  "Tech Startup",
 		Services: []string{"assessment"},
 		Message:  "Need to assess our current cloud setup",
 	}
-	
+
 	prompt, err := pa.BuildInterviewPrompt(context.Background(), inquiry)
 	if err != nil {
 		t.Fatalf("BuildInterviewPrompt failed: %v", err)
 	}
-	
+
 	expectedContent := []string{
 		"Alice Johnson",
 		"Tech Startup",
@@ -157,7 +158,7 @@ func TestBuildInterviewPrompt(t *testing.T) {
 		"BUSINESS CONTEXT QUESTIONS",
 		"TECHNICAL DISCOVERY QUESTIONS",
 	}
-	
+
 	for _, content := range expectedContent {
 		if !strings.Contains(prompt, content) {
 			t.Errorf("Interview prompt missing expected content: %s", content)
@@ -167,19 +168,19 @@ func TestBuildInterviewPrompt(t *testing.T) {
 
 func TestBuildRiskAssessmentPrompt(t *testing.T) {
 	pa := NewPromptArchitect()
-	
+
 	inquiry := &domain.Inquiry{
 		Name:     "Bob Wilson",
 		Company:  "Healthcare Corp",
 		Services: []string{"migration"},
 		Message:  "Migrating patient data to cloud with HIPAA compliance",
 	}
-	
+
 	prompt, err := pa.BuildRiskAssessmentPrompt(context.Background(), inquiry)
 	if err != nil {
 		t.Fatalf("BuildRiskAssessmentPrompt failed: %v", err)
 	}
-	
+
 	expectedContent := []string{
 		"Bob Wilson",
 		"Healthcare Corp",
@@ -190,7 +191,7 @@ func TestBuildRiskAssessmentPrompt(t *testing.T) {
 		"COMPLIANCE RISKS",
 		"Healthcare", // Should detect healthcare industry
 	}
-	
+
 	for _, content := range expectedContent {
 		if !strings.Contains(prompt, content) {
 			t.Errorf("Risk assessment prompt missing expected content: %s", content)
@@ -200,29 +201,29 @@ func TestBuildRiskAssessmentPrompt(t *testing.T) {
 
 func TestBuildCompetitiveAnalysisPrompt(t *testing.T) {
 	pa := NewPromptArchitect()
-	
+
 	inquiry := &domain.Inquiry{
 		Name:     "Carol Davis",
 		Company:  "E-commerce Inc",
 		Services: []string{"optimization"},
 		Message:  "Need to optimize our e-commerce platform performance",
 	}
-	
+
 	prompt, err := pa.BuildCompetitiveAnalysisPrompt(context.Background(), inquiry)
 	if err != nil {
 		t.Fatalf("BuildCompetitiveAnalysisPrompt failed: %v", err)
 	}
-	
+
 	expectedContent := []string{
 		"Carol Davis",
 		"E-commerce Inc",
 		"AWS ANALYSIS",
-		"MICROSOFT AZURE ANALYSIS", 
+		"MICROSOFT AZURE ANALYSIS",
 		"GOOGLE CLOUD PLATFORM ANALYSIS",
 		"SCENARIO-BASED RECOMMENDATIONS",
 		"FINAL RECOMMENDATION",
 	}
-	
+
 	for _, content := range expectedContent {
 		if !strings.Contains(prompt, content) {
 			t.Errorf("Competitive analysis prompt missing expected content: %s", content)
@@ -232,7 +233,7 @@ func TestBuildCompetitiveAnalysisPrompt(t *testing.T) {
 
 func TestValidatePrompt(t *testing.T) {
 	pa := NewPromptArchitect()
-	
+
 	tests := []struct {
 		name    string
 		prompt  string
@@ -275,7 +276,7 @@ func TestValidatePrompt(t *testing.T) {
 			errMsg:  "prompt contains unsubstituted variables",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := pa.ValidatePrompt(tt.prompt)
@@ -292,21 +293,21 @@ func TestValidatePrompt(t *testing.T) {
 
 func TestGetTemplate(t *testing.T) {
 	pa := NewPromptArchitect()
-	
+
 	// Test getting existing template
 	template, err := pa.GetTemplate("enhanced_report")
 	if err != nil {
 		t.Fatalf("GetTemplate failed: %v", err)
 	}
-	
+
 	if template.Name != "enhanced_report" {
 		t.Errorf("Expected template name 'enhanced_report', got %s", template.Name)
 	}
-	
+
 	if template.Category != "report" {
 		t.Errorf("Expected template category 'report', got %s", template.Category)
 	}
-	
+
 	// Test getting non-existent template
 	_, err = pa.GetTemplate("non_existent")
 	if err == nil {
@@ -316,51 +317,51 @@ func TestGetTemplate(t *testing.T) {
 
 func TestRegisterTemplate(t *testing.T) {
 	pa := NewPromptArchitect()
-	
-	template := &PromptTemplate{
-		Name:        "test_template",
-		Category:    "test",
-		Description: "Test template",
-		Template:    "Hello {{.ClientName}}, this is a test template with {{.Message}}",
+
+	template := &interfaces.PromptTemplate{
+		Name:              "test_template",
+		Category:          "test",
+		Description:       "Test template",
+		Template:          "Hello {{.ClientName}}, this is a test template with {{.Message}}",
 		RequiredVariables: []string{"ClientName", "Message"},
 		OptionalVariables: []string{},
-		ValidationRules: []ValidationRule{
+		ValidationRules: []interfaces.ValidationRule{
 			{Name: "HasHello", Pattern: "Hello", ErrorMessage: "Must contain Hello", Required: true},
 		},
 	}
-	
+
 	err := pa.RegisterTemplate(template)
 	if err != nil {
 		t.Fatalf("RegisterTemplate failed: %v", err)
 	}
-	
+
 	// Verify template was registered
 	retrieved, err := pa.GetTemplate("test_template")
 	if err != nil {
 		t.Fatalf("Failed to retrieve registered template: %v", err)
 	}
-	
+
 	if retrieved.Name != template.Name {
 		t.Errorf("Expected name %s, got %s", template.Name, retrieved.Name)
 	}
-	
+
 	// Test registering template with empty name
-	invalidTemplate := &PromptTemplate{
+	invalidTemplate := &interfaces.PromptTemplate{
 		Name:     "",
 		Template: "Invalid template",
 	}
-	
+
 	err = pa.RegisterTemplate(invalidTemplate)
 	if err == nil {
 		t.Error("Expected error for template with empty name")
 	}
-	
+
 	// Test registering template with empty content
-	invalidTemplate2 := &PromptTemplate{
+	invalidTemplate2 := &interfaces.PromptTemplate{
 		Name:     "invalid2",
 		Template: "",
 	}
-	
+
 	err = pa.RegisterTemplate(invalidTemplate2)
 	if err == nil {
 		t.Error("Expected error for template with empty content")
@@ -369,7 +370,7 @@ func TestRegisterTemplate(t *testing.T) {
 
 func TestExtractIndustryHints(t *testing.T) {
 	pa := &promptArchitect{}
-	
+
 	tests := []struct {
 		message  string
 		company  string
@@ -406,7 +407,7 @@ func TestExtractIndustryHints(t *testing.T) {
 			expected: "General",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.expected, func(t *testing.T) {
 			result := pa.extractIndustryHints(tt.message, tt.company)
@@ -419,7 +420,7 @@ func TestExtractIndustryHints(t *testing.T) {
 
 func TestExtractUseCase(t *testing.T) {
 	pa := &promptArchitect{}
-	
+
 	tests := []struct {
 		services []string
 		message  string
@@ -451,7 +452,7 @@ func TestExtractUseCase(t *testing.T) {
 			expected: "General Consulting",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.expected, func(t *testing.T) {
 			result := pa.extractUseCase(tt.services, tt.message)
@@ -464,7 +465,7 @@ func TestExtractUseCase(t *testing.T) {
 
 func TestTemplateRendering(t *testing.T) {
 	pa := NewPromptArchitect()
-	
+
 	// Test that templates can be rendered without errors
 	inquiry := &domain.Inquiry{
 		Name:     "Test Client",
@@ -475,7 +476,7 @@ func TestTemplateRendering(t *testing.T) {
 		Message:  "Test message for template rendering",
 		Priority: "medium",
 	}
-	
+
 	templateNames := []string{
 		"enhanced_report",
 		"technical_report",
@@ -485,16 +486,16 @@ func TestTemplateRendering(t *testing.T) {
 		"competitive_analysis",
 		"comprehensive_report",
 	}
-	
+
 	for _, templateName := range templateNames {
 		t.Run(templateName, func(t *testing.T) {
 			template, err := pa.GetTemplate(templateName)
 			if err != nil {
 				t.Fatalf("Failed to get template %s: %v", templateName, err)
 			}
-			
+
 			var variables map[string]interface{}
-			
+
 			switch templateName {
 			case "interview_guide":
 				variables = pa.(*promptArchitect).prepareInterviewVariables(inquiry)
@@ -503,22 +504,22 @@ func TestTemplateRendering(t *testing.T) {
 			case "competitive_analysis":
 				variables = pa.(*promptArchitect).prepareCompetitiveAnalysisVariables(inquiry)
 			default:
-				options := &PromptOptions{
+				options := &interfaces.PromptOptions{
 					TargetAudience: "mixed",
 					CloudProviders: []string{"AWS", "Azure"},
 				}
 				variables = pa.(*promptArchitect).prepareReportVariables(inquiry, options)
 			}
-			
+
 			rendered, err := pa.(*promptArchitect).renderTemplate(template, variables)
 			if err != nil {
 				t.Fatalf("Failed to render template %s: %v", templateName, err)
 			}
-			
+
 			if len(rendered) == 0 {
 				t.Errorf("Template %s rendered to empty string", templateName)
 			}
-			
+
 			// Verify no unsubstituted variables remain
 			if strings.Contains(rendered, "{{") || strings.Contains(rendered, "}}") {
 				t.Errorf("Template %s contains unsubstituted variables", templateName)

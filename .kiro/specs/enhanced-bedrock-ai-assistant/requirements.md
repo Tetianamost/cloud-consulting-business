@@ -2,23 +2,29 @@
 
 ## Introduction
 
-This feature enhances the existing Bedrock AI integration to transform it from a basic report generator into a comprehensive, intelligent cloud consulting assistant. The enhanced system will provide specific cloud provider documentation references, help consultants prepare for customer interviews, generate direct and actionable reports with minimal fluff, and support multiple cloud providers (AWS, Azure, GCP, etc.) rather than just AWS. The AI assistant will serve as a knowledgeable partner that helps consultants deliver more value to their clients through precise, well-researched recommendations.
+This feature transforms the existing Bedrock AI integration into a sophisticated real-time assistant specifically designed for skilled AWS cloud consultants. The enhanced system provides instant, expert-level responses during client meetings, deep technical analysis that matches consultant expertise, and intelligent tools that understand your company's specific services and methodologies. The AI assistant serves as a knowledgeable partner that enhances consultant effectiveness during actual client engagements.
 
-**IMPORTANT: These AI-generated reports are internal tools for cloud consulting business employees/consultants. They are NOT sent directly to customers. Instead, they help consultants analyze client inquiries, prepare for meetings, and develop better responses and proposals for their clients.**
+**KEY CAPABILITIES:**
+- **Real-time consultant chat** integrated into admin dashboard for live client meetings
+- **Expert-level AWS analysis** with specific cost optimizations, security assessments, and architectural recommendations
+- **Company-specific intelligence** that understands your services, past projects, and team expertise
+- **Advanced consultant productivity tools** for meeting preparation, proposal generation, and technical deep-dives
+
+**IMPORTANT: All AI-generated content serves as internal decision support tools for experienced cloud consultants during client engagements and project planning. These are NOT customer-facing deliverables.**
 
 ## Requirements
 
 ### Requirement 1
 
-**User Story:** As a cloud consultant, I want the AI assistant to provide specific cloud provider documentation references so that I can give clients authoritative and up-to-date information.
+**User Story:** As a cloud consultant, I want a real-time chat interface in the admin dashboard so that I can get instant, expert-level responses during live client meetings without breaking conversation flow.
 
 #### Acceptance Criteria
 
-1. WHEN generating a report THEN the system SHALL include specific links to relevant AWS, Azure, GCP, and other cloud provider documentation
-2. WHEN recommending a service or solution THEN the system SHALL reference the official documentation page for that service
-3. WHEN suggesting best practices THEN the system SHALL cite specific AWS Well-Architected Framework pillars, Azure Architecture Center articles, or GCP best practices guides
-4. WHEN providing cost optimization advice THEN the system SHALL reference official pricing calculators and cost management tools documentation
-5. WHEN discussing security recommendations THEN the system SHALL link to official security best practices and compliance documentation
+1. WHEN I'm in a client meeting THEN I can access a chat interface in the admin dashboard to ask questions in real-time
+2. WHEN I type client notes or questions THEN the AI SHALL provide immediate, context-aware responses within 3 seconds
+3. WHEN I ask technical questions THEN the system SHALL provide expert-level AWS analysis that matches my consultant expertise level
+4. WHEN I reference past conversations THEN the system SHALL maintain context throughout the entire client meeting session
+5. WHEN I need quick responses THEN the system SHALL offer pre-built templates for common consultant scenarios
 
 ### Requirement 2
 

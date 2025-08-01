@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, easeOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { FiChevronDown } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
@@ -116,7 +116,7 @@ const cardVariants = {
     transition: {
       duration: 0.6,
       delay: i * 0.13,
-      ease: 'easeOut',
+      ease: easeOut, // replaced cubic-bezier array with valid string
     }
   })
 };
@@ -140,7 +140,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, index }) => {
       <Title>{service.title}</Title>
       <Description>{service.description}</Description>
       <ExpandButton 
-        onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); setExpanded(v => !v); }}
         $isExpanded={expanded}
         as={motion.button}
         aria-expanded={expanded}

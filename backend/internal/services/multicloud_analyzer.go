@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,7 +32,7 @@ func (m *MultiCloudAnalyzerService) CompareServices(ctx context.Context, require
 	// Get service options from all major providers
 	providers := []string{"aws", "azure", "gcp"}
 	var providerOptions []interfaces.ProviderOption
-	
+
 	for _, provider := range providers {
 		option, err := m.getProviderOption(ctx, provider, requirement)
 		if err != nil {
@@ -49,10 +50,10 @@ func (m *MultiCloudAnalyzerService) CompareServices(ctx context.Context, require
 
 	// Create comparison matrix
 	comparisonMatrix := m.createComparisonMatrix(requirement, providerOptions)
-	
+
 	// Calculate scores and determine recommendation
 	m.calculateProviderScores(&providerOptions, comparisonMatrix, requirement)
-	
+
 	// Sort by score (highest first)
 	sort.Slice(providerOptions, func(i, j int) bool {
 		return providerOptions[i].Score > providerOptions[j].Score
@@ -71,10 +72,10 @@ func (m *MultiCloudAnalyzerService) CompareServices(ctx context.Context, require
 }
 
 // AnalyzeCosts analyzes costs across providers for a given workload
-func (m *MultiCloudAnalyzerService) AnalyzeCosts(ctx context.Context, workload interfaces.WorkloadSpec) (*interfaces.CostAnalysis, error) {
+func (m *MultiCloudAnalyzerService) AnalyzeCosts(ctx context.Context, workload interfaces.WorkloadSpec) (*interfaces.MultiCloudCostAnalysis, error) {
 	providers := []string{"aws", "azure", "gcp"}
 	var providerCosts []interfaces.ProviderCostBreakdown
-	
+
 	for _, provider := range providers {
 		costBreakdown, err := m.calculateProviderCosts(ctx, provider, workload)
 		if err != nil {
@@ -96,7 +97,7 @@ func (m *MultiCloudAnalyzerService) AnalyzeCosts(ctx context.Context, workload i
 	recommendation := m.generateCostRecommendation(providerCosts, workload)
 	optimizationTips := m.generateCostOptimizationTips(providerCosts, workload)
 
-	return &interfaces.CostAnalysis{
+	return &interfaces.MultiCloudCostAnalysis{
 		WorkloadName:     workload.Name,
 		AnalysisDate:     time.Now(),
 		Currency:         "USD",
@@ -113,7 +114,7 @@ func (m *MultiCloudAnalyzerService) AnalyzeCosts(ctx context.Context, workload i
 func (m *MultiCloudAnalyzerService) EvaluateProviders(ctx context.Context, criteria interfaces.EvaluationCriteria) (*interfaces.ProviderEvaluation, error) {
 	providers := []string{"aws", "azure", "gcp"}
 	var providerScores []interfaces.ProviderScore
-	
+
 	for _, provider := range providers {
 		score, err := m.evaluateProvider(ctx, provider, criteria)
 		if err != nil {
@@ -161,18 +162,18 @@ func (m *MultiCloudAnalyzerService) GetMigrationPaths(ctx context.Context, sourc
 	cost := m.estimateMigrationCost(complexity, len(serviceMappings))
 
 	return &interfaces.MigrationPath{
-		SourceProvider:      source,
-		TargetProvider:      target,
-		MigrationStrategy:   m.getMigrationStrategy(source.Code, target.Code),
-		EstimatedDuration:   duration,
-		EstimatedCost:       cost,
-		ComplexityLevel:     complexity,
-		ServiceMappings:     serviceMappings,
-		MigrationPhases:     migrationPhases,
-		RisksAndChallenges:  m.getMigrationRisks(source.Code, target.Code),
-		BestPractices:       m.getMigrationBestPractices(source.Code, target.Code),
-		ToolsAndServices:    toolsAndServices,
-		SuccessFactors:      m.getMigrationSuccessFactors(),
+		SourceProvider:     source,
+		TargetProvider:     target,
+		MigrationStrategy:  m.getMigrationStrategy(source.Code, target.Code),
+		EstimatedDuration:  duration,
+		EstimatedCost:      cost,
+		ComplexityLevel:    complexity,
+		ServiceMappings:    serviceMappings,
+		MigrationPhases:    migrationPhases,
+		RisksAndChallenges: m.getMigrationRisks(source.Code, target.Code),
+		BestPractices:      m.getMigrationBestPractices(source.Code, target.Code),
+		ToolsAndServices:   toolsAndServices,
+		SuccessFactors:     m.getMigrationSuccessFactors(),
 	}, nil
 }
 
@@ -180,7 +181,7 @@ func (m *MultiCloudAnalyzerService) GetMigrationPaths(ctx context.Context, sourc
 func (m *MultiCloudAnalyzerService) GetProviderRecommendation(ctx context.Context, inquiry *domain.Inquiry) (*interfaces.ProviderRecommendation, error) {
 	// Analyze inquiry to extract requirements
 	criteria := m.extractCriteriaFromInquiry(inquiry)
-	
+
 	// Evaluate providers
 	evaluation, err := m.EvaluateProviders(ctx, criteria)
 	if err != nil {
@@ -192,10 +193,10 @@ func (m *MultiCloudAnalyzerService) GetProviderRecommendation(ctx context.Contex
 	}
 
 	topProvider := evaluation.Providers[0]
-	
+
 	// Generate scenarios
 	scenarios := m.generateRecommendationScenarios(evaluation.Providers, criteria)
-	
+
 	// Generate implementation guidance
 	implementation := m.generateImplementationGuidance(topProvider.Provider, criteria)
 
@@ -215,10 +216,10 @@ func (m *MultiCloudAnalyzerService) GetProviderRecommendation(ctx context.Contex
 // GetServiceEquivalents returns equivalent services across providers
 func (m *MultiCloudAnalyzerService) GetServiceEquivalents(ctx context.Context, provider string, serviceName string) (map[string]string, error) {
 	equivalents := make(map[string]string)
-	
+
 	// Define service mappings (this would typically come from a knowledge base)
 	serviceMappings := m.getServiceEquivalentMappings()
-	
+
 	key := fmt.Sprintf("%s:%s", provider, serviceName)
 	if mapping, exists := serviceMappings[key]; exists {
 		equivalents = mapping
@@ -282,7 +283,7 @@ func (m *MultiCloudAnalyzerService) createComparisonMatrix(requirement interface
 	}
 
 	var matrix []interfaces.ComparisonRow
-	
+
 	for _, criterion := range criteria {
 		row := interfaces.ComparisonRow{
 			Criteria:    criterion.name,
@@ -335,10 +336,8 @@ func (m *MultiCloudAnalyzerService) calculateCriterionScore(criterion string, op
 
 func (m *MultiCloudAnalyzerService) calculateCostScore(option interfaces.ProviderOption, requirement interfaces.ServiceRequirement) float64 {
 	// Parse cost string and compare against budget
-	// This is a simplified implementation
+	estimatedCost := m.parseEstimatedMonthlyCost(option.EstimatedMonthlyCost)
 	if requirement.Budget.MaxMonthlyCost > 0 {
-		// Estimate cost based on service name and complexity
-		estimatedCost := m.estimateServiceCost(option.ServiceName, option.ImplementationComplexity)
 		if estimatedCost <= requirement.Budget.MaxMonthlyCost {
 			return 1.0 - (estimatedCost / requirement.Budget.MaxMonthlyCost)
 		}
@@ -347,29 +346,62 @@ func (m *MultiCloudAnalyzerService) calculateCostScore(option interfaces.Provide
 	return 0.7 // Default score when no budget specified
 }
 
+// parseEstimatedMonthlyCost parses a cost string like "$50-500/month" and returns a float64 (lower bound or average)
+func (m *MultiCloudAnalyzerService) parseEstimatedMonthlyCost(costStr string) float64 {
+	costStr = strings.ToLower(strings.TrimSpace(costStr))
+	costStr = strings.ReplaceAll(costStr, "$", "")
+	costStr = strings.Split(costStr, "/")[0]
+	parts := strings.Split(costStr, "-")
+	if len(parts) == 2 {
+		low, err1 := parseFloatSafe(parts[0])
+		high, err2 := parseFloatSafe(parts[1])
+		if err1 == nil && err2 == nil {
+			return (low + high) / 2.0
+		}
+		if err1 == nil {
+			return low
+		}
+		if err2 == nil {
+			return high
+		}
+	} else if len(parts) == 1 {
+		val, err := parseFloatSafe(parts[0])
+		if err == nil {
+			return val
+		}
+	}
+	return 100.0 // Default fallback
+}
+
+// parseFloatSafe tries to parse a float from a string, returns error if fails
+func parseFloatSafe(s string) (float64, error) {
+	s = strings.TrimSpace(s)
+	return strconv.ParseFloat(s, 64)
+}
+
 func (m *MultiCloudAnalyzerService) calculatePerformanceScore(option interfaces.ProviderOption, requirement interfaces.ServiceRequirement) float64 {
 	// Evaluate performance based on features and requirements
 	score := 0.5 // Base score
-	
+
 	// Check if performance requirements are met
 	if requirement.Performance.CPU != "" {
 		if m.meetsPerformanceRequirement(option.Features, "cpu", requirement.Performance.CPU) {
 			score += 0.2
 		}
 	}
-	
+
 	if requirement.Performance.Memory != "" {
 		if m.meetsPerformanceRequirement(option.Features, "memory", requirement.Performance.Memory) {
 			score += 0.2
 		}
 	}
-	
+
 	if requirement.Performance.Availability != "" {
 		if m.meetsPerformanceRequirement(option.Features, "availability", requirement.Performance.Availability) {
 			score += 0.1
 		}
 	}
-	
+
 	return math.Min(score, 1.0)
 }
 
@@ -377,7 +409,7 @@ func (m *MultiCloudAnalyzerService) calculateComplianceScore(option interfaces.P
 	if len(requirement.Compliance) == 0 {
 		return 0.8 // Default score when no compliance requirements
 	}
-	
+
 	matchedCompliance := 0
 	for _, reqCompliance := range requirement.Compliance {
 		for _, optCompliance := range option.ComplianceCertifications {
@@ -387,7 +419,7 @@ func (m *MultiCloudAnalyzerService) calculateComplianceScore(option interfaces.P
 			}
 		}
 	}
-	
+
 	return float64(matchedCompliance) / float64(len(requirement.Compliance))
 }
 
@@ -423,7 +455,7 @@ func (m *MultiCloudAnalyzerService) generateRecommendation(options []interfaces.
 	if len(options) == 0 {
 		return "No suitable providers found"
 	}
-	
+
 	top := options[0]
 	return fmt.Sprintf("Based on your requirements for %s, %s is recommended with their %s service. This option provides the best balance of cost, performance, and compliance for your use case.",
 		requirement.Category, strings.ToUpper(top.Provider), top.ServiceName)
@@ -435,12 +467,12 @@ func (m *MultiCloudAnalyzerService) generateReasoning(option interfaces.Provider
 		fmt.Sprintf("Implementation complexity is %s", option.ImplementationComplexity),
 		fmt.Sprintf("Provides %s support level", option.SupportLevel),
 	}
-	
+
 	if len(requirement.Compliance) > 0 {
-		reasons = append(reasons, fmt.Sprintf("Meets %d of %d compliance requirements", 
+		reasons = append(reasons, fmt.Sprintf("Meets %d of %d compliance requirements",
 			len(option.ComplianceCertifications), len(requirement.Compliance)))
 	}
-	
+
 	return strings.Join(reasons, "; ")
 }
 
@@ -451,7 +483,7 @@ func (m *MultiCloudAnalyzerService) calculateProviderCosts(ctx context.Context, 
 	// Simplified cost calculation - in reality this would use pricing APIs
 	var componentCosts []interfaces.ComponentCost
 	totalMonthlyCost := 0.0
-	
+
 	for _, component := range workload.Components {
 		cost := m.estimateComponentCost(provider, component)
 		componentCosts = append(componentCosts, interfaces.ComponentCost{
@@ -464,7 +496,7 @@ func (m *MultiCloudAnalyzerService) calculateProviderCosts(ctx context.Context, 
 		})
 		totalMonthlyCost += cost
 	}
-	
+
 	return &interfaces.ProviderCostBreakdown{
 		Provider:         provider,
 		TotalMonthlyCost: totalMonthlyCost,
@@ -478,14 +510,14 @@ func (m *MultiCloudAnalyzerService) calculateProviderCosts(ctx context.Context, 
 func (m *MultiCloudAnalyzerService) evaluateProvider(ctx context.Context, provider string, criteria interfaces.EvaluationCriteria) (*interfaces.ProviderScore, error) {
 	// Simplified provider evaluation
 	categoryScores := make(map[string]float64)
-	
+
 	// Evaluate different categories
 	categoryScores["cost"] = m.evaluateCostCategory(provider, criteria)
 	categoryScores["performance"] = m.evaluatePerformanceCategory(provider, criteria)
 	categoryScores["compliance"] = m.evaluateComplianceCategory(provider, criteria)
 	categoryScores["support"] = m.evaluateSupportCategory(provider, criteria)
 	categoryScores["innovation"] = m.evaluateInnovationCategory(provider, criteria)
-	
+
 	// Calculate overall score based on priorities
 	overallScore := 0.0
 	for category, score := range categoryScores {
@@ -495,11 +527,11 @@ func (m *MultiCloudAnalyzerService) evaluateProvider(ctx context.Context, provid
 			overallScore += score * 0.2 // Default weight
 		}
 	}
-	
+
 	strengths, weaknesses := m.getProviderStrengthsWeaknesses(provider)
 	recommendations := m.getProviderRecommendations(provider, criteria)
 	fitScore := m.calculateFitScore(overallScore)
-	
+
 	return &interfaces.ProviderScore{
 		Provider:        provider,
 		OverallScore:    overallScore,
@@ -519,133 +551,109 @@ func (m *MultiCloudAnalyzerService) getServiceInfoForProvider(provider, category
 	serviceMap := map[string]map[string]*ServiceInfo{
 		"aws": {
 			"compute": {
-				ServiceName:     "EC2",
-				Description:     "Elastic Compute Cloud - scalable virtual servers",
-				Pros:           []string{"Highly scalable", "Wide instance types", "Mature ecosystem"},
-				Cons:           []string{"Complex pricing", "Steep learning curve"},
-				EstimatedCost:  "$50-500/month",
-				Complexity:     "medium",
-				SupportLevel:   "enterprise",
-				Regions:        []string{"us-east-1", "us-west-2", "eu-west-1"},
-				Compliance:     []string{"SOC2", "HIPAA", "PCI-DSS"},
-				Features:       map[string]string{"auto-scaling": "yes", "load-balancing": "yes"},
+				ServiceName:   "EC2",
+				Description:   "Elastic Compute Cloud - scalable virtual servers",
+				Pros:          []string{"Highly scalable", "Wide instance types", "Mature ecosystem"},
+				Cons:          []string{"Complex pricing", "Steep learning curve"},
+				EstimatedCost: "$50-500/month",
+				Complexity:    "medium",
+				SupportLevel:  "enterprise",
+				Regions:       []string{"us-east-1", "us-west-2", "eu-west-1"},
+				Compliance:    []string{"SOC2", "HIPAA", "PCI-DSS"},
+				Features:      map[string]string{"auto-scaling": "yes", "load-balancing": "yes"},
 			},
 			"storage": {
-				ServiceName:     "S3",
-				Description:     "Simple Storage Service - object storage",
-				Pros:           []string{"Highly durable", "Multiple storage classes", "Global availability"},
-				Cons:           []string{"Complex permissions", "Data transfer costs"},
-				EstimatedCost:  "$20-200/month",
-				Complexity:     "low",
-				SupportLevel:   "enterprise",
-				Regions:        []string{"us-east-1", "us-west-2", "eu-west-1"},
-				Compliance:     []string{"SOC2", "HIPAA", "PCI-DSS"},
-				Features:       map[string]string{"versioning": "yes", "encryption": "yes"},
+				ServiceName:   "S3",
+				Description:   "Simple Storage Service - object storage",
+				Pros:          []string{"Highly durable", "Multiple storage classes", "Global availability"},
+				Cons:          []string{"Complex permissions", "Data transfer costs"},
+				EstimatedCost: "$20-200/month",
+				Complexity:    "low",
+				SupportLevel:  "enterprise",
+				Regions:       []string{"us-east-1", "us-west-2", "eu-west-1"},
+				Compliance:    []string{"SOC2", "HIPAA", "PCI-DSS"},
+				Features:      map[string]string{"versioning": "yes", "encryption": "yes"},
 			},
 		},
 		"azure": {
 			"compute": {
-				ServiceName:     "Virtual Machines",
-				Description:     "Scalable virtual machines in the cloud",
-				Pros:           []string{"Good Windows integration", "Hybrid capabilities", "Enterprise features"},
-				Cons:           []string{"Complex networking", "Limited Linux support"},
-				EstimatedCost:  "$45-480/month",
-				Complexity:     "medium",
-				SupportLevel:   "enterprise",
-				Regions:        []string{"eastus", "westus2", "westeurope"},
-				Compliance:     []string{"SOC2", "HIPAA", "ISO27001"},
-				Features:       map[string]string{"auto-scaling": "yes", "load-balancing": "yes"},
+				ServiceName:   "Virtual Machines",
+				Description:   "Scalable virtual machines in the cloud",
+				Pros:          []string{"Good Windows integration", "Hybrid capabilities", "Enterprise features"},
+				Cons:          []string{"Complex networking", "Limited Linux support"},
+				EstimatedCost: "$45-480/month",
+				Complexity:    "medium",
+				SupportLevel:  "enterprise",
+				Regions:       []string{"eastus", "westus2", "westeurope"},
+				Compliance:    []string{"SOC2", "HIPAA", "ISO27001"},
+				Features:      map[string]string{"auto-scaling": "yes", "load-balancing": "yes"},
 			},
 			"storage": {
-				ServiceName:     "Blob Storage",
-				Description:     "Massively scalable object storage",
-				Pros:           []string{"Good integration with Microsoft tools", "Tiered storage", "Strong security"},
-				Cons:           []string{"Less mature than competitors", "Complex pricing tiers"},
-				EstimatedCost:  "$18-180/month",
-				Complexity:     "low",
-				SupportLevel:   "enterprise",
-				Regions:        []string{"eastus", "westus2", "westeurope"},
-				Compliance:     []string{"SOC2", "HIPAA", "ISO27001"},
-				Features:       map[string]string{"versioning": "yes", "encryption": "yes"},
+				ServiceName:   "Blob Storage",
+				Description:   "Massively scalable object storage",
+				Pros:          []string{"Good integration with Microsoft tools", "Tiered storage", "Strong security"},
+				Cons:          []string{"Less mature than competitors", "Complex pricing tiers"},
+				EstimatedCost: "$18-180/month",
+				Complexity:    "low",
+				SupportLevel:  "enterprise",
+				Regions:       []string{"eastus", "westus2", "westeurope"},
+				Compliance:    []string{"SOC2", "HIPAA", "ISO27001"},
+				Features:      map[string]string{"versioning": "yes", "encryption": "yes"},
 			},
 		},
 		"gcp": {
 			"compute": {
-				ServiceName:     "Compute Engine",
-				Description:     "High-performance virtual machines",
-				Pros:           []string{"Competitive pricing", "Good performance", "Strong AI/ML integration"},
-				Cons:           []string{"Smaller ecosystem", "Limited enterprise features", "Fewer regions"},
-				EstimatedCost:  "$40-450/month",
-				Complexity:     "medium",
-				SupportLevel:   "business",
-				Regions:        []string{"us-central1", "us-west1", "europe-west1"},
-				Compliance:     []string{"SOC2", "HIPAA", "ISO27001"},
-				Features:       map[string]string{"auto-scaling": "yes", "load-balancing": "yes"},
+				ServiceName:   "Compute Engine",
+				Description:   "High-performance virtual machines",
+				Pros:          []string{"Competitive pricing", "Good performance", "Strong AI/ML integration"},
+				Cons:          []string{"Smaller ecosystem", "Limited enterprise features", "Fewer regions"},
+				EstimatedCost: "$40-450/month",
+				Complexity:    "medium",
+				SupportLevel:  "business",
+				Regions:       []string{"us-central1", "us-west1", "europe-west1"},
+				Compliance:    []string{"SOC2", "HIPAA", "ISO27001"},
+				Features:      map[string]string{"auto-scaling": "yes", "load-balancing": "yes"},
 			},
 			"storage": {
-				ServiceName:     "Cloud Storage",
-				Description:     "Unified object storage for developers and enterprises",
-				Pros:           []string{"Simple pricing", "Good performance", "Strong consistency"},
-				Cons:           []string{"Limited features", "Smaller ecosystem", "Less mature"},
-				EstimatedCost:  "$15-150/month",
-				Complexity:     "low",
-				SupportLevel:   "business",
-				Regions:        []string{"us-central1", "us-west1", "europe-west1"},
-				Compliance:     []string{"SOC2", "HIPAA", "ISO27001"},
-				Features:       map[string]string{"versioning": "yes", "encryption": "yes"},
+				ServiceName:   "Cloud Storage",
+				Description:   "Unified object storage for developers and enterprises",
+				Pros:          []string{"Simple pricing", "Good performance", "Strong consistency"},
+				Cons:          []string{"Limited features", "Smaller ecosystem", "Less mature"},
+				EstimatedCost: "$15-150/month",
+				Complexity:    "low",
+				SupportLevel:  "business",
+				Regions:       []string{"us-central1", "us-west1", "europe-west1"},
+				Compliance:    []string{"SOC2", "HIPAA", "ISO27001"},
+				Features:      map[string]string{"versioning": "yes", "encryption": "yes"},
 			},
 		},
 	}
-	
+
 	if providerServices, exists := serviceMap[provider]; exists {
 		if service, exists := providerServices[category]; exists {
 			return service
 		}
 	}
-	
+
 	return nil
 }
 
 type ServiceInfo struct {
-	ServiceName     string
-	Description     string
-	Pros           []string
-	Cons           []string
-	EstimatedCost  string
-	Complexity     string
-	SupportLevel   string
-	Regions        []string
-	Compliance     []string
-	Features       map[string]string
+	ServiceName   string
+	Description   string
+	Pros          []string
+	Cons          []string
+	EstimatedCost string
+	Complexity    string
+	SupportLevel  string
+	Regions       []string
+	Compliance    []string
+	Features      map[string]string
 }
 
 func (m *MultiCloudAnalyzerService) estimateServiceCost(serviceName, complexity string) float64 {
-	baseCosts := map[string]float64{
-		"EC2":              100.0,
-		"Virtual Machines": 95.0,
-		"Compute Engine":   90.0,
-		"S3":               50.0,
-		"Blob Storage":     45.0,
-		"Cloud Storage":    40.0,
-	}
-	
-	complexityMultiplier := map[string]float64{
-		"low":    1.0,
-		"medium": 1.5,
-		"high":   2.0,
-	}
-	
-	baseCost := baseCosts[serviceName]
-	if baseCost == 0 {
-		baseCost = 100.0 // Default
-	}
-	
-	multiplier := complexityMultiplier[complexity]
-	if multiplier == 0 {
-		multiplier = 1.0 // Default
-	}
-	
-	return baseCost * multiplier
+	// This is now unused, but kept for compatibility
+	return 100.0
 }
 
 func (m *MultiCloudAnalyzerService) meetsPerformanceRequirement(features map[string]string, requirement, value string) bool {
@@ -678,7 +686,7 @@ func (m *MultiCloudAnalyzerService) extractCriteriaFromInquiry(inquiry *domain.I
 		},
 		TeamSkills: []string{"general"},
 	}
-	
+
 	return criteria
 }
 
@@ -688,9 +696,9 @@ func (m *MultiCloudAnalyzerService) generateCostRecommendation(costs []interface
 	if len(costs) == 0 {
 		return "No cost analysis available"
 	}
-	
+
 	cheapest := costs[0]
-	return fmt.Sprintf("For workload '%s', %s offers the most cost-effective solution at $%.2f/month", 
+	return fmt.Sprintf("For workload '%s', %s offers the most cost-effective solution at $%.2f/month",
 		workload.Name, strings.ToUpper(cheapest.Provider), cheapest.TotalMonthlyCost)
 }
 
@@ -700,17 +708,17 @@ func (m *MultiCloudAnalyzerService) generateCostOptimizationTips(costs []interfa
 			Title:            "Use Reserved Instances",
 			Description:      "Consider reserved instances for predictable workloads to save up to 60%",
 			PotentialSavings: 500.0,
-			Effort:          "low",
-			Impact:          "high",
-			Implementation:  []string{"Analyze usage patterns", "Purchase reserved capacity", "Monitor utilization"},
+			Effort:           "low",
+			Impact:           "high",
+			Implementation:   []string{"Analyze usage patterns", "Purchase reserved capacity", "Monitor utilization"},
 		},
 		{
 			Title:            "Implement Auto-scaling",
 			Description:      "Use auto-scaling to match capacity with demand",
 			PotentialSavings: 300.0,
-			Effort:          "medium",
-			Impact:          "medium",
-			Implementation:  []string{"Configure scaling policies", "Set up monitoring", "Test scaling behavior"},
+			Effort:           "medium",
+			Impact:           "medium",
+			Implementation:   []string{"Configure scaling policies", "Set up monitoring", "Test scaling behavior"},
 		},
 	}
 }
@@ -755,13 +763,13 @@ func (m *MultiCloudAnalyzerService) estimateComponentCost(provider string, compo
 			"network":  0.045,
 		},
 	}
-	
+
 	if providerCosts, exists := baseCosts[provider]; exists {
 		if unitCost, exists := providerCosts[component.Type]; exists {
 			return unitCost * float64(component.Quantity) * component.Utilization * 24 * 30 // Monthly cost
 		}
 	}
-	
+
 	return 100.0 // Default monthly cost
 }
 
@@ -786,13 +794,13 @@ func (m *MultiCloudAnalyzerService) getServiceNameForComponent(provider, compone
 			"network":  "VPC",
 		},
 	}
-	
+
 	if providerServices, exists := serviceMap[provider]; exists {
 		if service, exists := providerServices[componentType]; exists {
 			return service
 		}
 	}
-	
+
 	return componentType
 }
 
@@ -803,7 +811,7 @@ func (m *MultiCloudAnalyzerService) evaluateCostCategory(provider string, criter
 		"azure": 0.75,
 		"gcp":   0.8,
 	}
-	
+
 	if score, exists := costScores[provider]; exists {
 		return score
 	}
@@ -816,7 +824,7 @@ func (m *MultiCloudAnalyzerService) evaluatePerformanceCategory(provider string,
 		"azure": 0.8,
 		"gcp":   0.85,
 	}
-	
+
 	if score, exists := performanceScores[provider]; exists {
 		return score
 	}
@@ -829,7 +837,7 @@ func (m *MultiCloudAnalyzerService) evaluateComplianceCategory(provider string, 
 		"azure": 0.9,
 		"gcp":   0.85,
 	}
-	
+
 	if score, exists := complianceScores[provider]; exists {
 		return score
 	}
@@ -842,7 +850,7 @@ func (m *MultiCloudAnalyzerService) evaluateSupportCategory(provider string, cri
 		"azure": 0.85,
 		"gcp":   0.75,
 	}
-	
+
 	if score, exists := supportScores[provider]; exists {
 		return score
 	}
@@ -855,7 +863,7 @@ func (m *MultiCloudAnalyzerService) evaluateInnovationCategory(provider string, 
 		"azure": 0.8,
 		"gcp":   0.95,
 	}
-	
+
 	if score, exists := innovationScores[provider]; exists {
 		return score
 	}
@@ -864,8 +872,8 @@ func (m *MultiCloudAnalyzerService) evaluateInnovationCategory(provider string, 
 
 func (m *MultiCloudAnalyzerService) getProviderStrengthsWeaknesses(provider string) ([]string, []string) {
 	strengthsWeaknesses := map[string]struct {
-		strengths   []string
-		weaknesses  []string
+		strengths  []string
+		weaknesses []string
 	}{
 		"aws": {
 			strengths:  []string{"Market leader", "Extensive service portfolio", "Strong ecosystem", "Global presence"},
@@ -880,11 +888,11 @@ func (m *MultiCloudAnalyzerService) getProviderStrengthsWeaknesses(provider stri
 			weaknesses: []string{"Smaller market share", "Limited enterprise features", "Fewer regions"},
 		},
 	}
-	
+
 	if data, exists := strengthsWeaknesses[provider]; exists {
 		return data.strengths, data.weaknesses
 	}
-	
+
 	return []string{"General cloud capabilities"}, []string{"Limited information available"}
 }
 
@@ -909,11 +917,11 @@ func (m *MultiCloudAnalyzerService) getProviderRecommendations(provider string, 
 			"Consider multi-region deployments for availability",
 		},
 	}
-	
+
 	if recs, exists := recommendations[provider]; exists {
 		return recs
 	}
-	
+
 	return []string{"Follow cloud best practices", "Implement proper monitoring", "Plan for scalability"}
 }
 
@@ -930,9 +938,9 @@ func (m *MultiCloudAnalyzerService) calculateFitScore(overallScore float64) stri
 
 func (m *MultiCloudAnalyzerService) createEvaluationMatrix(criteria interfaces.EvaluationCriteria, scores []interfaces.ProviderScore) []interfaces.ComparisonRow {
 	var matrix []interfaces.ComparisonRow
-	
+
 	categories := []string{"cost", "performance", "compliance", "support", "innovation"}
-	
+
 	for _, category := range categories {
 		row := interfaces.ComparisonRow{
 			Criteria:    category,
@@ -941,17 +949,17 @@ func (m *MultiCloudAnalyzerService) createEvaluationMatrix(criteria interfaces.E
 			Notes:       make(map[string]string),
 			Description: fmt.Sprintf("Evaluation of %s capabilities", category),
 		}
-		
+
 		for _, score := range scores {
 			if categoryScore, exists := score.CategoryScores[category]; exists {
 				row.Scores[score.Provider] = categoryScore
 				row.Notes[score.Provider] = fmt.Sprintf("Score: %.2f", categoryScore)
 			}
 		}
-		
+
 		matrix = append(matrix, row)
 	}
-	
+
 	return matrix
 }
 
@@ -973,7 +981,7 @@ func (m *MultiCloudAnalyzerService) generateEvaluationSummary(scores []interface
 	if len(scores) == 0 {
 		return "No providers evaluated"
 	}
-	
+
 	top := scores[0]
 	return fmt.Sprintf("Based on evaluation criteria for %s, %s scored highest with %.2f overall score, particularly strong in %s capabilities.",
 		criteria.UseCase, strings.ToUpper(top.Provider), top.OverallScore, m.getTopCategory(top.CategoryScores))
@@ -992,14 +1000,14 @@ func (m *MultiCloudAnalyzerService) generateNextSteps(topProvider interfaces.Pro
 func (m *MultiCloudAnalyzerService) getTopCategory(categoryScores map[string]float64) string {
 	var topCategory string
 	var topScore float64
-	
+
 	for category, score := range categoryScores {
 		if score > topScore {
 			topScore = score
 			topCategory = category
 		}
 	}
-	
+
 	return topCategory
 }
 
@@ -1027,25 +1035,25 @@ func (m *MultiCloudAnalyzerService) getServiceMappings(source, target string) []
 	// This would be populated from a comprehensive service mapping database
 	mappings := []interfaces.ServiceMapping{
 		{
-			SourceService:   "EC2",
-			TargetService:   "Virtual Machines",
-			MappingType:     "direct",
-			Compatibility:   "high",
-			MigrationNotes:  []string{"Instance types may differ", "Security groups vs NSGs"},
-			DataTransfer:    "VM images can be migrated",
-			ConfigChanges:   []string{"Update security group rules", "Modify instance metadata"},
+			SourceService:  "EC2",
+			TargetService:  "Virtual Machines",
+			MappingType:    "direct",
+			Compatibility:  "high",
+			MigrationNotes: []string{"Instance types may differ", "Security groups vs NSGs"},
+			DataTransfer:   "VM images can be migrated",
+			ConfigChanges:  []string{"Update security group rules", "Modify instance metadata"},
 		},
 		{
-			SourceService:   "S3",
-			TargetService:   "Blob Storage",
-			MappingType:     "direct",
-			Compatibility:   "high",
-			MigrationNotes:  []string{"Different API endpoints", "Access control differences"},
-			DataTransfer:    "Use Azure Data Factory or third-party tools",
-			ConfigChanges:   []string{"Update application endpoints", "Modify access policies"},
+			SourceService:  "S3",
+			TargetService:  "Blob Storage",
+			MappingType:    "direct",
+			Compatibility:  "high",
+			MigrationNotes: []string{"Different API endpoints", "Access control differences"},
+			DataTransfer:   "Use Azure Data Factory or third-party tools",
+			ConfigChanges:  []string{"Update application endpoints", "Modify access policies"},
 		},
 	}
-	
+
 	return mappings
 }
 
@@ -1116,7 +1124,7 @@ func (m *MultiCloudAnalyzerService) calculateMigrationComplexity(mappings []inte
 	if len(mappings) == 0 {
 		return "low"
 	}
-	
+
 	complexityScore := 0
 	for _, mapping := range mappings {
 		switch mapping.Compatibility {
@@ -1128,9 +1136,9 @@ func (m *MultiCloudAnalyzerService) calculateMigrationComplexity(mappings []inte
 			complexityScore += 3
 		}
 	}
-	
+
 	avgComplexity := float64(complexityScore) / float64(len(mappings))
-	
+
 	if avgComplexity <= 1.5 {
 		return "low"
 	} else if avgComplexity <= 2.5 {
@@ -1145,16 +1153,16 @@ func (m *MultiCloudAnalyzerService) estimateMigrationDuration(complexity string,
 		"medium": 4,
 		"high":   8,
 	}
-	
+
 	base := baseDuration[complexity]
 	if base == 0 {
 		base = 4
 	}
-	
+
 	// Add time based on number of services
 	additional := serviceCount / 5 // 1 week per 5 services
 	total := base + additional
-	
+
 	return fmt.Sprintf("%d-%d weeks", total, total+2)
 }
 
@@ -1164,16 +1172,16 @@ func (m *MultiCloudAnalyzerService) estimateMigrationCost(complexity string, ser
 		"medium": 15000,
 		"high":   30000,
 	}
-	
+
 	base := baseCost[complexity]
 	if base == 0 {
 		base = 15000
 	}
-	
+
 	// Add cost based on number of services
 	additional := serviceCount * 2000 // $2k per service
 	total := base + additional
-	
+
 	return fmt.Sprintf("$%d-$%d", total, int(float64(total)*1.3))
 }
 
@@ -1188,17 +1196,17 @@ func (m *MultiCloudAnalyzerService) getMigrationStrategy(source, target string) 
 			"gcp": "Modernization-focused migration with cloud-native services",
 		},
 		"gcp": {
-			"aws": "Service-by-service migration with performance optimization",
+			"aws":   "Service-by-service migration with performance optimization",
 			"azure": "Enterprise-focused migration with hybrid considerations",
 		},
 	}
-	
+
 	if sourceStrategies, exists := strategies[source]; exists {
 		if strategy, exists := sourceStrategies[target]; exists {
 			return strategy
 		}
 	}
-	
+
 	return "Standard lift-and-shift migration approach"
 }
 
@@ -1241,78 +1249,78 @@ func (m *MultiCloudAnalyzerService) getMigrationSuccessFactors() []string {
 
 func (m *MultiCloudAnalyzerService) generateRecommendationScenarios(providers []interfaces.ProviderScore, criteria interfaces.EvaluationCriteria) []interfaces.RecommendationScenario {
 	var scenarios []interfaces.RecommendationScenario
-	
+
 	for i, provider := range providers {
 		if i >= 3 { // Limit to top 3 providers
 			break
 		}
-		
+
 		scenario := interfaces.RecommendationScenario{
-			Name:        fmt.Sprintf("%s for %s", strings.ToUpper(provider.Provider), criteria.UseCase),
-			Description: fmt.Sprintf("Using %s as primary cloud provider", strings.ToUpper(provider.Provider)),
-			Provider:    provider.Provider,
-			Conditions:  []string{fmt.Sprintf("Budget allows for %s pricing model", provider.Provider)},
-			Benefits:    provider.Strengths,
+			Name:           fmt.Sprintf("%s for %s", strings.ToUpper(provider.Provider), criteria.UseCase),
+			Description:    fmt.Sprintf("Using %s as primary cloud provider", strings.ToUpper(provider.Provider)),
+			Provider:       provider.Provider,
+			Conditions:     []string{fmt.Sprintf("Budget allows for %s pricing model", provider.Provider)},
+			Benefits:       provider.Strengths,
 			Considerations: provider.Weaknesses,
 		}
-		
+
 		scenarios = append(scenarios, scenario)
 	}
-	
+
 	return scenarios
 }
 
 func (m *MultiCloudAnalyzerService) generateImplementationGuidance(provider string, criteria interfaces.EvaluationCriteria) interfaces.ImplementationGuidance {
 	guidanceMap := map[string]interfaces.ImplementationGuidance{
 		"aws": {
-			QuickStart:      []string{"Create AWS account", "Set up IAM users and roles", "Launch first EC2 instance", "Configure basic monitoring"},
-			BestPractices:   []string{"Follow AWS Well-Architected Framework", "Implement least privilege access", "Use Infrastructure as Code", "Enable CloudTrail logging"},
-			CommonPitfalls:  []string{"Overly permissive IAM policies", "Not using reserved instances", "Ignoring cost monitoring", "Poor tagging strategy"},
-			ResourceLinks:   []string{"https://aws.amazon.com/getting-started/", "https://docs.aws.amazon.com/wellarchitected/"},
-			SupportOptions:  []string{"AWS Support Plans", "AWS Professional Services", "AWS Partner Network"},
-			TrainingNeeds:   []string{"AWS Cloud Practitioner", "Solutions Architect Associate", "Security Specialty"},
+			QuickStart:     []string{"Create AWS account", "Set up IAM users and roles", "Launch first EC2 instance", "Configure basic monitoring"},
+			BestPractices:  []string{"Follow AWS Well-Architected Framework", "Implement least privilege access", "Use Infrastructure as Code", "Enable CloudTrail logging"},
+			CommonPitfalls: []string{"Overly permissive IAM policies", "Not using reserved instances", "Ignoring cost monitoring", "Poor tagging strategy"},
+			ResourceLinks:  []string{"https://aws.amazon.com/getting-started/", "https://docs.aws.amazon.com/wellarchitected/"},
+			SupportOptions: []string{"AWS Support Plans", "AWS Professional Services", "AWS Partner Network"},
+			TrainingNeeds:  []string{"AWS Cloud Practitioner", "Solutions Architect Associate", "Security Specialty"},
 		},
 		"azure": {
-			QuickStart:      []string{"Create Azure subscription", "Set up Azure AD", "Deploy first virtual machine", "Configure monitoring"},
-			BestPractices:   []string{"Use Azure Resource Manager templates", "Implement Azure Policy", "Enable Azure Security Center", "Use managed identities"},
-			CommonPitfalls:  []string{"Complex licensing models", "Not leveraging hybrid benefits", "Poor resource organization", "Inadequate backup strategy"},
-			ResourceLinks:   []string{"https://docs.microsoft.com/azure/", "https://azure.microsoft.com/architecture/"},
-			SupportOptions:  []string{"Azure Support Plans", "Microsoft Consulting Services", "Azure Expert MSPs"},
-			TrainingNeeds:   []string{"Azure Fundamentals", "Azure Administrator", "Azure Solutions Architect"},
+			QuickStart:     []string{"Create Azure subscription", "Set up Azure AD", "Deploy first virtual machine", "Configure monitoring"},
+			BestPractices:  []string{"Use Azure Resource Manager templates", "Implement Azure Policy", "Enable Azure Security Center", "Use managed identities"},
+			CommonPitfalls: []string{"Complex licensing models", "Not leveraging hybrid benefits", "Poor resource organization", "Inadequate backup strategy"},
+			ResourceLinks:  []string{"https://docs.microsoft.com/azure/", "https://azure.microsoft.com/architecture/"},
+			SupportOptions: []string{"Azure Support Plans", "Microsoft Consulting Services", "Azure Expert MSPs"},
+			TrainingNeeds:  []string{"Azure Fundamentals", "Azure Administrator", "Azure Solutions Architect"},
 		},
 		"gcp": {
-			QuickStart:      []string{"Create GCP project", "Set up billing account", "Launch Compute Engine instance", "Enable monitoring"},
-			BestPractices:   []string{"Use Google Cloud Deployment Manager", "Implement IAM best practices", "Enable audit logging", "Use sustained use discounts"},
-			CommonPitfalls:  []string{"Not understanding pricing model", "Poor project organization", "Inadequate monitoring", "Missing security configurations"},
-			ResourceLinks:   []string{"https://cloud.google.com/docs/", "https://cloud.google.com/architecture/"},
-			SupportOptions:  []string{"Google Cloud Support", "Google Professional Services", "Google Cloud Partners"},
-			TrainingNeeds:   []string{"Google Cloud Digital Leader", "Professional Cloud Architect", "Professional Cloud Security Engineer"},
+			QuickStart:     []string{"Create GCP project", "Set up billing account", "Launch Compute Engine instance", "Enable monitoring"},
+			BestPractices:  []string{"Use Google Cloud Deployment Manager", "Implement IAM best practices", "Enable audit logging", "Use sustained use discounts"},
+			CommonPitfalls: []string{"Not understanding pricing model", "Poor project organization", "Inadequate monitoring", "Missing security configurations"},
+			ResourceLinks:  []string{"https://cloud.google.com/docs/", "https://cloud.google.com/architecture/"},
+			SupportOptions: []string{"Google Cloud Support", "Google Professional Services", "Google Cloud Partners"},
+			TrainingNeeds:  []string{"Google Cloud Digital Leader", "Professional Cloud Architect", "Professional Cloud Security Engineer"},
 		},
 	}
-	
+
 	if guidance, exists := guidanceMap[provider]; exists {
 		return guidance
 	}
-	
+
 	return interfaces.ImplementationGuidance{
-		QuickStart:      []string{"Set up account", "Deploy first resource", "Configure monitoring"},
-		BestPractices:   []string{"Follow security best practices", "Implement cost controls", "Use infrastructure as code"},
-		CommonPitfalls:  []string{"Poor security configuration", "Lack of monitoring", "Cost overruns"},
-		ResourceLinks:   []string{"Official documentation", "Best practices guides"},
-		SupportOptions:  []string{"Official support", "Community forums", "Professional services"},
-		TrainingNeeds:   []string{"Platform fundamentals", "Architecture certification", "Security training"},
+		QuickStart:     []string{"Set up account", "Deploy first resource", "Configure monitoring"},
+		BestPractices:  []string{"Follow security best practices", "Implement cost controls", "Use infrastructure as code"},
+		CommonPitfalls: []string{"Poor security configuration", "Lack of monitoring", "Cost overruns"},
+		ResourceLinks:  []string{"Official documentation", "Best practices guides"},
+		SupportOptions: []string{"Official support", "Community forums", "Professional services"},
+		TrainingNeeds:  []string{"Platform fundamentals", "Architecture certification", "Security training"},
 	}
 }
 
 func (m *MultiCloudAnalyzerService) getAlternativeOptions(providers []interfaces.ProviderScore) []string {
 	var alternatives []string
-	
+
 	for i, provider := range providers {
 		if i > 0 && i < 3 { // Skip first (recommended) and limit to 2 alternatives
 			alternatives = append(alternatives, strings.ToUpper(provider.Provider))
 		}
 	}
-	
+
 	return alternatives
 }
 
@@ -1328,7 +1336,7 @@ func (m *MultiCloudAnalyzerService) generateRiskAssessment(provider string, crit
 	} else if criteria.RiskTolerance == "high" {
 		riskLevel = "medium to high"
 	}
-	
+
 	return fmt.Sprintf("Risk level assessed as %s based on %s maturity, your team's experience, and project complexity. Key risks include vendor lock-in, skill gaps, and potential cost overruns.",
 		riskLevel, strings.ToUpper(provider))
 }
@@ -1376,7 +1384,7 @@ func (m *MultiCloudAnalyzerService) getServiceEquivalentMappings() map[string]ma
 func (m *MultiCloudAnalyzerService) inferIndustryFromCompany(company string) string {
 	// Simple industry inference based on company name
 	company = strings.ToLower(company)
-	
+
 	if strings.Contains(company, "hospital") || strings.Contains(company, "health") || strings.Contains(company, "medical") {
 		return "healthcare"
 	} else if strings.Contains(company, "bank") || strings.Contains(company, "financial") || strings.Contains(company, "credit") {
@@ -1386,14 +1394,14 @@ func (m *MultiCloudAnalyzerService) inferIndustryFromCompany(company string) str
 	} else if strings.Contains(company, "tech") || strings.Contains(company, "software") || strings.Contains(company, "digital") {
 		return "technology"
 	}
-	
+
 	return "general"
 }
 
 func (m *MultiCloudAnalyzerService) inferComplianceFromMessage(message string) []string {
 	var compliance []string
 	message = strings.ToLower(message)
-	
+
 	if strings.Contains(message, "hipaa") || strings.Contains(message, "healthcare") || strings.Contains(message, "patient") {
 		compliance = append(compliance, "HIPAA")
 	}
@@ -1406,14 +1414,14 @@ func (m *MultiCloudAnalyzerService) inferComplianceFromMessage(message string) [
 	if strings.Contains(message, "gdpr") || strings.Contains(message, "privacy") || strings.Contains(message, "personal data") {
 		compliance = append(compliance, "GDPR")
 	}
-	
+
 	return compliance
 }
 
 func (m *MultiCloudAnalyzerService) inferTechnicalNeeds(message string) []string {
 	var needs []string
 	message = strings.ToLower(message)
-	
+
 	if strings.Contains(message, "scale") || strings.Contains(message, "scalability") {
 		needs = append(needs, "scalability")
 	}
@@ -1429,14 +1437,14 @@ func (m *MultiCloudAnalyzerService) inferTechnicalNeeds(message string) []string
 	if strings.Contains(message, "integration") || strings.Contains(message, "api") {
 		needs = append(needs, "integration")
 	}
-	
+
 	return needs
 }
 
 func (m *MultiCloudAnalyzerService) inferBusinessNeeds(message string) []string {
 	var needs []string
 	message = strings.ToLower(message)
-	
+
 	if strings.Contains(message, "cost") || strings.Contains(message, "budget") || strings.Contains(message, "save") {
 		needs = append(needs, "cost-optimization")
 	}
@@ -1449,6 +1457,6 @@ func (m *MultiCloudAnalyzerService) inferBusinessNeeds(message string) []string 
 	if strings.Contains(message, "grow") || strings.Contains(message, "expansion") {
 		needs = append(needs, "growth-support")
 	}
-	
+
 	return needs
 }

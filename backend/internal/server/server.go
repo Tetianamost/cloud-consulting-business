@@ -24,6 +24,7 @@ type Server struct {
 	reportHandler  *handlers.ReportHandler
 	adminHandler   *handlers.AdminHandler
 	authHandler    *handlers.AuthHandler
+	chatHandler    *handlers.ChatHandler
 }
 
 // New creates a new server instance
@@ -32,7 +33,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	gin.SetMode(cfg.GinMode)
 
 	router := gin.New()
-	
+
 	// Add middleware
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware(cfg.CORSAllowedOrigins))
@@ -40,17 +41,31 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 
 	// Initialize storage
 	memStorage := storage.NewInMemoryStorage()
-	
+
 	// Initialize template service first
 	templateService := services.NewTemplateService("templates", logger)
-	
+
 	// Initialize PDF service
 	pdfService := services.NewPDFService(logger)
-	
+
 	// Initialize services
 	bedrockService := services.NewBedrockService(&cfg.Bedrock)
-	reportGenerator := services.NewReportGenerator(bedrockService, templateService, pdfService)
-	
+	promptArchitect := services.NewPromptArchitect()
+	knowledgeBase := services.NewInMemoryKnowledgeBase()
+	documentationLibrary := services.NewDocumentationLibraryService()
+	riskAssessor := services.NewRiskAssessorService(knowledgeBase, documentationLibrary)
+	multiCloudAnalyzer := services.NewMultiCloudAnalyzerService(knowledgeBase, documentationLibrary)
+	reportGenerator := services.NewReportGenerator(
+		bedrockService,
+		templateService,
+		pdfService,
+		promptArchitect,
+		knowledgeBase,
+		multiCloudAnalyzer,
+		riskAssessor,
+		documentationLibrary,
+	)
+
 	// Initialize email services (with graceful degradation if SES config is missing)
 	var emailService interfaces.EmailService
 	if cfg.SES.AccessKeyID != "" && cfg.SES.SecretAccessKey != "" && cfg.SES.SenderEmail != "" {
@@ -64,14 +79,15 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	} else {
 		logger.Warn("SES configuration incomplete, email notifications will be disabled")
 	}
-	
+
 	inquiryService := services.NewInquiryService(memStorage, reportGenerator, emailService)
-	
+
 	// Initialize handlers
 	inquiryHandler := handlers.NewInquiryHandler(inquiryService, reportGenerator)
 	reportHandler := handlers.NewReportHandler(memStorage)
 	adminHandler := handlers.NewAdminHandler(memStorage, inquiryService, reportGenerator, emailService)
 	authHandler := handlers.NewAuthHandler(cfg.JWTSecret)
+	chatHandler := handlers.NewChatHandler(logger, bedrockService, knowledgeBase)
 
 	server := &Server{
 		config:         cfg,
@@ -81,6 +97,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 		reportHandler:  reportHandler,
 		adminHandler:   adminHandler,
 		authHandler:    authHandler,
+		chatHandler:    chatHandler,
 	}
 
 	// Setup routes
@@ -98,10 +115,10 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) setupRoutes() {
 	// Serve static files (CSS, etc.)
 	s.router.Static("/static", "./static")
-	
+
 	// Health check endpoint
 	s.router.GET("/health", s.healthCheck)
-	
+
 	// API v1 routes
 	v1 := s.router.Group("/api/v1")
 	{
@@ -132,6 +149,11 @@ func (s *Server) setupRoutes() {
 			admin.GET("/reports/:reportId", s.adminHandler.GetReport)
 			admin.GET("/metrics", s.adminHandler.GetSystemMetrics)
 			admin.GET("/email-status/:inquiryId", s.adminHandler.GetEmailStatus)
+
+			// Chat routes
+			admin.GET("/chat/ws", s.chatHandler.HandleWebSocket)
+			admin.GET("/chat/sessions", s.chatHandler.GetChatSessions)
+			admin.GET("/chat/sessions/:sessionId", s.chatHandler.GetChatSession)
 		}
 
 		// System management routes
@@ -151,8 +173,8 @@ func (s *Server) healthCheck(c *gin.Context) {
 
 // ServiceConfigResponse represents the service configuration response
 type ServiceConfigResponse struct {
-	Success bool                   `json:"success"`
-	Data    ServiceConfigData      `json:"data"`
+	Success bool              `json:"success"`
+	Data    ServiceConfigData `json:"data"`
 }
 
 // ServiceConfigData represents the service configuration data
@@ -171,15 +193,15 @@ type ServiceInfo struct {
 func (s *Server) getServiceConfig(c *gin.Context) {
 	// Build service information from domain constants
 	services := make([]ServiceInfo, 0, len(domain.ValidServiceTypes))
-	
+
 	// Service name mapping for better frontend display
 	serviceNames := map[string]string{
-		domain.ServiceTypeAssessment:        "Cloud Assessment",
-		domain.ServiceTypeMigration:         "Cloud Migration",
-		domain.ServiceTypeOptimization:      "Cloud Optimization",
+		domain.ServiceTypeAssessment:         "Cloud Assessment",
+		domain.ServiceTypeMigration:          "Cloud Migration",
+		domain.ServiceTypeOptimization:       "Cloud Optimization",
 		domain.ServiceTypeArchitectureReview: "Architecture Review",
 	}
-	
+
 	for _, serviceType := range domain.ValidServiceTypes {
 		services = append(services, ServiceInfo{
 			ID:          serviceType,
@@ -187,23 +209,24 @@ func (s *Server) getServiceConfig(c *gin.Context) {
 			Description: domain.ServiceDescriptions[serviceType],
 		})
 	}
-	
+
 	response := ServiceConfigResponse{
 		Success: true,
 		Data: ServiceConfigData{
 			Services: services,
 		},
 	}
-	
+
 	c.JSON(http.StatusOK, response)
 }
+
 // Middleware functions
 
 // corsMiddleware handles CORS headers
 func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		
+
 		// Check if origin is allowed
 		allowed := false
 		for _, allowedOrigin := range allowedOrigins {
@@ -212,21 +235,21 @@ func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 				break
 			}
 		}
-		
+
 		if allowed {
 			c.Header("Access-Control-Allow-Origin", origin)
 		}
-		
+
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With")
 		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Max-Age", "86400")
-		
+
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
-		
+
 		c.Next()
 	}
 }
@@ -236,13 +259,13 @@ func loggingMiddleware(logger *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Start timer
 		start := time.Now()
-		
+
 		// Process request
 		c.Next()
-		
+
 		// Log request
 		latency := time.Since(start)
-		
+
 		logger.WithFields(logrus.Fields{
 			"status":     c.Writer.Status(),
 			"method":     c.Request.Method,

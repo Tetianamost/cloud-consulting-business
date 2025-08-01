@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, easeInOut, easeOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { IconBaseProps, IconType } from 'react-icons';
 
@@ -104,18 +104,18 @@ const badgeVariants = {
     transition: {
       duration: 0.6,
       delay: i * 0.13,
-      ease: 'easeOut',
+      ease: easeOut
     }
   })
 };
 
 const imageVariants = {
   initial: { rotateY: 0 },
-  hover: { 
+  hover: {
     rotateY: 360,
     transition: {
       duration: 1.2,
-      ease: "easeInOut"
+      ease: easeInOut
     }
   }
 };
@@ -128,11 +128,12 @@ const glowVariants = {
   hover: { 
     scale: 1.05, 
     opacity: 1, 
-    transition: { 
-      duration: 0.3, 
-      repeat: 0, 
-      repeatType: 'loop' as const 
-    } 
+    transition: {
+      duration: 0.3,
+      repeat: 0,
+      repeatType: 'loop' as const,
+      ease: easeInOut
+    }
   }
 };
 

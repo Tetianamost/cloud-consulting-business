@@ -23,18 +23,18 @@ type templateService struct {
 }
 
 // NewTemplateService creates a new template service instance
-func NewTemplateService(templatesDir string, logger *logrus.Logger) interfaces.TemplateService {
+func NewTemplateService(templatesDir string, logger *logrus.Logger) *templateService {
 	service := &templateService{
 		templatesDir: templatesDir,
 		templates:    make(map[string]*template.Template),
 		logger:       logger,
 	}
-	
+
 	// Load templates on initialization
 	if err := service.loadTemplates(); err != nil {
 		logger.WithError(err).Error("Failed to load email templates")
 	}
-	
+
 	return service
 }
 
@@ -42,10 +42,10 @@ func NewTemplateService(templatesDir string, logger *logrus.Logger) interfaces.T
 func (t *templateService) loadTemplates() error {
 	// Load email templates
 	t.loadEmailTemplates()
-	
+
 	// Load report templates
 	t.loadReportTemplates()
-	
+
 	return nil
 }
 
@@ -60,7 +60,7 @@ func (t *templateService) loadEmailTemplates() {
 		t.templates["customer_confirmation"] = customerTemplate
 		t.logger.WithField("template", "customer_confirmation").Info("Loaded customer confirmation template")
 	}
-	
+
 	// Load consultant notification template
 	consultantNotificationPath := filepath.Join(t.templatesDir, "email", "consultant_notification.html")
 	consultantTemplate, err := template.ParseFiles(consultantNotificationPath)
@@ -75,7 +75,7 @@ func (t *templateService) loadEmailTemplates() {
 // loadReportTemplates loads report templates
 func (t *templateService) loadReportTemplates() {
 	reportTemplates := []string{"assessment", "migration", "optimization", "architecture"}
-	
+
 	for _, templateName := range reportTemplates {
 		templatePath := filepath.Join(t.templatesDir, "reports", templateName+".html")
 		reportTemplate, err := template.ParseFiles(templatePath)
@@ -94,7 +94,7 @@ func (t *templateService) RenderEmailTemplate(ctx context.Context, templateName 
 	if !exists {
 		return "", fmt.Errorf("template %s not found", templateName)
 	}
-	
+
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		t.logger.WithError(err).WithFields(logrus.Fields{
@@ -102,7 +102,7 @@ func (t *templateService) RenderEmailTemplate(ctx context.Context, templateName 
 		}).Error("Failed to render email template")
 		return "", fmt.Errorf("failed to render template %s: %w", templateName, err)
 	}
-	
+
 	return buf.String(), nil
 }
 
@@ -114,7 +114,7 @@ func (t *templateService) RenderReportTemplate(ctx context.Context, templateName
 	if !exists {
 		return "", fmt.Errorf("report template %s not found", templateName)
 	}
-	
+
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		t.logger.WithError(err).WithFields(logrus.Fields{
@@ -122,7 +122,7 @@ func (t *templateService) RenderReportTemplate(ctx context.Context, templateName
 		}).Error("Failed to render report template")
 		return "", fmt.Errorf("failed to render report template %s: %w", templateName, err)
 	}
-	
+
 	return buf.String(), nil
 }
 
@@ -145,12 +145,7 @@ func (t *templateService) ValidateTemplate(templateContent string) error {
 }
 
 // CustomerConfirmationData represents the data structure for customer confirmation emails
-type CustomerConfirmationData struct {
-	Name     string
-	Company  string
-	Services string
-	ID       string
-}
+/* Removed local CustomerConfirmationData type; use interfaces.CustomerConfirmationData instead */
 
 // ConsultantNotificationData represents the data structure for consultant notification emails
 type ConsultantNotificationData struct {
@@ -188,8 +183,8 @@ type HTMLReportTemplateData struct {
 }
 
 // PrepareCustomerConfirmationData prepares data for customer confirmation email template
-func (t *templateService) PrepareCustomerConfirmationData(inquiry *domain.Inquiry) *CustomerConfirmationData {
-	return &CustomerConfirmationData{
+func (t *templateService) PrepareCustomerConfirmationData(inquiry *domain.Inquiry) *interfaces.CustomerConfirmationData {
+	return &interfaces.CustomerConfirmationData{
 		Name:     inquiry.Name,
 		Company:  inquiry.Company,
 		Services: strings.Join(inquiry.Services, ", "),
@@ -208,14 +203,14 @@ func (t *templateService) PrepareConsultantNotificationData(inquiry *domain.Inqu
 		Message:        inquiry.Message,
 		ID:             inquiry.ID,
 		IsHighPriority: isHighPriority,
-		Priority:       func() string {
+		Priority: func() string {
 			if isHighPriority {
 				return "HIGH"
 			}
 			return "NORMAL"
 		}(),
 	}
-	
+
 	if report != nil {
 		data.Report = &ReportData{
 			ID:          report.ID,
@@ -223,7 +218,7 @@ func (t *templateService) PrepareConsultantNotificationData(inquiry *domain.Inqu
 			HTMLContent: template.HTML(t.convertMarkdownToHTML(report.Content)),
 		}
 	}
-	
+
 	return data
 }
 
@@ -232,25 +227,25 @@ func (t *templateService) convertMarkdownToHTML(markdown string) string {
 	if markdown == "" {
 		return "<p>No content available.</p>"
 	}
-	
+
 	html := markdown
-	
+
 	// First, handle bold text properly
 	html = regexp.MustCompile(`\*\*(.*?)\*\*`).ReplaceAllString(html, "<strong>$1</strong>")
-	
+
 	// Handle horizontal rules
 	html = strings.ReplaceAll(html, "---", "<hr>")
-	
+
 	// Split into sections by double line breaks
 	sections := strings.Split(html, "\n\n")
 	var formattedSections []string
-	
+
 	for _, section := range sections {
 		section = strings.TrimSpace(section)
 		if section == "" {
 			continue
 		}
-		
+
 		// Check if this is a header (starts with ### or is all caps)
 		if strings.HasPrefix(section, "### ") {
 			headerText := strings.TrimPrefix(section, "### ")
@@ -273,13 +268,13 @@ func (t *templateService) convertMarkdownToHTML(markdown string) string {
 			lines := strings.Split(section, "\n")
 			var processedLines []string
 			inList := false
-			
+
 			for _, line := range lines {
 				line = strings.TrimSpace(line)
 				if line == "" {
 					continue
 				}
-				
+
 				// Handle bullet points
 				if strings.HasPrefix(line, "- ") {
 					if !inList {
@@ -309,7 +304,7 @@ func (t *templateService) convertMarkdownToHTML(markdown string) string {
 					processedLines = append(processedLines, line)
 				}
 			}
-			
+
 			if inList {
 				// Close any open list
 				if strings.Contains(strings.Join(processedLines, ""), "<ul>") {
@@ -318,17 +313,17 @@ func (t *templateService) convertMarkdownToHTML(markdown string) string {
 					processedLines = append(processedLines, "</ol>")
 				}
 			}
-			
+
 			// Join lines and wrap in paragraph if needed
 			content := strings.Join(processedLines, "\n")
 			if !strings.Contains(content, "<ul>") && !strings.Contains(content, "<ol>") && !strings.Contains(content, "<h") {
 				content = fmt.Sprintf("<p>%s</p>", content)
 			}
-			
+
 			formattedSections = append(formattedSections, content)
 		}
 	}
-	
+
 	return strings.Join(formattedSections, "\n\n")
 }
 
@@ -351,7 +346,7 @@ func (t *templateService) ReloadTemplates() error {
 func (t *templateService) PrepareReportTemplateData(inquiry *domain.Inquiry, report *domain.Report) interface{} {
 	// Detect high priority based on report content
 	isHighPriority := t.detectHighPriority(report.Content)
-	
+
 	return &HTMLReportTemplateData{
 		ID:               report.ID,
 		Title:            report.Title,
@@ -373,7 +368,7 @@ func (t *templateService) detectHighPriority(content string) bool {
 		"urgent", "critical", "emergency", "deadline", "time-sensitive",
 		"meeting", "schedule", "call", "discuss", "today", "tomorrow",
 	}
-	
+
 	contentLower := strings.ToLower(content)
 	for _, keyword := range priorityKeywords {
 		if strings.Contains(contentLower, strings.ToLower(keyword)) {
@@ -388,22 +383,22 @@ func (t *templateService) formatReportContent(content string) string {
 	if content == "" {
 		return "<p>No content available.</p>"
 	}
-	
+
 	// Enhanced HTML formatting with better structure detection
 	sections := strings.Split(content, "\n\n")
 	var htmlSections []string
-	
+
 	for _, section := range sections {
 		section = strings.TrimSpace(section)
 		if section == "" {
 			continue
 		}
-		
+
 		// Format the section based on its content type
 		formattedSection := t.formatSection(section)
 		htmlSections = append(htmlSections, formattedSection)
 	}
-	
+
 	return strings.Join(htmlSections, "\n\n")
 }
 
@@ -413,17 +408,17 @@ func (t *templateService) formatSection(section string) string {
 	if t.isMainHeader(section) {
 		return t.formatMainHeader(section)
 	}
-	
+
 	// Check if this is a sub-header
 	if t.isSubHeader(section) {
 		return t.formatSubHeader(section)
 	}
-	
+
 	// Check if this contains a list
 	if t.containsList(section) {
 		return t.formatListSection(section)
 	}
-	
+
 	// Format as regular paragraph content
 	return t.formatParagraphSection(section)
 }
@@ -431,61 +426,61 @@ func (t *templateService) formatSection(section string) string {
 // isMainHeader checks if a section is a main header
 func (t *templateService) isMainHeader(text string) bool {
 	text = strings.TrimSpace(text)
-	
+
 	// Don't treat multi-line content as headers
 	if strings.Count(text, "\n") > 1 {
 		return false
 	}
-	
+
 	// Don't treat long sentences as headers
 	if len(text) > 150 {
 		return false
 	}
-	
+
 	// Check for numbered headers (1., 2., etc.)
 	if regexp.MustCompile(`^\d+\.\s+[A-Z]`).MatchString(text) {
 		return true
 	}
-	
+
 	// Check for main section headers (must be exact matches or start with the header)
 	mainHeaders := []string{
 		"EXECUTIVE SUMMARY", "CURRENT STATE ASSESSMENT", "RECOMMENDATIONS",
 		"NEXT STEPS", "URGENCY ASSESSMENT", "CONTACT INFORMATION",
 		"PRIORITY LEVEL", "MEETING SCHEDULING",
 	}
-	
+
 	textUpper := strings.ToUpper(text)
 	for _, header := range mainHeaders {
 		// Exact match or starts with header followed by colon or space
-		if textUpper == header || 
-		   strings.HasPrefix(textUpper, header+":") ||
-		   (strings.HasPrefix(textUpper, header+" ") && len(text) < 100) {
+		if textUpper == header ||
+			strings.HasPrefix(textUpper, header+":") ||
+			(strings.HasPrefix(textUpper, header+" ") && len(text) < 100) {
 			return true
 		}
 	}
-	
+
 	// Check if it's all caps and short (likely a header)
 	if strings.ToUpper(text) == text && len(text) < 80 && !strings.Contains(text, ".") {
 		return true
 	}
-	
+
 	return false
 }
 
 // isSubHeader checks if a section is a sub-header
 func (t *templateService) isSubHeader(text string) bool {
 	text = strings.TrimSpace(text)
-	
+
 	// Single line ending with colon
 	if !strings.Contains(text, "\n") && strings.HasSuffix(text, ":") && len(text) < 100 {
 		return true
 	}
-	
+
 	// Bold text that looks like a header
 	if strings.HasPrefix(text, "**") && strings.HasSuffix(text, "**") && !strings.Contains(text, "\n") {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -493,46 +488,46 @@ func (t *templateService) isSubHeader(text string) bool {
 func (t *templateService) containsList(text string) bool {
 	lines := strings.Split(text, "\n")
 	listCount := 0
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") || 
-		   regexp.MustCompile(`^\d+\.\s`).MatchString(line) {
+		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") ||
+			regexp.MustCompile(`^\d+\.\s`).MatchString(line) {
 			listCount++
 		}
 	}
-	
+
 	return listCount >= 2 // At least 2 list items
 }
 
 // formatMainHeader formats a main header
 func (t *templateService) formatMainHeader(text string) string {
 	text = strings.TrimSpace(text)
-	
+
 	// Remove numbered prefixes for cleaner headers
 	text = regexp.MustCompile(`^\d+\.\s*`).ReplaceAllString(text, "")
-	
+
 	// Convert to title case if all caps
 	if strings.ToUpper(text) == text {
 		text = t.toTitleCase(text)
 	}
-	
+
 	// Remove trailing colons
 	text = strings.TrimSuffix(text, ":")
-	
+
 	return fmt.Sprintf("<h2 class=\"section-header\">%s</h2>", text)
 }
 
 // formatSubHeader formats a sub-header
 func (t *templateService) formatSubHeader(text string) string {
 	text = strings.TrimSpace(text)
-	
+
 	// Remove bold markdown
 	text = strings.Trim(text, "*")
-	
+
 	// Remove trailing colons
 	text = strings.TrimSuffix(text, ":")
-	
+
 	return fmt.Sprintf("<h3 class=\"subsection-header\">%s</h3>", text)
 }
 
@@ -543,13 +538,13 @@ func (t *templateService) formatListSection(text string) string {
 	var currentParagraph []string
 	inList := false
 	listType := ""
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		
+
 		// Check if this is a list item
 		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") {
 			// Close any open paragraph
@@ -557,7 +552,7 @@ func (t *templateService) formatListSection(text string) string {
 				result = append(result, t.formatParagraphContent(strings.Join(currentParagraph, " ")))
 				currentParagraph = nil
 			}
-			
+
 			// Start or continue unordered list
 			if !inList || listType != "ul" {
 				if inList && listType == "ol" {
@@ -569,18 +564,18 @@ func (t *templateService) formatListSection(text string) string {
 				inList = true
 				listType = "ul"
 			}
-			
+
 			item := strings.TrimPrefix(line, "- ")
 			item = strings.TrimPrefix(item, "• ")
 			result = append(result, fmt.Sprintf("  <li>%s</li>", t.formatInlineText(item)))
-			
+
 		} else if regexp.MustCompile(`^\d+\.\s`).MatchString(line) {
 			// Close any open paragraph
 			if len(currentParagraph) > 0 {
 				result = append(result, t.formatParagraphContent(strings.Join(currentParagraph, " ")))
 				currentParagraph = nil
 			}
-			
+
 			// Start or continue ordered list
 			if !inList || listType != "ol" {
 				if inList && listType == "ul" {
@@ -592,16 +587,16 @@ func (t *templateService) formatListSection(text string) string {
 				inList = true
 				listType = "ol"
 			}
-			
+
 			item := regexp.MustCompile(`^\d+\.\s`).ReplaceAllString(line, "")
 			result = append(result, fmt.Sprintf("  <li>%s</li>", t.formatInlineText(item)))
-			
+
 		} else {
 			// Regular text - add to current paragraph
 			currentParagraph = append(currentParagraph, line)
 		}
 	}
-	
+
 	// Close any open list
 	if inList {
 		if listType == "ul" {
@@ -610,12 +605,12 @@ func (t *templateService) formatListSection(text string) string {
 			result = append(result, "</ol>")
 		}
 	}
-	
+
 	// Add any remaining paragraph
 	if len(currentParagraph) > 0 {
 		result = append(result, t.formatParagraphContent(strings.Join(currentParagraph, " ")))
 	}
-	
+
 	return strings.Join(result, "\n")
 }
 
@@ -624,18 +619,18 @@ func (t *templateService) formatParagraphSection(text string) string {
 	// Split into individual lines and rejoin as a paragraph
 	lines := strings.Split(text, "\n")
 	var cleanLines []string
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line != "" {
 			cleanLines = append(cleanLines, line)
 		}
 	}
-	
+
 	if len(cleanLines) == 0 {
 		return ""
 	}
-	
+
 	paragraph := strings.Join(cleanLines, " ")
 	return t.formatParagraphContent(paragraph)
 }
@@ -645,7 +640,7 @@ func (t *templateService) formatParagraphContent(text string) string {
 	if text == "" {
 		return ""
 	}
-	
+
 	formatted := t.formatInlineText(text)
 	return fmt.Sprintf("<p class=\"report-paragraph\">%s</p>", formatted)
 }
@@ -654,15 +649,15 @@ func (t *templateService) formatParagraphContent(text string) string {
 func (t *templateService) formatInlineText(text string) string {
 	// Convert **bold** to <strong>
 	text = regexp.MustCompile(`\*\*(.*?)\*\*`).ReplaceAllString(text, "<strong>$1</strong>")
-	
+
 	// Convert *italic* to <em>
 	text = regexp.MustCompile(`\*(.*?)\*`).ReplaceAllString(text, "<em>$1</em>")
-	
+
 	// Convert URLs to links (basic implementation)
 	text = regexp.MustCompile(`https?://[^\s]+`).ReplaceAllStringFunc(text, func(url string) string {
 		return fmt.Sprintf("<a href=\"%s\" target=\"_blank\">%s</a>", url, url)
 	})
-	
+
 	return text
 }
 
@@ -677,7 +672,7 @@ func (t *templateService) toTitleCase(text string) string {
 				"in": true, "on": true, "at": true, "to": true, "for": true, "of": true,
 				"with": true, "by": true,
 			}
-			
+
 			if i == 0 || !lowercaseWords[strings.ToLower(word)] {
 				words[i] = strings.ToUpper(word[:1]) + strings.ToLower(word[1:])
 			} else {
@@ -691,66 +686,66 @@ func (t *templateService) toTitleCase(text string) string {
 // isHeader determines if a section is a header
 func (t *templateService) isHeader(text string) bool {
 	text = strings.TrimSpace(text)
-	
+
 	// Don't treat multi-line content as headers
 	if strings.Contains(text, "\n") && len(strings.Split(text, "\n")) > 2 {
 		return false
 	}
-	
+
 	// Check for numbered headers (1., 2., etc.)
 	if matched, _ := regexp.MatchString(`^\d+\.`, text); matched {
 		return true
 	}
-	
+
 	// Check for all caps headers (but not too long)
 	if strings.ToUpper(text) == text && len(text) < 100 && !strings.Contains(text, "\n") {
 		return true
 	}
-	
+
 	// Check for headers with specific keywords (single line only)
 	headerKeywords := []string{
 		"EXECUTIVE SUMMARY", "CURRENT STATE", "RECOMMENDATIONS", "NEXT STEPS",
 		"ASSESSMENT", "MIGRATION", "OPTIMIZATION", "ARCHITECTURE",
 		"PRIORITY LEVEL", "URGENCY ASSESSMENT", "CONTACT INFORMATION",
 	}
-	
+
 	textUpper := strings.ToUpper(text)
 	for _, keyword := range headerKeywords {
 		if textUpper == keyword || strings.HasPrefix(textUpper, keyword+":") {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
 // getHeaderLevel determines the header level (1-4)
 func (t *templateService) getHeaderLevel(text string) int {
 	text = strings.TrimSpace(text)
-	
+
 	// Main sections (h1)
 	mainSections := []string{
 		"EXECUTIVE SUMMARY", "CURRENT STATE", "RECOMMENDATIONS", "NEXT STEPS",
 		"URGENCY ASSESSMENT", "CONTACT INFORMATION",
 	}
-	
+
 	textUpper := strings.ToUpper(text)
 	for _, section := range mainSections {
 		if strings.Contains(textUpper, section) {
 			return 1
 		}
 	}
-	
+
 	// Numbered sections (h2)
 	if matched, _ := regexp.MatchString(`^\d+\.`, text); matched {
 		return 2
 	}
-	
+
 	// Sub-sections (h3)
 	if strings.Contains(textUpper, "PRIORITY") || strings.Contains(textUpper, "MEETING") {
 		return 3
 	}
-	
+
 	// Default to h2
 	return 2
 }
@@ -759,7 +754,7 @@ func (t *templateService) getHeaderLevel(text string) int {
 func (t *templateService) cleanHeaderText(text string) string {
 	// Remove numbered prefixes
 	text = regexp.MustCompile(`^\d+\.\s*`).ReplaceAllString(text, "")
-	
+
 	// Convert to title case if all caps
 	if strings.ToUpper(text) == text {
 		words := strings.Fields(text)
@@ -770,7 +765,7 @@ func (t *templateService) cleanHeaderText(text string) string {
 		}
 		text = strings.Join(words, " ")
 	}
-	
+
 	return strings.TrimSpace(text)
 }
 
@@ -778,21 +773,21 @@ func (t *templateService) cleanHeaderText(text string) string {
 func (t *templateService) formatParagraph(text string) string {
 	// Convert **bold** to <strong> first
 	text = regexp.MustCompile(`\*\*(.*?)\*\*`).ReplaceAllString(text, "<strong>$1</strong>")
-	
+
 	// Convert *italic* to <em>
 	text = regexp.MustCompile(`\*(.*?)\*`).ReplaceAllString(text, "<em>$1</em>")
-	
+
 	// Split into lines for processing
 	lines := strings.Split(text, "\n")
 	var formattedLines []string
 	inList := false
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		
+
 		// Check for bullet points
 		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") {
 			if !inList {
@@ -810,18 +805,18 @@ func (t *templateService) formatParagraph(text string) string {
 			formattedLines = append(formattedLines, line)
 		}
 	}
-	
+
 	if inList {
 		formattedLines = append(formattedLines, "</ul>")
 	}
-	
+
 	result := strings.Join(formattedLines, "<br>\n")
-	
+
 	// Wrap in paragraph if it doesn't contain block elements
 	if !strings.Contains(result, "<ul>") && !strings.Contains(result, "<h") {
 		result = fmt.Sprintf("<p>%s</p>", result)
 	}
-	
+
 	return result
 }
 

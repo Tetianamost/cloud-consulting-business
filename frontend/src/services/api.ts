@@ -1,3 +1,4 @@
+import { IntegrationListResponse } from "../types/integrations";
 // API service for backend communication
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8061';
 
@@ -303,6 +304,50 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
+  }
+  // --- Admin Meeting Prep Endpoints ---
+  async getPreMeetingBriefings(query: string): Promise<{ data: any[] }> {
+    return this.request<{ data: any[] }>(`/api/admin/meeting-prep/briefings${query}`);
+  }
+  async getQuestionBanks(query: string): Promise<{ data: any[] }> {
+    return this.request<{ data: any[] }>(`/api/admin/meeting-prep/question-banks${query}`);
+  }
+  async getCompetitiveAnalysis(query: string): Promise<{ data: any[] }> {
+    return this.request<{ data: any[] }>(`/api/admin/meeting-prep/competitive-analysis${query}`);
+  }
+  async getFollowUpActionItems(query: string): Promise<{ data: any[] }> {
+    return this.request<{ data: any[] }>(`/api/admin/meeting-prep/follow-up-actions${query}`);
+  }
+  // --- Admin Quality Assurance Endpoints ---
+  async getRecommendationAccuracy(query: string = ""): Promise<{ data: any[] }> {
+    return this.request<{ data: any[] }>(`/api/v1/admin/quality-assurance/recommendation-accuracy${query}`);
+  }
+  async getPeerReviews(query: string = ""): Promise<{ data: any[] }> {
+    return this.request<{ data: any[] }>(`/api/v1/admin/quality-assurance/peer-reviews${query}`);
+  }
+  async getClientOutcomes(query: string = ""): Promise<{ data: any[] }> {
+    return this.request<{ data: any[] }>(`/api/v1/admin/quality-assurance/client-outcomes${query}`);
+  }
+  async getContinuousImprovementItems(query: string = ""): Promise<{ data: any[] }> {
+    return this.request<{ data: any[] }>(`/api/v1/admin/quality-assurance/continuous-improvement${query}`);
+  }
+  // --- Admin Integrations Endpoints ---
+  async getIntegrations(): Promise<IntegrationListResponse> {
+    return this.request<IntegrationListResponse>('/api/v1/admin/integrations');
+  }
+  async getIntegrationData(integrationId: string, dataType?: string): Promise<any> {
+    let endpoint = `/api/v1/admin/integrations/${integrationId}/data`;
+    if (dataType) {
+      endpoint += `?type=${encodeURIComponent(dataType)}`;
+    }
+    return this.request<any>(endpoint);
+  }
+  async testIntegration(integrationId: string): Promise<{ success: boolean; result: any }> {
+    return this.request<{ success: boolean; result: any }>(`/api/v1/admin/integrations/${integrationId}/test`);
+  }
+  // --- Admin Cost Analysis Endpoint ---
+  async getCostAnalysis(): Promise<any[]> {
+    return this.request<any[]>("/api/admin/cost-analysis");
   }
 }
 

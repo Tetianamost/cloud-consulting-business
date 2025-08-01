@@ -86,6 +86,8 @@ export function InquiryList() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [selectedInquiries, setSelectedInquiries] = useState<string[]>([])
+  const [previewInquiry, setPreviewInquiry] = useState<Inquiry | null>(null)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
   useEffect(() => {
     fetchInquiries()
@@ -374,8 +376,11 @@ export function InquiryList() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => alert(`View details for inquiry ${inquiry.id}`)}
-                          title="View Details"
+                          onClick={() => {
+                            setPreviewInquiry(inquiry)
+                            setIsPreviewOpen(true)
+                          }}
+                          title="View Report"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -429,6 +434,78 @@ export function InquiryList() {
           </div>
         </div>
       </Card>
+      {/* Report Preview Modal */}
+      {previewInquiry && isPreviewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-0 relative">
+            <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Inquiry Details</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="capitalize text-xs px-2 py-1">
+                    {previewInquiry.status}
+                  </Badge>
+                  <Badge variant="secondary" className="capitalize text-xs px-2 py-1">
+                    {previewInquiry.priority}
+                  </Badge>
+                  <span className="text-xs text-gray-500">
+                    {formatDate(previewInquiry.created_at)}
+                  </span>
+                </div>
+              </div>
+              <button
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+                onClick={() => setIsPreviewOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="px-6 py-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-gray-700 w-24">ID:</span>
+                <span className="font-mono text-xs text-gray-800">{previewInquiry.id}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-gray-700 w-24">Name:</span>
+                <span className="text-gray-900">{previewInquiry.name}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-gray-700 w-24">Email:</span>
+                <span className="text-blue-700 underline">{previewInquiry.email}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-gray-700 w-24">Company:</span>
+                <span className="text-gray-900">{previewInquiry.company || "—"}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-gray-700 w-24">Services:</span>
+                <span className="text-gray-900">{(previewInquiry.services || []).join(", ")}</span>
+              </div>
+              {/* Link to generated report if available */}
+              {previewInquiry.reports && previewInquiry.reports.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-gray-700 w-24">AI Report:</span>
+                  <a
+                    href={previewInquiry.reports && previewInquiry.reports.length > 0 ? `/admin/reports/${previewInquiry.reports[0].id}` : "#"}
+                    className="text-blue-600 hover:underline font-medium flex items-center gap-1"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => {
+                      if (previewInquiry.reports && previewInquiry.reports.length > 0) {
+                        e.preventDefault();
+                        window.open(`/admin/reports/${previewInquiry.reports[0].id}`, "_blank", "noopener,noreferrer");
+                      }
+                    }}
+                  >
+                    View Report
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

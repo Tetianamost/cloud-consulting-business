@@ -13,6 +13,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Progress } from '../ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
+import { V0SkeletonCard, V0ProgressBar, V0LoadingSpinner } from './V0LoadingStates';
+import { V0ApiErrorFallback } from './V0ErrorFallbacks';
+import { useV0ApiErrorHandler } from './useV0ErrorHandler';
 import apiService, { SystemMetrics, EmailStatus } from '../../services/api';
 
 // Email metrics interface for v0 component format
@@ -73,7 +76,7 @@ export const V0EmailDeliveryDashboard: React.FC<V0EmailDeliveryDashboardProps> =
   className = '',
 }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isError, error, clearError } = useV0ApiErrorHandler();
 
   // Transform metrics to card data format
   const getEmailDeliveryCards = (emailMetrics: EmailMetrics): EmailDeliveryCardData[] => {
@@ -153,15 +156,15 @@ export const V0EmailDeliveryDashboard: React.FC<V0EmailDeliveryDashboardProps> =
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header with time range selector */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Email Delivery Monitoring</h2>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Email Delivery Monitoring</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Track email delivery performance and engagement metrics
           </p>
         </div>
         <Select value={timeRange} onValueChange={handleTimeRangeChange}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <Clock className="mr-2 h-4 w-4" />
             <SelectValue placeholder="Select time range" />
           </SelectTrigger>
@@ -176,21 +179,26 @@ export const V0EmailDeliveryDashboard: React.FC<V0EmailDeliveryDashboardProps> =
       </div>
 
       {/* Error state */}
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" />
-              <span className="font-medium">Error loading email metrics</span>
-            </div>
-            <p className="mt-2 text-sm text-red-600">{error}</p>
-          </CardContent>
-        </Card>
+      {isError && (
+        <V0ApiErrorFallback 
+          message={error?.message || 'Failed to load email metrics'}
+          onRetry={clearError}
+        />
+      )}
+
+      {/* Loading state */}
+      {loading && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <V0SkeletonCard key={index} />
+          ))}
+        </div>
       )}
 
       {/* Email delivery metrics cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {emailCards.map((card, index) => {
+      {!loading && !isError && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {emailCards.map((card, index) => {
           const IconComponent = card.icon;
           return (
             <Card key={index} className="relative overflow-hidden">
@@ -210,10 +218,13 @@ export const V0EmailDeliveryDashboard: React.FC<V0EmailDeliveryDashboardProps> =
                 </div>
                 {/* Progress bar for percentage metrics */}
                 {typeof card.percentage === 'number' && card.title !== 'Failed Emails' && (
-                  <Progress 
-                    value={card.percentage} 
-                    className="mt-3 h-1" 
-                  />
+                  <div className="mt-3">
+                    <V0ProgressBar 
+                      value={card.percentage} 
+                      size="sm"
+                      color={card.trend === 'up' ? 'green' : card.trend === 'down' ? 'red' : 'blue'}
+                    />
+                  </div>
                 )}
                 {/* Special handling for failed emails - show as error progress */}
                 {card.title === 'Failed Emails' && (
@@ -225,8 +236,9 @@ export const V0EmailDeliveryDashboard: React.FC<V0EmailDeliveryDashboardProps> =
               </CardContent>
             </Card>
           );
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
       {/* Horizontal delivery status overview */}
       <Card>

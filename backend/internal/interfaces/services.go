@@ -91,8 +91,17 @@ type SESService interface {
 }
 
 // TemplateService defines the interface for email and report template management
+// CustomerConfirmationData represents the data structure for customer confirmation emails
+type CustomerConfirmationData struct {
+	Name     string
+	Company  string
+	Services string
+	ID       string
+}
+
 type TemplateService interface {
 	RenderEmailTemplate(ctx context.Context, templateName string, data interface{}) (string, error)
+	PrepareCustomerConfirmationData(inquiry *domain.Inquiry) *CustomerConfirmationData
 	RenderReportTemplate(ctx context.Context, templateName string, data interface{}) (string, error)
 	LoadTemplate(templateName string) (*template.Template, error)
 	ValidateTemplate(templateContent string) error
@@ -169,11 +178,11 @@ const (
 
 // DeliveryStatus represents the delivery status of a notification
 type DeliveryStatus struct {
-	NotificationID string    `json:"notification_id"`
-	Status         string    `json:"status"`
-	DeliveredAt    *string   `json:"delivered_at,omitempty"`
-	ErrorMessage   *string   `json:"error_message,omitempty"`
-	RetryCount     int       `json:"retry_count"`
+	NotificationID string  `json:"notification_id"`
+	Status         string  `json:"status"`
+	DeliveredAt    *string `json:"delivered_at,omitempty"`
+	ErrorMessage   *string `json:"error_message,omitempty"`
+	RetryCount     int     `json:"retry_count"`
 }
 
 // HookType represents the type of agent hook
@@ -200,22 +209,22 @@ type HookInfo struct {
 
 // HookResult represents the result of hook execution
 type HookResult struct {
-	HookID      string                 `json:"hook_id"`
-	Success     bool                   `json:"success"`
-	Message     string                 `json:"message"`
-	Data        map[string]interface{} `json:"data,omitempty"`
-	ExecutionTime int64                `json:"execution_time_ms"`
-	Error       *string                `json:"error,omitempty"`
+	HookID        string                 `json:"hook_id"`
+	Success       bool                   `json:"success"`
+	Message       string                 `json:"message"`
+	Data          map[string]interface{} `json:"data,omitempty"`
+	ExecutionTime int64                  `json:"execution_time_ms"`
+	Error         *string                `json:"error,omitempty"`
 }
 
 // HookStatus represents the status of a hook
 type HookStatus struct {
-	HookID        string `json:"hook_id"`
-	Status        string `json:"status"`
-	LastExecution *string `json:"last_execution,omitempty"`
-	ExecutionCount int64  `json:"execution_count"`
-	SuccessCount   int64  `json:"success_count"`
-	ErrorCount     int64  `json:"error_count"`
+	HookID         string  `json:"hook_id"`
+	Status         string  `json:"status"`
+	LastExecution  *string `json:"last_execution,omitempty"`
+	ExecutionCount int64   `json:"execution_count"`
+	SuccessCount   int64   `json:"success_count"`
+	ErrorCount     int64   `json:"error_count"`
 }
 
 // BedrockOptions represents options for Bedrock API calls
@@ -228,9 +237,9 @@ type BedrockOptions struct {
 
 // BedrockResponse represents the response from Bedrock API
 type BedrockResponse struct {
-	Content   string            `json:"content"`
-	Usage     BedrockUsage      `json:"usage"`
-	Metadata  map[string]string `json:"metadata"`
+	Content  string            `json:"content"`
+	Usage    BedrockUsage      `json:"usage"`
+	Metadata map[string]string `json:"metadata"`
 }
 
 // BedrockUsage represents token usage information from Bedrock
@@ -275,18 +284,18 @@ type SendingQuota struct {
 
 // PDFOptions represents options for PDF generation
 type PDFOptions struct {
-	PageSize        string            `json:"page_size"`        // A4, Letter, etc.
-	Orientation     string            `json:"orientation"`      // Portrait, Landscape
-	MarginTop       string            `json:"margin_top"`       // e.g., "1in", "2cm"
-	MarginRight     string            `json:"margin_right"`
-	MarginBottom    string            `json:"margin_bottom"`
-	MarginLeft      string            `json:"margin_left"`
-	HeaderHTML      string            `json:"header_html"`      // HTML for header
-	FooterHTML      string            `json:"footer_html"`      // HTML for footer
-	EnableJavaScript bool             `json:"enable_javascript"`
-	LoadTimeout     int               `json:"load_timeout"`     // Timeout in seconds
-	Quality         int               `json:"quality"`          // Image quality (0-100)
-	CustomOptions   map[string]string `json:"custom_options"`   // Additional wkhtmltopdf options
+	PageSize         string            `json:"page_size"`   // A4, Letter, etc.
+	Orientation      string            `json:"orientation"` // Portrait, Landscape
+	MarginTop        string            `json:"margin_top"`  // e.g., "1in", "2cm"
+	MarginRight      string            `json:"margin_right"`
+	MarginBottom     string            `json:"margin_bottom"`
+	MarginLeft       string            `json:"margin_left"`
+	HeaderHTML       string            `json:"header_html"` // HTML for header
+	FooterHTML       string            `json:"footer_html"` // HTML for footer
+	EnableJavaScript bool              `json:"enable_javascript"`
+	LoadTimeout      int               `json:"load_timeout"`   // Timeout in seconds
+	Quality          int               `json:"quality"`        // Image quality (0-100)
+	CustomOptions    map[string]string `json:"custom_options"` // Additional wkhtmltopdf options
 }
 
 // PromptOptions defines options for prompt generation

@@ -15,10 +15,12 @@ require (
 	github.com/go-playground/validator/v10 v10.14.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.4.0
 	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.3
+	github.com/yuin/goldmark v1.7.13
 	gorm.io/gorm v1.30.0
 )
 

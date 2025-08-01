@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, easeOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { Button } from '../../ui/button';
 import { FiInfo, FiCheckCircle, FiX, FiMail, FiUser, FiPhone, FiBriefcase, FiAlertCircle } from 'react-icons/fi';
@@ -564,7 +564,7 @@ const modalContainerVariants = {
     scale: 1,
     transition: {
       duration: 0.3,
-      ease: 'easeOut'
+      ease: easeOut // replaced cubic-bezier array with valid string
     }
   },
   exit: {
@@ -872,7 +872,7 @@ ${requirements.trim() || 'No additional requirements specified.'}
           >
             <ModalContainer
               variants={modalContainerVariants}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
             >
               <ModalHeader>
                 <ModalTitle>Request a Detailed Quote</ModalTitle>

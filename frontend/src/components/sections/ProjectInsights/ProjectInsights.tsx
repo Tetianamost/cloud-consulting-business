@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, easeOut, easeInOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import Section from '../../ui/Section';
 import { FiArrowRight, FiArrowLeft } from 'react-icons/fi';
@@ -195,7 +195,7 @@ const titleVariants = {
 		y: 0,
 		transition: {
 			duration: 0.5,
-			ease: 'easeOut',
+			ease: easeOut, // replaced cubic-bezier array with valid string
 		},
 	},
 };
@@ -238,7 +238,7 @@ const ProjectInsights: React.FC = () => {
 						initial={{ opacity: 0, x: 50 }}
 						animate={{ opacity: 1, x: 0 }}
 						exit={{ opacity: 0, x: -50 }}
-						transition={{ duration: 0.4, ease: 'easeInOut' }}
+						transition={{ duration: 0.4, ease: easeInOut }} // replaced cubic-bezier array with valid string
 					>
 						<ProjectHighlightCard projectHighlight={projectHighlights[currentSlide]} />
 					</SliderWrapper>

@@ -2,10 +2,11 @@ package domain
 
 // Service type constants
 const (
-	ServiceTypeAssessment        = "assessment"
-	ServiceTypeMigration         = "migration"
-	ServiceTypeOptimization      = "optimization"
+	ServiceTypeAssessment         = "assessment"
+	ServiceTypeMigration          = "migration"
+	ServiceTypeOptimization       = "optimization"
 	ServiceTypeArchitectureReview = "architecture_review"
+	ServiceTypeGeneral            = "general"
 )
 
 // Inquiry status constants
@@ -37,6 +38,7 @@ var ValidServiceTypes = []string{
 	ServiceTypeMigration,
 	ServiceTypeOptimization,
 	ServiceTypeArchitectureReview,
+	ServiceTypeGeneral,
 }
 
 // Valid inquiry statuses slice
@@ -58,10 +60,11 @@ var ValidPriorities = []string{
 
 // Service descriptions for UI and documentation
 var ServiceDescriptions = map[string]string{
-	ServiceTypeAssessment: "Comprehensive evaluation of your current cloud infrastructure, security posture, and optimization opportunities",
-	ServiceTypeMigration:  "Strategic planning and execution support for migrating workloads to the cloud",
-	ServiceTypeOptimization: "Performance tuning, cost optimization, and efficiency improvements for existing cloud deployments",
+	ServiceTypeAssessment:         "Comprehensive evaluation of your current cloud infrastructure, security posture, and optimization opportunities",
+	ServiceTypeMigration:          "Strategic planning and execution support for migrating workloads to the cloud",
+	ServiceTypeOptimization:       "Performance tuning, cost optimization, and efficiency improvements for existing cloud deployments",
 	ServiceTypeArchitectureReview: "Expert review of cloud architecture designs for scalability, security, and best practices compliance",
+	ServiceTypeGeneral:            "General cloud consulting and advisory services",
 }
 
 // IsValidServiceType checks if a service type is valid

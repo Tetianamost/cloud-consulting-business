@@ -188,8 +188,8 @@
     display: table-cell;
   }
 }
-/
-* Button styles for asChild components */
+
+/* Button styles for asChild components */
 .button-default {
   background-color: #FF9900 !important;
   color: white !important;

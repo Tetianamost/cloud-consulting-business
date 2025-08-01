@@ -5,6 +5,7 @@ import { InquiryList } from './inquiry-list';
 import { MetricsDashboard } from './metrics-dashboard';
 import { EmailMonitor } from './email-monitor';
 import { InquiryAnalysisDashboard } from './inquiry-analysis-dashboard';
+import ChatToggle from './ChatToggle';
 
 interface IntegratedAdminDashboardProps {
   children?: React.ReactNode;
@@ -25,6 +26,9 @@ export const IntegratedAdminDashboard: React.FC<IntegratedAdminDashboardProps> =
           </Routes>
         )}
       </main>
+      
+      {/* Consultant Chat Toggle */}
+      <ChatToggle />
     </div>
   );
 };

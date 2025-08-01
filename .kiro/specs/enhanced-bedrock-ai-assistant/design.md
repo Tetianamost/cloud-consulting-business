@@ -2,17 +2,18 @@
 
 ## Overview
 
-The Enhanced Bedrock AI Assistant transforms the existing basic report generator into a sophisticated cloud consulting partner. The system will leverage advanced prompt engineering, structured knowledge bases, and multi-cloud expertise to provide consultants with authoritative, actionable, and highly specific recommendations. The assistant will serve as both a research tool and a content generator, helping consultants deliver exceptional value to their clients through well-researched, implementation-ready recommendations.
+The Enhanced Bedrock AI Assistant transforms the existing basic report generator into a sophisticated real-time consulting partner specifically designed for skilled AWS cloud consultants. The system provides instant expert-level responses during client meetings, deep technical analysis that matches consultant expertise, and intelligent tools that understand your company's specific services and methodologies.
 
-**CRITICAL DESIGN PRINCIPLE: These AI-generated reports and analyses are internal tools designed exclusively for cloud consulting business employees/consultants. They are NOT customer-facing deliverables. Instead, they serve as:**
-- **Research and analysis tools** to help consultants understand client requirements
-- **Preparation materials** for client meetings and presentations  
-- **Internal documentation** to support consultant decision-making
-- **Knowledge synthesis** to combine multiple data sources into actionable insights
+**CRITICAL DESIGN PRINCIPLE: These AI-generated responses and analyses are internal tools designed exclusively for cloud consulting business employees/consultants during client engagements. They serve as:**
 
-**Consultants use these AI-generated materials to inform their own analysis, prepare better questions, and develop more comprehensive proposals that they then present to clients in their own professional format.**
+- **Real-time decision support** during live client meetings and calls
+- **Expert-level technical analysis** that matches the sophistication of experienced AWS consultants
+- **Company-specific intelligence** that understands your business model, services, and past project patterns
+- **Consultant productivity tools** that enhance meeting preparation and follow-up activities
 
-The enhanced system maintains the existing API structure while dramatically improving the quality and usefulness of generated content. It introduces new capabilities for interview preparation, competitive analysis, risk assessment, and implementation planning while supporting multiple cloud providers and industry-specific requirements.
+**The system's primary value is enabling consultants to provide more authoritative, specific, and valuable responses to clients in real-time, while maintaining the consultant's role as the trusted advisor.**
+
+The enhanced system introduces a real-time chat interface integrated into the admin dashboard, advanced AWS architecture analysis capabilities, and consultant productivity tools while maintaining backward compatibility with existing report generation features.
 
 ## Architecture
 
@@ -20,12 +21,19 @@ The enhanced system maintains the existing API structure while dramatically impr
 
 ```mermaid
 graph TB
+    subgraph "Real-Time Chat System"
+        WS[WebSocket Handler]
+        CM[Context Manager]
+        RT[Response Templates]
+        CC[Chat Controller]
+    end
+    
     subgraph "Enhanced AI Assistant Layer"
         PA[Prompt Architect]
-        KB[Knowledge Base]
-        MA[Multi-Cloud Analyzer]
-        RA[Risk Assessor]
-        IP[Interview Preparer]
+        CKB[Company Knowledge Base]
+        AAE[AWS Architecture Engine]
+        CAE[Cost Analysis Engine]
+        SAE[Security Assessment Engine]
     end
     
     subgraph "Existing System"
@@ -35,36 +43,42 @@ graph TB
         TS[Template Service]
     end
     
-    subgraph "New Components"
-        CPA[Cloud Provider Adapter]
-        IKB[Industry Knowledge Base]
-        DRL[Documentation Reference Library]
-        QG[Question Generator]
+    subgraph "Consultant Tools"
+        MPG[Meeting Prep Generator]
+        PG[Proposal Generator]
+        TDA[Technical Deep-dive Analyzer]
+        PA_TOOL[Performance Analytics]
     end
     
     subgraph "External Resources"
-        AWS[AWS Documentation]
-        AZURE[Azure Documentation]
-        GCP[GCP Documentation]
-        COMP[Compliance Frameworks]
+        AWS_DOCS[AWS Documentation]
+        AWS_PRICING[AWS Pricing API]
+        AWS_STATUS[AWS Service Health]
+        COMPANY_DATA[Company Historical Data]
     end
+    
+    WS --> CC
+    CC --> CM
+    CM --> PA
+    PA --> CKB
+    PA --> AAE
+    PA --> CAE
+    PA --> SAE
+    PA --> BS
+    BS --> TS
     
     API --> RG
     RG --> PA
-    PA --> KB
-    PA --> MA
-    PA --> RA
-    PA --> IP
-    MA --> CPA
-    KB --> IKB
-    KB --> DRL
-    IP --> QG
-    CPA --> AWS
-    CPA --> AZURE
-    CPA --> GCP
-    IKB --> COMP
-    PA --> BS
-    BS --> TS
+    
+    MPG --> CKB
+    PG --> CKB
+    TDA --> AAE
+    PA_TOOL --> COMPANY_DATA
+    
+    CKB --> COMPANY_DATA
+    AAE --> AWS_DOCS
+    CAE --> AWS_PRICING
+    SAE --> AWS_STATUS
 ```
 
 ### Component Architecture

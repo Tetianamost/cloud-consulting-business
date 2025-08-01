@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from './styles/theme';
@@ -6,7 +6,7 @@ import GlobalStyles from './styles/GlobalStyles';
 import './styles/admin.css';
 import { AuthProvider } from './contexts/AuthContext';
 
-// Public site components
+// Public site components (eagerly loaded for better initial page performance)
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Hero from './components/sections/Hero/Hero';
@@ -16,12 +16,23 @@ import ProjectHighlights from './components/sections/ProjectInsights/ProjectInsi
 import Pricing from './components/sections/Pricing/Pricing';
 import Contact from './components/sections/Contact/Contact';
 
-// Admin components
-import Login from './components/admin/Login';
-import ProtectedRoute from './components/admin/ProtectedRoute';
-import V0DashboardNew from './components/admin/V0DashboardNew';
-import V0Dashboard from './components/admin/V0Dashboard';
-import AIReportsPage from './components/admin/AIReportsPage';
+// Lazy-loaded admin components for better performance
+const Login = React.lazy(() => import('./components/admin/Login'));
+const ProtectedRoute = React.lazy(() => import('./components/admin/ProtectedRoute'));
+const AdminLayoutWrapper = React.lazy(() => import('./components/admin/AdminLayoutWrapper'));
+const V0DashboardNew = React.lazy(() => import('./components/admin/V0DashboardNew'));
+const AIReportsPage = React.lazy(() => import('./components/admin/AIReportsPage'));
+const ReportPage = React.lazy(() => import('./components/admin/ReportPage'));
+
+// Loading component for lazy-loaded routes
+const AdminLoadingFallback: React.FC = () => (
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+      <div className="text-gray-600 text-sm">Loading admin dashboard...</div>
+    </div>
+  </div>
+);
 
 // Main site layout component
 const MainSite: React.FC = () => (
@@ -52,39 +63,74 @@ function App() {
             {/* Public site route */}
             <Route path="/" element={<MainSite />} />
 
-            {/* Admin routes */}
+            {/* Admin routes with lazy loading and suspense */}
             {enableAdmin && (
               <>
-                <Route path="/admin/login" element={<Login />} />
+                <Route path="/admin/login" element={
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <Login />
+                  </Suspense>
+                } />
                 <Route path="/admin" element={
-                  <ProtectedRoute>
-                    <Navigate to="/admin/dashboard" replace />
-                  </ProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ProtectedRoute>
+                      <Navigate to="/admin/dashboard" replace />
+                    </ProtectedRoute>
+                  </Suspense>
                 } />
                 <Route path="/admin/dashboard" element={
-                  <ProtectedRoute>
-                    <V0DashboardNew />
-                  </ProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ProtectedRoute>
+                      <AdminLayoutWrapper>
+                        <V0DashboardNew />
+                      </AdminLayoutWrapper>
+                    </ProtectedRoute>
+                  </Suspense>
                 } />
                 <Route path="/admin/inquiries" element={
-                  <ProtectedRoute>
-                    <V0DashboardNew />
-                  </ProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ProtectedRoute>
+                      <AdminLayoutWrapper>
+                        <V0DashboardNew />
+                      </AdminLayoutWrapper>
+                    </ProtectedRoute>
+                  </Suspense>
                 } />
                 <Route path="/admin/metrics" element={
-                  <ProtectedRoute>
-                    <V0DashboardNew />
-                  </ProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ProtectedRoute>
+                      <AdminLayoutWrapper>
+                        <V0DashboardNew />
+                      </AdminLayoutWrapper>
+                    </ProtectedRoute>
+                  </Suspense>
                 } />
                 <Route path="/admin/email-status" element={
-                  <ProtectedRoute>
-                    <V0DashboardNew />
-                  </ProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ProtectedRoute>
+                      <AdminLayoutWrapper>
+                        <V0DashboardNew />
+                      </AdminLayoutWrapper>
+                    </ProtectedRoute>
+                  </Suspense>
                 } />
                 <Route path="/admin/reports" element={
-                  <ProtectedRoute>
-                    <AIReportsPage />
-                  </ProtectedRoute>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ProtectedRoute>
+                      <AdminLayoutWrapper>
+                        <AIReportsPage />
+                      </AdminLayoutWrapper>
+                    </ProtectedRoute>
+                  </Suspense>
+                } />
+                <Route path="/admin/reports/:id" element={
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ProtectedRoute>
+                      <AdminLayoutWrapper>
+                        <ReportPage />
+                      </AdminLayoutWrapper>
+                    </ProtectedRoute>
+                  </Suspense>
                 } />
               </>
             )}

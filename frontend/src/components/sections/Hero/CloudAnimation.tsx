@@ -407,7 +407,7 @@ const serviceIcons: IconInfo[] = [
     iconComponent: FiMapPin as ComponentType<any>,
     animate: { 
       rotate: [0, 8, 0, -8, 0], 
-      transition: { repeat: Infinity, duration: 4, ease: "easeInOut" } 
+      transition: { repeat: Infinity, duration: 4, ease: [0.42, 0, 0.58, 1] }
     } 
   },
   { 
@@ -418,7 +418,7 @@ const serviceIcons: IconInfo[] = [
     iconComponent: FiShield as ComponentType<any>,
     animate: {
       scale: [1, 1.15, 1],
-      transition: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+      transition: { repeat: Infinity, duration: 2, ease: [0.42, 0, 0.58, 1] }
     }
   },
   { 
@@ -429,7 +429,7 @@ const serviceIcons: IconInfo[] = [
     iconComponent: FiDollarSign as ComponentType<any>,
     animate: {
       y: [0, -5, 0],
-      transition: { repeat: Infinity, duration: 3, ease: "easeInOut" }
+      transition: { repeat: Infinity, duration: 3, ease: [0.42, 0, 0.58, 1] }
     }
   },
   { 
@@ -440,7 +440,7 @@ const serviceIcons: IconInfo[] = [
     iconComponent: FiDatabase as ComponentType<any>,
     animate: {
       scale: [1, 0.85, 1],
-      transition: { repeat: Infinity, duration: 2.5, ease: "easeInOut" }
+      transition: { repeat: Infinity, duration: 2.5, ease: [0.42, 0, 0.58, 1] }
     }
   }
 ];
@@ -515,7 +515,7 @@ const CloudAnimation: React.FC = () => {
             animate={{
               cx: [150, 250, 350],
               cy: [140, 100, 140],
-              transition: { repeat: Infinity, duration: 4, ease: "easeInOut" }
+              transition: { repeat: Infinity, duration: 4, ease: [0.42, 0, 0.58, 1] }
             }}
             viewport={{ once: true }}
           />
@@ -524,7 +524,7 @@ const CloudAnimation: React.FC = () => {
             animate={{
               cx: [380, 250, 120],
               cy: [160, 190, 160],
-              transition: { repeat: Infinity, duration: 5, ease: "easeInOut", delay: 0.5 }
+              transition: { repeat: Infinity, duration: 5, ease: [0.42, 0, 0.58, 1], delay: 0.5 }
             }}
             viewport={{ once: true }}
           />
@@ -533,7 +533,7 @@ const CloudAnimation: React.FC = () => {
             animate={{
               cx: [140, 250, 360],
               cy: [200, 150, 200],
-              transition: { repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 1 }
+              transition: { repeat: Infinity, duration: 3.5, ease: [0.42, 0, 0.58, 1], delay: 1 }
             }}
             viewport={{ once: true }}
           />
@@ -542,7 +542,7 @@ const CloudAnimation: React.FC = () => {
             animate={{
               cx: [350, 240, 130],
               cy: [120, 180, 120],
-              transition: { repeat: Infinity, duration: 6, ease: "easeInOut", delay: 0.2 }
+              transition: { repeat: Infinity, duration: 6, ease: [0.42, 0, 0.58, 1], delay: 0.2 }
             }}
             viewport={{ once: true }}
           />
@@ -551,7 +551,7 @@ const CloudAnimation: React.FC = () => {
             animate={{
               cx: [140, 240, 340],
               cy: [220, 240, 220],
-              transition: { repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 0.7 }
+              transition: { repeat: Infinity, duration: 4.5, ease: [0.42, 0, 0.58, 1], delay: 0.7 }
             }}
             viewport={{ once: true }}
           />
@@ -572,7 +572,7 @@ const CloudAnimation: React.FC = () => {
             transition: { 
               repeat: Infinity, 
               duration: 4,
-              ease: "easeInOut"
+              ease: [0.42, 0, 0.58, 1]
             }
           }}
           aria-label="Go to Database Migration Service"
@@ -596,7 +596,7 @@ const CloudAnimation: React.FC = () => {
             transition: { 
               repeat: Infinity, 
               duration: 5,
-              ease: "easeInOut"
+              ease: [0.42, 0, 0.58, 1]
             }
           }}
           aria-label="Go to Storage Migration Service"
@@ -629,7 +629,7 @@ const CloudAnimation: React.FC = () => {
               color={theme.colors.success}
               animate={{ 
                 opacity: [1, 0.5, 1],
-                transition: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
+                transition: { repeat: Infinity, duration: 1.5, ease: [0.42, 0, 0.58, 1] }
               }}
             />
             <div style={{ color: theme.colors.primary, fontSize: '18px' }}>
