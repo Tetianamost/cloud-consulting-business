@@ -1,0 +1,158 @@
+# Prometheus configuration for AI Consultant Live Chat System
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'chat-system'
+    environment: 'production'
+
+rule_files:
+  - "rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+scrape_configs:
+  # Backend chat service metrics
+  - job_name: 'backend-chat'
+    static_configs:
+      - targets: ['backend-chat:9090']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+    params:
+      format: ['prometheus']
+
+  # PostgreSQL database metrics
+  - job_name: 'postgres-chat'
+    static_configs:
+      - targets: ['db-chat:5432']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+
+  # Redis cache metrics
+  - job_name: 'redis-chat'
+    static_configs:
+      - targets: ['redis-chat:6379']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+
+  # Nginx load balancer metrics
+  - job_name: 'nginx-chat'
+    static_configs:
+      - targets: ['nginx-chat:80']
+    scrape_interval: 30s
+    metrics_path: /nginx_status
+    scheme: http
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+
+  # Custom chat metrics
+  - job_name: 'chat-metrics'
+    static_configs:
+      - targets: ['backend-chat:8061']
+    scrape_interval: 15s
+    metrics_path: /api/v1/admin/metrics
+    scheme: http
+    params:
+      format: ['prometheus']
+    basic_auth:
+      username: 'admin'
+      password: 'metrics-password'
+
+# Recording rules for chat system
+recording_rules:
+  - name: chat_system_rules
+    rules:
+      # WebSocket connection rate
+      - record: chat:websocket_connections_rate
+        expr: rate(websocket_connections_total[5m])
+      
+      # Message processing rate
+      - record: chat:messages_processed_rate
+        expr: rate(chat_messages_processed_total[5m])
+      
+      # Error rate
+      - record: chat:error_rate
+        expr: rate(chat_errors_total[5m]) / rate(chat_requests_total[5m])
+      
+      # Average response time
+      - record: chat:response_time_avg
+        expr: rate(chat_response_time_sum[5m]) / rate(chat_response_time_count[5m])
+      
+      # Database connection utilization
+      - record: chat:db_connections_utilization
+        expr: postgres_connections_active / postgres_connections_max
+      
+      # Redis memory utilization
+      - record: chat:redis_memory_utilization
+        expr: redis_memory_used_bytes / redis_memory_max_bytes
+
+# Alerting rules
+alerting_rules:
+  - name: chat_system_alerts
+    rules:
+      # High error rate
+      - alert: ChatHighErrorRate
+        expr: chat:error_rate > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in chat system"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+      
+      # WebSocket connection issues
+      - alert: ChatWebSocketConnectionsDown
+        expr: websocket_connections_active < 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No active WebSocket connections"
+          description: "WebSocket connections have been down for more than 2 minutes"
+      
+      # Database connection issues
+      - alert: ChatDatabaseConnectionsHigh
+        expr: chat:db_connections_utilization > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connection utilization"
+          description: "Database connection utilization is {{ $value | humanizePercentage }}"
+      
+      # Redis memory usage
+      - alert: ChatRedisMemoryHigh
+        expr: chat:redis_memory_utilization > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory utilization is {{ $value | humanizePercentage }}"
+      
+      # Response time degradation
+      - alert: ChatHighResponseTime
+        expr: chat:response_time_avg > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High chat response time"
+          description: "Average response time is {{ $value }}s for the last 5 minutes"

@@ -1,0 +1,411 @@
+# Default values for ai-consultant-chat
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# Application configuration
+app:
+  name: ai-consultant-chat
+  version: "1.0.0"
+  environment: production
+
+# Backend service configuration
+backend:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: ai-consultant-chat/backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8061
+    targetPort: 8061
+    annotations: {}
+  
+  # WebSocket specific configuration
+  websocket:
+    enabled: true
+    pingInterval: "30s"
+    pongWait: "60s"
+    writeWait: "10s"
+  
+  # Chat configuration
+  chat:
+    sessionTimeout: "24h"
+    messageMaxLength: 10000
+    rateLimitRequests: 100
+    rateLimitWindow: "1m"
+  
+  # Environment variables
+  env:
+    - name: PORT
+      value: "8061"
+    - name: LOG_LEVEL
+      value: "4"
+    - name: GIN_MODE
+      value: "release"
+    - name: CHAT_ENABLED
+      value: "true"
+    - name: WEBSOCKET_ENABLED
+      value: "true"
+    - name: METRICS_ENABLED
+      value: "true"
+    - name: HEALTH_CHECK_ENABLED
+      value: "true"
+    - name: LOG_FORMAT
+      value: "json"
+  
+  # Environment variables from secrets
+  envFrom:
+    - secretRef:
+        name: chat-backend-secrets
+    - configMapRef:
+        name: chat-backend-config
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8061
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8061
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  # Node selector and affinity
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Pod security context
+  podSecurityContext:
+    fsGroup: 2000
+  
+  securityContext:
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+
+# Frontend service configuration
+frontend:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: ai-consultant-chat/frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  
+  # Environment variables
+  env:
+    - name: REACT_APP_CHAT_ENABLED
+      value: "true"
+    - name: REACT_APP_CHAT_MAX_MESSAGE_LENGTH
+      value: "10000"
+    - name: REACT_APP_CHAT_RECONNECT_INTERVAL
+      value: "5000"
+    - name: REACT_APP_CHAT_MAX_RECONNECT_ATTEMPTS
+      value: "10"
+    - name: REACT_APP_ENVIRONMENT
+      value: "production"
+  
+  # Environment variables from config maps
+  envFrom:
+    - configMapRef:
+        name: chat-frontend-config
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  # Node selector and affinity
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Database configuration (PostgreSQL)
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "consulting-password"
+    username: "consulting"
+    password: "consulting-password"
+    database: "consulting"
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: ""
+    
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    
+    configuration: |
+      max_connections = 100
+      shared_buffers = 256MB
+      effective_cache_size = 1GB
+      maintenance_work_mem = 64MB
+      checkpoint_completion_target = 0.9
+      wal_buffers = 16MB
+      default_statistics_target = 100
+      random_page_cost = 1.1
+      effective_io_concurrency = 200
+      work_mem = 4MB
+      min_wal_size = 1GB
+      max_wal_size = 4GB
+  
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+      storageClass: ""
+    
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    
+    configuration: |
+      maxmemory 256mb
+      maxmemory-policy allkeys-lru
+      save 900 1
+      save 300 10
+      save 60 10000
+      appendonly yes
+      appendfsync everysec
+  
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"
+    nginx.ingress.kubernetes.io/websocket-services: "ai-consultant-chat-backend"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  
+  hosts:
+    - host: chat.example.com
+      paths:
+        - path: /api/v1/admin/chat/ws
+          pathType: Prefix
+          service: backend
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend
+  
+  tls:
+    - secretName: chat-tls
+      hosts:
+        - chat.example.com
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  backend:
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  frontend:
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  backend:
+    minAvailable: 1
+  frontend:
+    minAvailable: 1
+
+# Network Policies
+networkPolicy:
+  enabled: true
+  ingress:
+    enabled: true
+  egress:
+    enabled: true
+
+# Service Monitor for Prometheus
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+# Monitoring and observability
+monitoring:
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+
+# Database migration job
+migration:
+  enabled: true
+  image:
+    repository: ai-consultant-chat/migration
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Migration scripts to run
+  scripts:
+    - init.sql
+    - chat_migration.sql
+    - enhanced_chat_migration.sql
+    - performance_optimization_indexes.sql
+
+# Backup configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+  
+  postgresql:
+    enabled: true
+    s3:
+      bucket: "chat-system-backups"
+      region: "us-east-1"
+  
+  redis:
+    enabled: true
+    s3:
+      bucket: "chat-system-backups"
+      region: "us-east-1"
+
+# Security
+security:
+  podSecurityPolicy:
+    enabled: true
+  
+  networkPolicy:
+    enabled: true
+  
+  rbac:
+    create: true
+  
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+
+# External secrets (if using external-secrets operator)
+externalSecrets:
+  enabled: false
+  secretStore:
+    name: "vault-backend"
+    kind: "SecretStore"
+  
+  secrets:
+    - name: chat-backend-secrets
+      refreshInterval: "1h"
+      data:
+        - secretKey: "jwt-secret"
+          remoteRef:
+            key: "chat/backend"
+            property: "jwt_secret"
+        - secretKey: "encryption-key"
+          remoteRef:
+            key: "chat/backend"
+            property: "encryption_key"

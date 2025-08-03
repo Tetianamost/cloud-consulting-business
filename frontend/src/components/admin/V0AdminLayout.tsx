@@ -119,8 +119,12 @@ const V0AdminLayout: React.FC<V0AdminLayoutProps> = ({ children, currentPath }) 
           </header>
 
           {/* Main content with responsive padding and scrolling */}
-          <main className="flex-1 overflow-y-auto bg-gray-50 px-4 py-4 sm:px-6 sm:py-6">
-            <div className="max-w-7xl mx-auto">
+          <main className={`flex-1 overflow-y-auto bg-gray-50 ${
+            currentPath === '/admin/chat' 
+              ? 'p-0' // No padding for chat page to allow full height
+              : 'px-4 py-4 sm:px-6 sm:py-6'
+          }`}>
+            <div className={currentPath === '/admin/chat' ? 'h-full' : 'max-w-7xl mx-auto'}>
               <V0ErrorBoundary>
                 {children}
               </V0ErrorBoundary>
@@ -129,8 +133,8 @@ const V0AdminLayout: React.FC<V0AdminLayoutProps> = ({ children, currentPath }) 
         </div>
       </div>
       
-      {/* Consultant Chat Toggle */}
-      <ChatToggle />
+      {/* Consultant Chat Toggle - only show if not on chat page */}
+      {currentPath !== '/admin/chat' && <ChatToggle />}
     </div>
     </V0ErrorBoundary>
   );
@@ -145,6 +149,8 @@ function getPageTitle(path: string): string {
       return 'AI Inquiry Analysis Dashboard';
     case '/admin/inquiries':
       return 'Inquiries';
+    case '/admin/chat':
+      return 'AI Consultant Chat';
     case '/admin/metrics':
       return 'Metrics';
     case '/admin/email-status':

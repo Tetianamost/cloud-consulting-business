@@ -1,21 +1,22 @@
 package utils
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/cloud-consulting/backend/internal/interfaces"
+	"github.com/gin-gonic/gin"
 )
 
 // APIResponse represents a standard API response
 type APIResponse struct {
-	Success   bool        `json:"success"`
-	Data      interface{} `json:"data,omitempty"`
+	Success   bool                 `json:"success"`
+	Data      interface{}          `json:"data,omitempty"`
 	Error     *interfaces.APIError `json:"error,omitempty"`
-	Message   string      `json:"message,omitempty"`
-	Timestamp string      `json:"timestamp"`
-	TraceID   string      `json:"trace_id,omitempty"`
+	Message   string               `json:"message,omitempty"`
+	Timestamp string               `json:"timestamp"`
+	TraceID   string               `json:"trace_id,omitempty"`
 }
 
 // PaginatedResponse represents a paginated API response
@@ -43,7 +44,7 @@ func SuccessResponse(c *gin.Context, data interface{}, message string) {
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 		TraceID:   getTraceID(c),
 	}
-	
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -56,7 +57,7 @@ func CreatedResponse(c *gin.Context, data interface{}, message string) {
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 		TraceID:   getTraceID(c),
 	}
-	
+
 	c.JSON(http.StatusCreated, response)
 }
 
@@ -70,44 +71,44 @@ func ErrorResponse(c *gin.Context, statusCode int, code string, message string, 
 		Timestamp:  time.Now().UTC().Format(time.RFC3339),
 		StatusCode: statusCode,
 	}
-	
+
 	response := APIResponse{
 		Success:   false,
 		Error:     apiError,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 		TraceID:   getTraceID(c),
 	}
-	
+
 	c.JSON(statusCode, response)
 }
 
 // ValidationErrorResponse sends a validation error response
 func ValidationErrorResponse(c *gin.Context, err error) {
-	ErrorResponse(c, http.StatusBadRequest, interfaces.ErrCodeValidation, 
+	ErrorResponse(c, http.StatusBadRequest, interfaces.ErrCodeValidation,
 		"Validation failed", err.Error())
 }
 
 // NotFoundResponse sends a not found error response
 func NotFoundResponse(c *gin.Context, resource string) {
-	ErrorResponse(c, http.StatusNotFound, interfaces.ErrCodeNotFound, 
+	ErrorResponse(c, http.StatusNotFound, interfaces.ErrCodeNotFound,
 		resource+" not found", "")
 }
 
 // InternalErrorResponse sends an internal server error response
 func InternalErrorResponse(c *gin.Context, message string) {
-	ErrorResponse(c, http.StatusInternalServerError, interfaces.ErrCodeInternal, 
+	ErrorResponse(c, http.StatusInternalServerError, interfaces.ErrCodeInternal,
 		"Internal server error", message)
 }
 
 // UnauthorizedResponse sends an unauthorized error response
 func UnauthorizedResponse(c *gin.Context) {
-	ErrorResponse(c, http.StatusUnauthorized, interfaces.ErrCodeUnauthorized, 
+	ErrorResponse(c, http.StatusUnauthorized, interfaces.ErrCodeUnauthorized,
 		"Unauthorized", "Authentication required")
 }
 
 // ForbiddenResponse sends a forbidden error response
 func ForbiddenResponse(c *gin.Context) {
-	ErrorResponse(c, http.StatusForbidden, interfaces.ErrCodeForbidden, 
+	ErrorResponse(c, http.StatusForbidden, interfaces.ErrCodeForbidden,
 		"Forbidden", "Insufficient permissions")
 }
 
@@ -123,7 +124,7 @@ func PaginatedSuccessResponse(c *gin.Context, data interface{}, pagination *Pagi
 		},
 		Pagination: pagination,
 	}
-	
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -135,9 +136,9 @@ func CalculatePagination(page, limit int, total int64) *PaginationInfo {
 	if limit < 1 {
 		limit = 10
 	}
-	
+
 	totalPages := int((total + int64(limit) - 1) / int64(limit))
-	
+
 	return &PaginationInfo{
 		Page:       page,
 		Limit:      limit,
@@ -156,4 +157,21 @@ func getTraceID(c *gin.Context) string {
 		}
 	}
 	return ""
+}
+
+// WriteJSONResponse writes a JSON response (for compatibility with old handlers)
+func WriteJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(data)
+}
+
+// WriteErrorResponse writes an error response (for compatibility with old handlers)
+func WriteErrorResponse(w http.ResponseWriter, statusCode int, message string) {
+	response := map[string]interface{}{
+		"success":   false,
+		"error":     message,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+	WriteJSONResponse(w, statusCode, response)
 }

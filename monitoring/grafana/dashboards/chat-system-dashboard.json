@@ -1,0 +1,262 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AI Consultant Live Chat System",
+    "tags": ["chat", "ai", "websocket"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"backend-chat\"}",
+            "legendFormat": "Backend Status"
+          },
+          {
+            "expr": "up{job=\"frontend-chat\"}",
+            "legendFormat": "Frontend Status"
+          },
+          {
+            "expr": "chat_sessions_active",
+            "legendFormat": "Active Sessions"
+          },
+          {
+            "expr": "chat_websocket_connections_active",
+            "legendFormat": "WebSocket Connections"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(chat_requests_total[5m])",
+            "legendFormat": "Total Requests/sec"
+          },
+          {
+            "expr": "rate(chat_requests_failed_total[5m])",
+            "legendFormat": "Failed Requests/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 3,
+        "title": "Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(chat_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(chat_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(chat_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "99th percentile"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "WebSocket Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "chat_websocket_connections_active",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "rate(chat_websocket_connections_total[5m])",
+            "legendFormat": "New Connections/sec"
+          },
+          {
+            "expr": "rate(chat_websocket_disconnections_total[5m])",
+            "legendFormat": "Disconnections/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 5,
+        "title": "Message Processing",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(chat_messages_processed_total[5m])",
+            "legendFormat": "Messages Processed/sec"
+          },
+          {
+            "expr": "chat_message_processing_lag_seconds",
+            "legendFormat": "Processing Lag (seconds)"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Database Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "chat_database_connections_active",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "rate(chat_database_queries_total[5m])",
+            "legendFormat": "Queries/sec"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(chat_database_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile query time"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 7,
+        "title": "Redis Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "redis_connected_clients",
+            "legendFormat": "Connected Clients"
+          },
+          {
+            "expr": "rate(redis_commands_processed_total[5m])",
+            "legendFormat": "Commands/sec"
+          },
+          {
+            "expr": "redis_memory_used_bytes / redis_memory_max_bytes * 100",
+            "legendFormat": "Memory Usage %"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        }
+      },
+      {
+        "id": 8,
+        "title": "AI Service Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(chat_ai_requests_total[5m])",
+            "legendFormat": "AI Requests/sec"
+          },
+          {
+            "expr": "rate(chat_ai_requests_failed_total[5m])",
+            "legendFormat": "AI Failures/sec"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(chat_ai_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile AI response time"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 32
+        }
+      },
+      {
+        "id": 9,
+        "title": "Error Rates",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(chat_requests_failed_total[5m]) / rate(chat_requests_total[5m]) * 100",
+            "legendFormat": "Overall Error Rate %"
+          },
+          {
+            "expr": "rate(chat_websocket_errors_total[5m])",
+            "legendFormat": "WebSocket Errors/sec"
+          },
+          {
+            "expr": "rate(chat_database_errors_total[5m])",
+            "legendFormat": "Database Errors/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 32
+        }
+      },
+      {
+        "id": 10,
+        "title": "Resource Utilization",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{container=\"backend\"}[5m]) * 100",
+            "legendFormat": "Backend CPU %"
+          },
+          {
+            "expr": "container_memory_usage_bytes{container=\"backend\"} / container_spec_memory_limit_bytes{container=\"backend\"} * 100",
+            "legendFormat": "Backend Memory %"
+          },
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{container=\"frontend\"}[5m]) * 100",
+            "legendFormat": "Frontend CPU %"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 40
+        }
+      }
+    ]
+  }
+}

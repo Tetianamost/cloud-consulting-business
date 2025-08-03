@@ -1,0 +1,52 @@
+{{- if .Values.verticalPodAutoscaler.enabled }}
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: {{ include "ai-consultant-chat.fullname" . }}-backend-vpa
+  labels:
+    {{- include "ai-consultant-chat.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "ai-consultant-chat.fullname" . }}-backend
+  updatePolicy:
+    updateMode: {{ .Values.verticalPodAutoscaler.backend.updateMode | quote }}
+  resourcePolicy:
+    containerPolicies:
+    - containerName: backend
+      minAllowed:
+        cpu: {{ .Values.verticalPodAutoscaler.backend.minAllowed.cpu }}
+        memory: {{ .Values.verticalPodAutoscaler.backend.minAllowed.memory }}
+      maxAllowed:
+        cpu: {{ .Values.verticalPodAutoscaler.backend.maxAllowed.cpu }}
+        memory: {{ .Values.verticalPodAutoscaler.backend.maxAllowed.memory }}
+      controlledResources: ["cpu", "memory"]
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: {{ include "ai-consultant-chat.fullname" . }}-frontend-vpa
+  labels:
+    {{- include "ai-consultant-chat.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "ai-consultant-chat.fullname" . }}-frontend
+  updatePolicy:
+    updateMode: {{ .Values.verticalPodAutoscaler.frontend.updateMode | quote }}
+  resourcePolicy:
+    containerPolicies:
+    - containerName: frontend
+      minAllowed:
+        cpu: {{ .Values.verticalPodAutoscaler.frontend.minAllowed.cpu }}
+        memory: {{ .Values.verticalPodAutoscaler.frontend.minAllowed.memory }}
+      maxAllowed:
+        cpu: {{ .Values.verticalPodAutoscaler.frontend.maxAllowed.cpu }}
+        memory: {{ .Values.verticalPodAutoscaler.frontend.maxAllowed.memory }}
+      controlledResources: ["cpu", "memory"]
+{{- end }}

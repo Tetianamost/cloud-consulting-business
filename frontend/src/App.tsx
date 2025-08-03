@@ -1,10 +1,12 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Provider } from 'react-redux';
 import { ThemeProvider } from 'styled-components';
 import { theme } from './styles/theme';
 import GlobalStyles from './styles/GlobalStyles';
 import './styles/admin.css';
 import { AuthProvider } from './contexts/AuthContext';
+import { store } from './store';
 
 // Public site components (eagerly loaded for better initial page performance)
 import Header from './components/layout/Header';
@@ -21,6 +23,7 @@ const Login = React.lazy(() => import('./components/admin/Login'));
 const ProtectedRoute = React.lazy(() => import('./components/admin/ProtectedRoute'));
 const AdminLayoutWrapper = React.lazy(() => import('./components/admin/AdminLayoutWrapper'));
 const V0DashboardNew = React.lazy(() => import('./components/admin/V0DashboardNew'));
+const ChatPage = React.lazy(() => import('./components/admin/ChatPage'));
 const AIReportsPage = React.lazy(() => import('./components/admin/AIReportsPage'));
 const ReportPage = React.lazy(() => import('./components/admin/ReportPage'));
 
@@ -55,10 +58,11 @@ function App() {
   const enableAdmin = process.env.REACT_APP_ENABLE_ADMIN !== 'false';
 
   return (
-    <ThemeProvider theme={theme}>
-      <GlobalStyles />
-      <AuthProvider>
-        <Router>
+    <Provider store={store}>
+      <ThemeProvider theme={theme}>
+        <GlobalStyles />
+        <AuthProvider>
+          <Router>
           <Routes>
             {/* Public site route */}
             <Route path="/" element={<MainSite />} />
@@ -114,6 +118,15 @@ function App() {
                     </ProtectedRoute>
                   </Suspense>
                 } />
+                <Route path="/admin/chat" element={
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ProtectedRoute>
+                      <AdminLayoutWrapper>
+                        <ChatPage />
+                      </AdminLayoutWrapper>
+                    </ProtectedRoute>
+                  </Suspense>
+                } />
                 <Route path="/admin/reports" element={
                   <Suspense fallback={<AdminLoadingFallback />}>
                     <ProtectedRoute>
@@ -141,6 +154,7 @@ function App() {
         </Router>
       </AuthProvider>
     </ThemeProvider>
+    </Provider>
   );
 }
 

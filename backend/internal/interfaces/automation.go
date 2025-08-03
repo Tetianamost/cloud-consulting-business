@@ -63,12 +63,12 @@ type IntegrationService interface {
 // ProactiveRecommendationEngine generates recommendations based on usage patterns
 type ProactiveRecommendationEngine interface {
 	AnalyzeCostTrends(ctx context.Context, clientID string, timeRange AutomationTimeRange) (*AutomationCostTrendAnalysis, error)
-	AnalyzePerformancePatterns(ctx context.Context, clientID string, timeRange AutomationTimeRange) (*AutomationPerformancePatternAnalysis, error)
-	AnalyzeSecurityPosture(ctx context.Context, clientID string) (*AutomationSecurityPostureAnalysis, error)
+	AnalyzePerformancePatterns(ctx context.Context, clientID string, timeRange AutomationTimeRange) (*AutomationPerformancePatternAnalysisUpdated, error)
+	AnalyzeSecurityPosture(ctx context.Context, clientID string) (*AutomationSecurityPostureAnalysisUpdated, error)
 
-	GenerateCostOptimizationRecommendations(ctx context.Context, analysis *AutomationCostTrendAnalysis) ([]*AutomationCostOptimizationRecommendation, error)
-	GeneratePerformanceRecommendations(ctx context.Context, analysis *AutomationPerformancePatternAnalysis) ([]*AutomationPerformanceRecommendation, error)
-	GenerateSecurityRecommendations(ctx context.Context, analysis *AutomationSecurityPostureAnalysis) ([]*AutomationSecurityRecommendation, error)
+	GenerateCostOptimizationRecommendations(ctx context.Context, analysis *AutomationCostTrendAnalysis) ([]*AutomationCostOptimizationRecommendationUpdated, error)
+	GeneratePerformanceRecommendations(ctx context.Context, analysis *AutomationPerformancePatternAnalysisUpdated) ([]*AutomationPerformanceRecommendationUpdated, error)
+	GenerateSecurityRecommendations(ctx context.Context, analysis *AutomationSecurityPostureAnalysisUpdated) ([]*AutomationSecurityRecommendationUpdated, error)
 }
 
 // Data Models
@@ -286,13 +286,13 @@ const (
 
 // UsagePatterns represents usage patterns for a client
 type UsagePatterns struct {
-	ClientID            string                         `json:"client_id"`
-	TimeRange           AutomationTimeRange            `json:"time_range"`
-	CostTrends          *AutomationCostTrends          `json:"cost_trends"`
-	ResourceUtilization *AutomationResourceUtilization `json:"resource_utilization"`
-	PerformanceMetrics  *AutomationPerformanceMetrics  `json:"performance_metrics"`
-	SecurityEvents      []*SecurityEvent               `json:"security_events"`
-	AnomaliesDetected   []*Anomaly                     `json:"anomalies_detected"`
+	ClientID                 string                         `json:"client_id"`
+	TimeRange                AutomationTimeRange            `json:"time_range"`
+	CostTrends               *AutomationCostTrends          `json:"cost_trends"`
+	ResourceUtilization      *AutomationResourceUtilization `json:"resource_utilization"`
+	PerformanceMetrics       *AutomationPerformanceMetrics  `json:"performance_metrics"`
+	AutomationSecurityEvents []*AutomationSecurityEvent     `json:"security_events"`
+	AnomaliesDetected        []*Anomaly                     `json:"anomalies_detected"`
 }
 
 // AutomationTimeRange represents a time range for automation (different from existing TimeRange)
@@ -689,7 +689,7 @@ type ThroughputMetrics struct {
 	TransactionsPerSecond float64 `json:"transactions_per_second"`
 }
 
-type SecurityEvent struct {
+type AutomationSecurityEvent struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"`
 	Severity    string                 `json:"severity"`
@@ -782,13 +782,13 @@ type AutomationPerformanceRecommendation struct {
 }
 
 type AutomationSecurityPostureAnalysis struct {
-	ClientID         string                              `json:"client_id"`
-	AnalysisTime     time.Time                           `json:"analysis_time"`
-	OverallScore     float64                             `json:"overall_score"`
-	RiskLevel        string                              `json:"risk_level"`
-	Vulnerabilities  []*Vulnerability                    `json:"vulnerabilities"`
-	ComplianceStatus []*AutomationComplianceStatus       `json:"compliance_status"`
-	Recommendations  []*AutomationSecurityRecommendation `json:"recommendations"`
+	ClientID         string                                 `json:"client_id"`
+	AnalysisTime     time.Time                              `json:"analysis_time"`
+	OverallScore     float64                                `json:"overall_score"`
+	RiskLevel        string                                 `json:"risk_level"`
+	Vulnerabilities  []*Vulnerability                       `json:"vulnerabilities"`
+	ComplianceStatus []*AutomationComplianceFrameworkStatus `json:"compliance_status"`
+	Recommendations  []*AutomationSecurityRecommendation    `json:"recommendations"`
 }
 
 type Vulnerability struct {
@@ -803,7 +803,7 @@ type Vulnerability struct {
 	Status      string    `json:"status"`
 }
 
-type AutomationComplianceStatus struct {
+type AutomationComplianceFrameworkStatus struct {
 	Framework     string  `json:"framework"`
 	Score         float64 `json:"score"`
 	Status        string  `json:"status"`
@@ -866,4 +866,194 @@ type ResourceCost struct {
 	Currency     string    `json:"currency"`
 	PricingModel string    `json:"pricing_model"`
 	LastUpdated  time.Time `json:"last_updated"`
+}
+
+// Additional interfaces for proactive recommendation engine
+
+type ResponseTimePattern struct {
+	AverageResponseTime float64 `json:"average_response_time"`
+	PeakResponseTime    float64 `json:"peak_response_time"`
+	TrendDirection      string  `json:"trend_direction"`
+	PeakHours           []int   `json:"peak_hours"`
+}
+
+type ThroughputPattern struct {
+	AverageThroughput float64 `json:"average_throughput"`
+	PeakThroughput    float64 `json:"peak_throughput"`
+	TrendDirection    string  `json:"trend_direction"`
+	PeakHours         []int   `json:"peak_hours"`
+}
+
+type ErrorPattern struct {
+	AverageErrorRate float64  `json:"average_error_rate"`
+	PeakErrorRate    float64  `json:"peak_error_rate"`
+	TrendDirection   string   `json:"trend_direction"`
+	CommonErrors     []string `json:"common_errors"`
+}
+
+type ResourceUtilizationPattern struct {
+	CPUUtilization    *UtilizationPattern `json:"cpu_utilization"`
+	MemoryUtilization *UtilizationPattern `json:"memory_utilization"`
+	DiskUtilization   *UtilizationPattern `json:"disk_utilization"`
+}
+
+type UtilizationPattern struct {
+	Average        float64 `json:"average"`
+	Peak           float64 `json:"peak"`
+	TrendDirection string  `json:"trend_direction"`
+	PeakHours      []int   `json:"peak_hours"`
+}
+
+type PerformanceAnomaly struct {
+	ID                 string    `json:"id"`
+	Type               string    `json:"type"`
+	Timestamp          time.Time `json:"timestamp"`
+	Severity           string    `json:"severity"`
+	Description        string    `json:"description"`
+	Value              float64   `json:"value"`
+	Expected           float64   `json:"expected"`
+	Deviation          float64   `json:"deviation"`
+	AffectedComponents []string  `json:"affected_components"`
+}
+
+type SecurityMetrics struct {
+	VulnerabilityCount   *VulnerabilityCount   `json:"vulnerability_count"`
+	ComplianceScore      float64               `json:"compliance_score"`
+	SecurityEvents       *SecurityEventMetrics `json:"security_events"`
+	AccessControlMetrics *AccessControlMetrics `json:"access_control_metrics"`
+}
+
+type VulnerabilityCount struct {
+	Critical int `json:"critical"`
+	High     int `json:"high"`
+	Medium   int `json:"medium"`
+	Low      int `json:"low"`
+}
+
+type SecurityEventMetrics struct {
+	TotalEvents           int     `json:"total_events"`
+	HighSeverityEvents    int     `json:"high_severity_events"`
+	ResolvedEvents        int     `json:"resolved_events"`
+	AverageResolutionTime float64 `json:"average_resolution_time"`
+}
+
+type AccessControlMetrics struct {
+	TotalUsers        int     `json:"total_users"`
+	PrivilegedUsers   int     `json:"privileged_users"`
+	InactiveUsers     int     `json:"inactive_users"`
+	MFAEnabledUsers   int     `json:"mfa_enabled_users"`
+	MFAComplianceRate float64 `json:"mfa_compliance_rate"`
+}
+
+type ThreatLandscape struct {
+	ActiveThreats     []string          `json:"active_threats"`
+	ThreatTrends      map[string]string `json:"threat_trends"`
+	GeographicThreats map[string]int    `json:"geographic_threats"`
+}
+
+type AutomationComplianceStatus struct {
+	Frameworks map[string]*ComplianceFrameworkStatus `json:"frameworks"`
+}
+
+type ComplianceFrameworkStatus struct {
+	OverallScore    float64   `json:"overall_score"`
+	ControlsPassed  int       `json:"controls_passed"`
+	ControlsFailed  int       `json:"controls_failed"`
+	ControlsPartial int       `json:"controls_partial"`
+	LastAssessment  time.Time `json:"last_assessment"`
+	NextAssessment  time.Time `json:"next_assessment"`
+}
+
+type CostSavings struct {
+	MonthlySavings float64 `json:"monthly_savings"`
+	AnnualSavings  float64 `json:"annual_savings"`
+	Currency       string  `json:"currency"`
+	Confidence     float64 `json:"confidence"`
+}
+
+type PerformanceImprovement struct {
+	ResponseTimeReduction float64 `json:"response_time_reduction"`
+	ThroughputIncrease    float64 `json:"throughput_increase"`
+	ErrorRateReduction    float64 `json:"error_rate_reduction"`
+}
+
+type AutomationCostForecastDetailed struct {
+	Period          string   `json:"period"`
+	ForecastedCost  float64  `json:"forecasted_cost"`
+	ConfidenceLevel float64  `json:"confidence_level"`
+	Currency        string   `json:"currency"`
+	ForecastFactors []string `json:"forecast_factors"`
+}
+
+// Update the existing AutomationPerformancePatternAnalysis to match the implementation
+type AutomationPerformancePatternAnalysisUpdated struct {
+	ClientID                    string                      `json:"client_id"`
+	TimeRange                   AutomationTimeRange         `json:"time_range"`
+	ResponseTimePatterns        *ResponseTimePattern        `json:"response_time_patterns"`
+	ThroughputPatterns          *ThroughputPattern          `json:"throughput_patterns"`
+	ErrorPatterns               *ErrorPattern               `json:"error_patterns"`
+	ResourceUtilizationPatterns *ResourceUtilizationPattern `json:"resource_utilization_patterns"`
+	PerformanceAnomalies        []*PerformanceAnomaly       `json:"performance_anomalies"`
+	Recommendations             []string                    `json:"recommendations"`
+}
+
+// Update the existing AutomationSecurityPostureAnalysis to match the implementation
+type AutomationSecurityPostureAnalysisUpdated struct {
+	ClientID                string                      `json:"client_id"`
+	AnalysisTime            time.Time                   `json:"analysis_time"`
+	OverallRiskScore        float64                     `json:"overall_risk_score"`
+	SecurityMetrics         *SecurityMetrics            `json:"security_metrics"`
+	ThreatLandscape         *ThreatLandscape            `json:"threat_landscape"`
+	ComplianceStatus        *AutomationComplianceStatus `json:"compliance_status"`
+	SecurityRecommendations []string                    `json:"security_recommendations"`
+}
+
+// Update the existing AutomationCostOptimizationRecommendation to match the implementation
+type AutomationCostOptimizationRecommendationUpdated struct {
+	ID                  string                 `json:"id"`
+	ClientID            string                 `json:"client_id"`
+	Type                string                 `json:"type"`
+	Title               string                 `json:"title"`
+	Description         string                 `json:"description"`
+	Priority            RecommendationPriority `json:"priority"`
+	PotentialSavings    *CostSavings           `json:"potential_savings"`
+	AffectedResources   []string               `json:"affected_resources"`
+	ImplementationSteps []string               `json:"implementation_steps"`
+	EstimatedEffort     string                 `json:"estimated_effort"`
+	RiskLevel           string                 `json:"risk_level"`
+	CreatedAt           time.Time              `json:"created_at"`
+	ExpiresAt           *time.Time             `json:"expires_at,omitempty"`
+}
+
+// Update the existing AutomationPerformanceRecommendation to match the implementation
+type AutomationPerformanceRecommendationUpdated struct {
+	ID                  string                  `json:"id"`
+	ClientID            string                  `json:"client_id"`
+	Type                string                  `json:"type"`
+	Title               string                  `json:"title"`
+	Description         string                  `json:"description"`
+	Priority            RecommendationPriority  `json:"priority"`
+	Impact              string                  `json:"impact"`
+	AffectedComponents  []string                `json:"affected_components"`
+	OptimizationSteps   []string                `json:"optimization_steps"`
+	ExpectedImprovement *PerformanceImprovement `json:"expected_improvement"`
+	EstimatedEffort     string                  `json:"estimated_effort"`
+	CreatedAt           time.Time               `json:"created_at"`
+}
+
+// Update the existing AutomationSecurityRecommendation to match the implementation
+type AutomationSecurityRecommendationUpdated struct {
+	ID               string                 `json:"id"`
+	ClientID         string                 `json:"client_id"`
+	Type             string                 `json:"type"`
+	Title            string                 `json:"title"`
+	Description      string                 `json:"description"`
+	Priority         RecommendationPriority `json:"priority"`
+	RiskLevel        string                 `json:"risk_level"`
+	Impact           string                 `json:"impact"`
+	AffectedSystems  []string               `json:"affected_systems"`
+	RemediationSteps []string               `json:"remediation_steps"`
+	EstimatedEffort  string                 `json:"estimated_effort"`
+	Deadline         *time.Time             `json:"deadline,omitempty"`
+	CreatedAt        time.Time              `json:"created_at"`
 }

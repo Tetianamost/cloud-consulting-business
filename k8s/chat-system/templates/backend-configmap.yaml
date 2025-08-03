@@ -1,0 +1,57 @@
+{{- if .Values.backend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-consultant-chat.fullname" . }}-backend-config
+  labels:
+    {{- include "ai-consultant-chat.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+data:
+  # Application configuration
+  PORT: "{{ .Values.backend.service.targetPort }}"
+  LOG_LEVEL: "4"
+  GIN_MODE: "release"
+  
+  # Chat system configuration
+  CHAT_ENABLED: "true"
+  WEBSOCKET_ENABLED: "true"
+  WEBSOCKET_PING_INTERVAL: "{{ .Values.backend.websocket.pingInterval }}"
+  WEBSOCKET_PONG_WAIT: "{{ .Values.backend.websocket.pongWait }}"
+  WEBSOCKET_WRITE_WAIT: "{{ .Values.backend.websocket.writeWait }}"
+  
+  # Chat limits and timeouts
+  CHAT_SESSION_TIMEOUT: "{{ .Values.backend.chat.sessionTimeout }}"
+  CHAT_MESSAGE_MAX_LENGTH: "{{ .Values.backend.chat.messageMaxLength }}"
+  CHAT_RATE_LIMIT_REQUESTS: "{{ .Values.backend.chat.rateLimitRequests }}"
+  CHAT_RATE_LIMIT_WINDOW: "{{ .Values.backend.chat.rateLimitWindow }}"
+  
+  # Database configuration
+  DATABASE_MAX_CONNECTIONS: "25"
+  DATABASE_MAX_IDLE_CONNECTIONS: "5"
+  DATABASE_CONNECTION_MAX_LIFETIME: "5m"
+  
+  # Redis configuration
+  REDIS_MAX_CONNECTIONS: "10"
+  REDIS_IDLE_TIMEOUT: "5m"
+  CACHE_TTL: "1h"
+  
+  # Monitoring configuration
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  HEALTH_CHECK_ENABLED: "true"
+  LOG_FORMAT: "json"
+  LOG_CORRELATION_ID: "true"
+  
+  # AWS configuration
+  AWS_REGION: "us-east-1"
+  BEDROCK_REGION: "us-east-1"
+  BEDROCK_MODEL_ID: "amazon.nova-lite-v1:0"
+  BEDROCK_BASE_URL: "https://bedrock-runtime.us-east-1.amazonaws.com"
+  BEDROCK_TIMEOUT_SECONDS: "30"
+  
+  # Security configuration
+  JWT_EXPIRATION: "24h"
+  
+  # CORS configuration
+  CORS_ALLOWED_ORIGINS: "https://{{ (index .Values.ingress.hosts 0).host }}"
+{{- end }}

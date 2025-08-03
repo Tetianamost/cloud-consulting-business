@@ -1,0 +1,81 @@
+{{- if .Values.migration.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "ai-consultant-chat.fullname" . }}-migration
+  labels:
+    {{- include "ai-consultant-chat.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "ai-consultant-chat.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: Never
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "ai-consultant-chat.serviceAccountName" . }}
+      containers:
+        - name: migration
+          image: "{{ .Values.migration.image.repository }}:{{ .Values.migration.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.migration.image.pullPolicy }}
+          env:
+            - name: DATABASE_URL
+              value: "postgres://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ include "ai-consultant-chat.fullname" . }}-postgresql:5432/{{ .Values.postgresql.auth.database }}?sslmode=disable"
+            - name: PGPASSWORD
+              value: "{{ .Values.postgresql.auth.password }}"
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Starting database migration..."
+              
+              # Wait for database to be ready
+              until pg_isready -h {{ include "ai-consultant-chat.fullname" . }}-postgresql -p 5432 -U {{ .Values.postgresql.auth.username }}; do
+                echo "Waiting for database to be ready..."
+                sleep 2
+              done
+              
+              echo "Database is ready. Running migrations..."
+              
+              {{- range .Values.migration.scripts }}
+              echo "Running migration: {{ . }}"
+              psql $DATABASE_URL -f /migrations/{{ . }}
+              {{- end }}
+              
+              echo "Database migration completed successfully!"
+          resources:
+            {{- toYaml .Values.migration.resources | nindent 12 }}
+          volumeMounts:
+            - name: migration-scripts
+              mountPath: /migrations
+      volumes:
+        - name: migration-scripts
+          configMap:
+            name: {{ include "ai-consultant-chat.fullname" . }}-migration-scripts
+      initContainers:
+        - name: wait-for-postgresql
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ include "ai-consultant-chat.fullname" . }}-postgresql -p 5432 -U {{ .Values.postgresql.auth.username }}; do
+                echo "Waiting for PostgreSQL to be ready..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          env:
+            - name: PGPASSWORD
+              value: "{{ .Values.postgresql.auth.password }}"
+  backoffLimit: 3
+{{- end }}

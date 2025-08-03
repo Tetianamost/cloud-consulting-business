@@ -1,5 +1,21 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, MessageSquare, User, Bot, Clock, Minimize2, Maximize2, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Send, MessageSquare, User, Bot, Clock, Minimize2, Maximize2, X, Search, Filter, Settings, History, Download, Copy, RefreshCw, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import {
+  setCurrentSession,
+  updateSessionContextAction,
+  addOptimisticMessage,
+  setLoading,
+  clearMessages,
+  updateSettings,
+  ChatMessage as StoreChatMessage,
+  SessionContext,
+} from '../../store/slices/chatSlice';
+import websocketService from '../../services/websocketService';
+import VirtualizedMessageList from './VirtualizedMessageList';
+import usePaginatedMessages from '../../hooks/usePaginatedMessages';
+import useDebouncedInput from '../../hooks/useDebouncedInput';
 
 interface ChatMessage {
   id: string;
@@ -53,27 +69,32 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
   onToggleMinimize,
   onClose
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
   const [clientName, setClientName] = useState('');
   const [meetingContext, setMeetingContext] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [useVirtualScrolling, setUseVirtualScrolling] = useState(true);
   
   const wsRef = useRef<WebSocket | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+  // Use paginated messages hook
+  const [messageState, messageActions] = usePaginatedMessages({
+    sessionId: sessionId || '',
+    pageSize: 50,
+    initialLoad: !!sessionId,
+  });
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+  // Use debounced input for search and typing
+  const [inputState, inputActions] = useDebouncedInput({
+    delay: 300,
+    minLength: 1,
+  });
+
+  // Memoize messages for performance
+  const messages = useMemo(() => messageState.messages, [messageState.messages]);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -107,7 +128,7 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
         try {
           const response: ChatResponse = JSON.parse(event.data);
           if (response.success) {
-            setMessages(prev => [...prev, response.message]);
+            messageActions.addMessage(response.message);
             setSessionId(response.session_id);
           } else {
             console.error('Chat error:', response.error);
@@ -134,7 +155,7 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
     }
   };
 
-  const sendMessage = (message: string, quickAction?: string) => {
+  const sendMessage = useCallback((message: string, quickAction?: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       console.error('WebSocket not connected');
       return;
@@ -150,8 +171,8 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
       quick_action: quickAction || undefined,
     };
 
-    // Add user message to UI immediately
-    const userMessage: ChatMessage = {
+    // Add user message to UI immediately (optimistic update)
+    const userMessage: StoreChatMessage = {
       id: `temp-${Date.now()}`,
       type: 'user',
       content: message.trim(),
@@ -159,18 +180,18 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
       session_id: sessionId || '',
     };
     
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    messageActions.addMessage(userMessage);
+    inputActions.clearValue();
     setIsLoading(true);
 
     // Send to WebSocket
     wsRef.current.send(JSON.stringify(request));
-  };
+  }, [sessionId, clientName, meetingContext, messageActions, inputActions]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage(inputMessage);
-  };
+    sendMessage(inputState.value);
+  }, [sendMessage, inputState.value]);
 
   const handleQuickAction = (action: typeof QUICK_ACTIONS[0]) => {
     sendMessage(action.prompt, action.id);
@@ -183,10 +204,10 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
     });
   };
 
-  const clearChat = () => {
-    setMessages([]);
+  const clearChat = useCallback(() => {
+    messageActions.reset();
     setSessionId(null);
-  };
+  }, [messageActions]);
 
   if (isMinimized) {
     return (
@@ -289,62 +310,91 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
-          <div className="text-center text-gray-500 text-sm">
-            <MessageSquare className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-            <p>Start a conversation to get real-time AWS consulting assistance during your client meeting.</p>
-          </div>
-        )}
-        
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[80%] rounded-lg p-3 ${
-                message.type === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900'
-              }`}
-            >
-              <div className="flex items-start space-x-2">
-                {message.type === 'assistant' && (
-                  <Bot className="h-4 w-4 mt-0.5 text-blue-600" />
-                )}
-                {message.type === 'user' && (
-                  <User className="h-4 w-4 mt-0.5 text-white" />
-                )}
-                <div className="flex-1">
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <p className={`text-xs mt-1 ${
-                    message.type === 'user' ? 'text-blue-200' : 'text-gray-500'
-                  }`}>
-                    {formatTimestamp(message.timestamp)}
-                  </p>
+      <div className="flex-1 relative">
+        {useVirtualScrolling && messages.length > 100 ? (
+          <VirtualizedMessageList
+            messages={messages}
+            height={400}
+            isLoading={messageState.isLoading}
+            onLoadMore={messageActions.loadMore}
+            hasMore={messageState.hasMore}
+          />
+        ) : (
+          <div className="h-full overflow-y-auto p-4 space-y-4">
+            {messageState.isLoading && messageState.messages.length === 0 && (
+              <div className="text-center text-gray-500 text-sm">
+                <Loader className="h-6 w-6 mx-auto mb-2 animate-spin" />
+                <p>Loading messages...</p>
+              </div>
+            )}
+            
+            {messages.length === 0 && !messageState.isLoading && (
+              <div className="text-center text-gray-500 text-sm">
+                <MessageSquare className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                <p>Start a conversation to get real-time AWS consulting assistance during your client meeting.</p>
+              </div>
+            )}
+            
+            {messageState.hasMore && messages.length > 0 && (
+              <div className="text-center pb-4">
+                <button
+                  onClick={messageActions.loadMore}
+                  disabled={messageState.isLoading}
+                  className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                >
+                  {messageState.isLoading ? 'Loading...' : 'Load more messages'}
+                </button>
+              </div>
+            )}
+            
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    message.type === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-900'
+                  }`}
+                >
+                  <div className="flex items-start space-x-2">
+                    {message.type === 'assistant' && (
+                      <Bot className="h-4 w-4 mt-0.5 text-blue-600" />
+                    )}
+                    {message.type === 'user' && (
+                      <User className="h-4 w-4 mt-0.5 text-white" />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <p className={`text-xs mt-1 ${
+                        message.type === 'user' ? 'text-blue-200' : 'text-gray-500'
+                      }`}>
+                        {formatTimestamp(message.timestamp)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        ))}
-        
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg p-3 max-w-[80%]">
-              <div className="flex items-center space-x-2">
-                <Bot className="h-4 w-4 text-blue-600" />
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+            ))}
+            
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 rounded-lg p-3 max-w-[80%]">
+                  <div className="flex items-center space-x-2">
+                    <Bot className="h-4 w-4 text-blue-600" />
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
-        
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
@@ -353,15 +403,20 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
           <input
             ref={inputRef}
             type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            value={inputState.value}
+            onChange={(e) => inputActions.setValue(e.target.value)}
             placeholder={isConnected ? "Ask about AWS services, costs, best practices..." : "Connecting..."}
             disabled={isLoading || !isConnected}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           />
+          {inputState.isDebouncing && (
+            <div className="px-2 text-gray-400">
+              <Loader className="h-4 w-4 animate-spin" />
+            </div>
+          )}
           <button
             type="submit"
-            disabled={isLoading || !isConnected || !inputMessage.trim()}
+            disabled={isLoading || !isConnected || !inputState.value.trim()}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="h-4 w-4" />

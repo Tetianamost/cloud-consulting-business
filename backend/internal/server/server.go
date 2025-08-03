@@ -25,6 +25,7 @@ type Server struct {
 	adminHandler   *handlers.AdminHandler
 	authHandler    *handlers.AuthHandler
 	chatHandler    *handlers.ChatHandler
+	healthHandler  *handlers.HealthHandler
 }
 
 // New creates a new server instance
@@ -82,12 +83,27 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 
 	inquiryService := services.NewInquiryService(memStorage, reportGenerator, emailService)
 
+	// Initialize chat repositories and services
+	chatSessionRepository := storage.NewInMemoryChatSessionRepository(logger)
+	chatMessageRepository := storage.NewInMemoryChatMessageRepository(logger)
+	sessionService := services.NewSessionService(chatSessionRepository, logger)
+	chatService := services.NewChatService(chatMessageRepository, sessionService, bedrockService, logger)
+
+	// Initialize chat monitoring services
+	chatPerformanceMonitor := services.NewChatPerformanceMonitor(logger)
+	// Create a simple cache monitor for in-memory usage (pass nil for Redis cache)
+	cacheMonitor := services.NewCacheMonitor(nil, logger)
+	chatMetricsCollector := services.NewChatMetricsCollector(chatPerformanceMonitor, cacheMonitor, logger)
+
 	// Initialize handlers
 	inquiryHandler := handlers.NewInquiryHandler(inquiryService, reportGenerator)
 	reportHandler := handlers.NewReportHandler(memStorage)
 	adminHandler := handlers.NewAdminHandler(memStorage, inquiryService, reportGenerator, emailService)
 	authHandler := handlers.NewAuthHandler(cfg.JWTSecret)
-	chatHandler := handlers.NewChatHandler(logger, bedrockService, knowledgeBase)
+	chatHandler := handlers.NewChatHandler(logger, bedrockService, knowledgeBase, sessionService, chatService, authHandler, cfg.JWTSecret, chatMetricsCollector, chatPerformanceMonitor)
+
+	// Initialize health handler with connection pool from chat handler
+	healthHandler := handlers.NewHealthHandler(logger, nil, chatHandler.GetConnectionPool())
 
 	server := &Server{
 		config:         cfg,
@@ -98,6 +114,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 		adminHandler:   adminHandler,
 		authHandler:    authHandler,
 		chatHandler:    chatHandler,
+		healthHandler:  healthHandler,
 	}
 
 	// Setup routes
@@ -116,8 +133,20 @@ func (s *Server) setupRoutes() {
 	// Serve static files (CSS, etc.)
 	s.router.Static("/static", "./static")
 
-	// Health check endpoint
+	// Health check endpoints
 	s.router.GET("/health", s.healthCheck)
+
+	// Enhanced health check endpoints (if health handler is available)
+	if s.healthHandler != nil {
+		health := s.router.Group("/health")
+		{
+			health.GET("/detailed", s.healthHandler.DetailedHealthCheck)
+			health.GET("/ready", s.healthHandler.ReadinessCheck)
+			health.GET("/live", s.healthHandler.LivenessCheck)
+			health.GET("/websocket", s.healthHandler.WebSocketHealthCheck)
+			health.GET("/websocket/config", s.healthHandler.ConfigurationValidationCheck)
+		}
+	}
 
 	// API v1 routes
 	v1 := s.router.Group("/api/v1")
@@ -152,8 +181,18 @@ func (s *Server) setupRoutes() {
 
 			// Chat routes
 			admin.GET("/chat/ws", s.chatHandler.HandleWebSocket)
-			admin.GET("/chat/sessions", s.chatHandler.GetChatSessions)
-			admin.GET("/chat/sessions/:sessionId", s.chatHandler.GetChatSession)
+
+			// REST API endpoints for chat management
+			admin.POST("/chat/sessions", s.chatHandler.CreateChatSession)
+			admin.GET("/chat/sessions", s.chatHandler.ListChatSessions)
+			admin.GET("/chat/sessions/:id", s.chatHandler.GetChatSessionByID)
+			admin.PUT("/chat/sessions/:id", s.chatHandler.UpdateChatSession)
+			admin.DELETE("/chat/sessions/:id", s.chatHandler.DeleteChatSession)
+			admin.GET("/chat/sessions/:id/history", s.chatHandler.GetChatSessionHistory)
+
+			// Legacy endpoints for backward compatibility
+			admin.GET("/chat/sessions-legacy", s.chatHandler.GetChatSessions)
+			admin.GET("/chat/sessions-legacy/:sessionId", s.chatHandler.GetChatSession)
 		}
 
 		// System management routes

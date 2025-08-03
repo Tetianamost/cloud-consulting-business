@@ -64,6 +64,17 @@ docker-compose up -d
 - `PUT /api/v1/inquiries/{id}/status` - Update inquiry status
 - `GET /api/v1/inquiries/{id}/report` - Get generated report
 
+### AI Consultant Live Chat
+- `GET /api/v1/admin/chat/ws` - WebSocket connection for real-time chat
+- `POST /api/v1/admin/chat/sessions` - Create new chat session
+- `GET /api/v1/admin/chat/sessions` - List chat sessions
+- `GET /api/v1/admin/chat/sessions/{id}` - Get specific chat session
+- `PUT /api/v1/admin/chat/sessions/{id}` - Update chat session
+- `DELETE /api/v1/admin/chat/sessions/{id}` - Delete chat session
+- `GET /api/v1/admin/chat/sessions/{id}/history` - Get session message history
+- `GET /api/v1/admin/chat/metrics` - Chat system metrics
+- `GET /api/v1/admin/chat/health` - Chat system health status
+
 ### System Management
 - `GET /api/v1/metrics` - Prometheus metrics
 - `POST /api/v1/hooks/trigger` - Manual hook trigger

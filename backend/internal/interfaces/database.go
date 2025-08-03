@@ -15,22 +15,22 @@ type Database interface {
 	Close() error
 	Ping(ctx context.Context) error
 	IsHealthy(ctx context.Context) bool
-	
+
 	// Transaction management
 	BeginTx(ctx context.Context) (Transaction, error)
 	WithTx(ctx context.Context, fn func(tx Transaction) error) error
-	
+
 	// Migration management
 	Migrate(ctx context.Context) error
 	Rollback(ctx context.Context, version string) error
 	GetMigrationVersion(ctx context.Context) (string, error)
-	
+
 	// Connection pool management
 	GetStats() DatabaseStats
 	SetMaxOpenConns(n int)
 	SetMaxIdleConns(n int)
 	SetConnMaxLifetime(d time.Duration)
-	
+
 	// Raw access (use with caution)
 	GetDB() *gorm.DB
 	GetSQLDB() *sql.DB
@@ -60,37 +60,73 @@ type DatabaseConfig struct {
 
 // DatabaseStats represents database connection statistics
 type DatabaseStats struct {
-	OpenConnections     int           `json:"open_connections"`
-	InUseConnections    int           `json:"in_use_connections"`
-	IdleConnections     int           `json:"idle_connections"`
-	WaitCount           int64         `json:"wait_count"`
-	WaitDuration        time.Duration `json:"wait_duration"`
-	MaxIdleClosed       int64         `json:"max_idle_closed"`
-	MaxIdleTimeClosed   int64         `json:"max_idle_time_closed"`
-	MaxLifetimeClosed   int64         `json:"max_lifetime_closed"`
+	OpenConnections   int           `json:"open_connections"`
+	InUseConnections  int           `json:"in_use_connections"`
+	IdleConnections   int           `json:"idle_connections"`
+	WaitCount         int64         `json:"wait_count"`
+	WaitDuration      time.Duration `json:"wait_duration"`
+	MaxIdleClosed     int64         `json:"max_idle_closed"`
+	MaxIdleTimeClosed int64         `json:"max_idle_time_closed"`
+	MaxLifetimeClosed int64         `json:"max_lifetime_closed"`
 }
 
 // MigrationInfo represents information about a database migration
 type MigrationInfo struct {
-	Version     string    `json:"version"`
-	Name        string    `json:"name"`
-	AppliedAt   time.Time `json:"applied_at"`
-	ExecutionTime int64   `json:"execution_time_ms"`
+	Version       string    `json:"version"`
+	Name          string    `json:"name"`
+	AppliedAt     time.Time `json:"applied_at"`
+	ExecutionTime int64     `json:"execution_time_ms"`
 }
 
 // QueryResult represents the result of a database query
 type QueryResult struct {
-	RowsAffected int64         `json:"rows_affected"`
-	LastInsertID int64         `json:"last_insert_id,omitempty"`
+	RowsAffected  int64         `json:"rows_affected"`
+	LastInsertID  int64         `json:"last_insert_id,omitempty"`
 	ExecutionTime time.Duration `json:"execution_time"`
-	Error        error         `json:"error,omitempty"`
+	Error         error         `json:"error,omitempty"`
 }
 
 // DatabaseHealthStatus represents the health status of the database
 type DatabaseHealthStatus struct {
-	Status        HealthStatusType `json:"status"`
-	ResponseTime  time.Duration    `json:"response_time"`
-	ConnectionCount int            `json:"connection_count"`
-	Error         string           `json:"error,omitempty"`
-	LastChecked   time.Time        `json:"last_checked"`
+	Status          HealthStatusType `json:"status"`
+	ResponseTime    time.Duration    `json:"response_time"`
+	ConnectionCount int              `json:"connection_count"`
+	Error           string           `json:"error,omitempty"`
+	LastChecked     time.Time        `json:"last_checked"`
+}
+
+// DatabaseService defines a simple SQL database interface for services
+type DatabaseService interface {
+	Query(ctx context.Context, query string, args ...interface{}) (Rows, error)
+	QueryRow(ctx context.Context, query string, args ...interface{}) Row
+	Exec(ctx context.Context, query string, args ...interface{}) (DatabaseResult, error)
+	Begin(ctx context.Context) (Tx, error)
+	Close() error
+	IsHealthy(ctx context.Context) bool
+}
+
+// Rows represents database query result rows
+type Rows interface {
+	Next() bool
+	Scan(dest ...interface{}) error
+	Close()
+}
+
+// Row represents a single database query result row
+type Row interface {
+	Scan(dest ...interface{}) error
+}
+
+// DatabaseResult represents the result of a database operation
+type DatabaseResult interface {
+	RowsAffected() (int64, error)
+}
+
+// Tx represents a database transaction
+type Tx interface {
+	Query(ctx context.Context, query string, args ...interface{}) (Rows, error)
+	QueryRow(ctx context.Context, query string, args ...interface{}) Row
+	Exec(ctx context.Context, query string, args ...interface{}) (DatabaseResult, error)
+	Commit(ctx context.Context) error
+	Rollback(ctx context.Context) error
 }
