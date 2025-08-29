@@ -10,7 +10,7 @@ This document provides a comprehensive index of all documentation created for th
 **File**: `backend/docs/api/chat-api.md`
 **Purpose**: Complete API reference for developers and integrators
 **Contents**:
-- WebSocket connection protocol
+- WebSocket connection protocol with dual communication strategy
 - REST API endpoints for session management
 - Authentication and authorization
 - Error handling and status codes
@@ -19,10 +19,45 @@ This document provides a comprehensive index of all documentation created for th
 
 **Key Sections**:
 - WebSocket message types and formats
+- Connection states and fallback mechanisms
 - Chat session CRUD operations
 - Metrics and monitoring endpoints
 - Security considerations
 - Performance optimization
+
+### 1.1. Authentication API Documentation
+**File**: `backend/docs/api/authentication-api.md`
+**Purpose**: JWT-based authentication system documentation
+**Contents**:
+- Authentication flow and token management
+- Login endpoint specifications
+- JWT token structure and claims
+- Security considerations and best practices
+- Frontend integration patterns
+- Error handling and troubleshooting
+
+**Key Sections**:
+- Authentication endpoints and request/response formats
+- JWT token lifecycle and validation
+- Middleware implementation details
+- Security best practices and migration notes
+
+### 1.1. Connection Management Documentation
+**File**: `backend/docs/chat-connection-management.md`
+**Purpose**: Detailed documentation of the dual communication strategy
+**Contents**:
+- WebSocket and HTTP polling connection modes
+- Connection state management and transitions
+- Automatic fallback mechanisms
+- Performance optimization strategies
+- Monitoring and troubleshooting
+
+**Key Sections**:
+- Dual communication architecture
+- Connection state definitions and handling
+- Frontend connection logic enhancements
+- Error handling and recovery procedures
+- Configuration and monitoring
 
 ### 2. User Guide
 **File**: `backend/docs/user-guide.md`
@@ -41,6 +76,42 @@ This document provides a comprehensive index of all documentation created for th
 - Session management procedures
 - Advanced features and shortcuts
 - Performance optimization tips
+
+### 2.1. Admin Dashboard Guide
+**File**: `frontend/docs/admin-dashboard-guide.md`
+**Purpose**: Comprehensive admin interface documentation
+**Contents**:
+- Dashboard layout and navigation
+- Authentication system and security
+- Real-time chat system integration
+- Inquiry and report management
+- Analytics and metrics dashboard
+- Advanced features and integrations
+
+**Key Sections**:
+- Login component and authentication flow
+- Dashboard architecture and state management
+- Chat system integration and usage patterns
+- Component hierarchy and customization options
+- Troubleshooting and development guidelines
+
+### 2.2. AI Consultant Page Guide
+**File**: `frontend/docs/ai-consultant-page-guide.md`
+**Purpose**: Detailed documentation for the advanced AI consultant interface
+**Contents**:
+- Quick actions system for common consulting scenarios
+- Context management with client and meeting awareness
+- Connection management and mode switching
+- Advanced UI features including fullscreen mode
+- Usage patterns and best practices
+- Troubleshooting and performance optimization
+
+**Key Sections**:
+- Eight pre-defined quick actions for consulting scenarios
+- Client context configuration and session persistence
+- Connection modes (WebSocket/Polling/Auto) and health monitoring
+- Professional usage patterns and best practices
+- Integration with Redux state management and services
 
 ### 3. Deployment Guide
 **File**: `backend/docs/deployment/chat-deployment-guide.md`
@@ -102,6 +173,9 @@ This document provides a comprehensive index of all documentation created for th
 | Requirement | Document | Section | Status |
 |-------------|----------|---------|--------|
 | API documentation for all chat endpoints | chat-api.md | WebSocket & REST APIs | ✅ Complete |
+| Authentication system documentation | authentication-api.md | JWT auth & security | ✅ Complete |
+| Admin dashboard user guide | admin-dashboard-guide.md | Complete interface guide | ✅ Complete |
+| Connection management and fallback strategy | chat-connection-management.md | Dual communication modes | ✅ Complete |
 | User guide for chat features | user-guide.md | All modules | ✅ Complete |
 | Deployment and configuration documentation | chat-deployment-guide.md | All environments | ✅ Complete |
 | Troubleshooting guide for common issues | troubleshooting-guide.md | All categories | ✅ Complete |
@@ -111,10 +185,14 @@ This document provides a comprehensive index of all documentation created for th
 
 ### For Developers
 - [API Reference](api/chat-api.md) - Complete API documentation
+- [Authentication API](api/authentication-api.md) - JWT authentication system
+- [Connection Management](chat-connection-management.md) - Dual communication strategy and connection handling
 - [Deployment Guide](deployment/chat-deployment-guide.md) - Technical deployment procedures
 - [Troubleshooting](troubleshooting-guide.md) - Technical problem resolution
 
 ### For Admin Users
+- [Admin Dashboard Guide](../frontend/docs/admin-dashboard-guide.md) - Complete dashboard interface guide
+- [AI Consultant Page Guide](../frontend/docs/ai-consultant-page-guide.md) - Advanced AI consultant interface documentation
 - [User Guide](user-guide.md) - Daily usage instructions
 - [Training Guide](training/admin-training-guide.md) - Comprehensive training program
 - [Quick Reference](user-guide.md#appendix) - Keyboard shortcuts and tips

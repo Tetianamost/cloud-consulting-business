@@ -112,41 +112,118 @@ func (s *ChatAuthService) ValidateToken(ctx context.Context, tokenString string)
 		return s.jwtSecret, nil
 	})
 
+	var claims *interfaces.ChatJWTClaims
+
 	if err != nil {
-		if ve, ok := err.(*jwt.ValidationError); ok {
-			if ve.Errors&jwt.ValidationErrorExpired != 0 {
-				return nil, interfaces.SecurityError{
-					Code:    interfaces.ErrCodeExpiredToken,
-					Message: "Token has expired",
+		// Try parsing with MapClaims for backward compatibility
+		s.logger.WithError(err).Debug("Failed to parse with ChatJWTClaims, trying MapClaims for backward compatibility")
+
+		mapToken, mapErr := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return s.jwtSecret, nil
+		})
+
+		if mapErr != nil {
+			if ve, ok := err.(*jwt.ValidationError); ok {
+				if ve.Errors&jwt.ValidationErrorExpired != 0 {
+					return nil, interfaces.SecurityError{
+						Code:    interfaces.ErrCodeExpiredToken,
+						Message: "Token has expired",
+					}
 				}
 			}
+			return nil, interfaces.SecurityError{
+				Code:    interfaces.ErrCodeInvalidToken,
+				Message: "Invalid token",
+				Details: err.Error(),
+			}
 		}
-		return nil, interfaces.SecurityError{
-			Code:    interfaces.ErrCodeInvalidToken,
-			Message: "Invalid token",
-			Details: err.Error(),
+
+		if mapClaims, ok := mapToken.Claims.(jwt.MapClaims); ok && mapToken.Valid {
+			// Convert MapClaims to ChatJWTClaims
+			claims = &interfaces.ChatJWTClaims{
+				UserID:    getStringFromClaims(mapClaims, "user_id"),
+				Username:  getStringFromClaims(mapClaims, "username"),
+				Email:     getStringFromClaims(mapClaims, "email"),
+				TokenType: getStringFromClaims(mapClaims, "token_type"),
+			}
+
+			// Handle roles - could be string or []string
+			if roleInterface, exists := mapClaims["role"]; exists {
+				if roleStr, ok := roleInterface.(string); ok {
+					claims.Roles = []string{roleStr}
+				}
+			}
+			if rolesInterface, exists := mapClaims["roles"]; exists {
+				if rolesSlice, ok := rolesInterface.([]interface{}); ok {
+					roles := make([]string, len(rolesSlice))
+					for i, role := range rolesSlice {
+						if roleStr, ok := role.(string); ok {
+							roles[i] = roleStr
+						}
+					}
+					claims.Roles = roles
+				}
+			}
+
+			// Handle standard JWT claims
+			if exp, exists := mapClaims["exp"]; exists {
+				if expFloat, ok := exp.(float64); ok {
+					claims.ExpiresAt = jwt.NewNumericDate(time.Unix(int64(expFloat), 0))
+				}
+			}
+			if iat, exists := mapClaims["iat"]; exists {
+				if iatFloat, ok := iat.(float64); ok {
+					claims.IssuedAt = jwt.NewNumericDate(time.Unix(int64(iatFloat), 0))
+				}
+			}
+
+			s.logger.Debug("Successfully parsed token using MapClaims for backward compatibility")
+		} else {
+			return nil, interfaces.SecurityError{
+				Code:    interfaces.ErrCodeInvalidToken,
+				Message: "Invalid token claims",
+			}
+		}
+	} else {
+		// Extract claims from ChatJWTClaims
+		var ok bool
+		claims, ok = token.Claims.(*interfaces.ChatJWTClaims)
+		if !ok || !token.Valid {
+			return nil, interfaces.SecurityError{
+				Code:    interfaces.ErrCodeInvalidToken,
+				Message: "Invalid token claims",
+			}
 		}
 	}
 
-	// Extract claims
-	claims, ok := token.Claims.(*interfaces.ChatJWTClaims)
-	if !ok || !token.Valid {
-		return nil, interfaces.SecurityError{
-			Code:    interfaces.ErrCodeInvalidToken,
-			Message: "Invalid token claims",
-		}
+	// Create authentication context with safe time handling
+	var issuedAt, expiresAt time.Time
+	if claims.IssuedAt != nil {
+		issuedAt = claims.IssuedAt.Time
+	}
+	if claims.ExpiresAt != nil {
+		expiresAt = claims.ExpiresAt.Time
 	}
 
-	// Create authentication context
+	// Handle backward compatibility: if UserID is empty but Username is set, use Username as UserID
+	userID := claims.UserID
+	if userID == "" && claims.Username != "" {
+		userID = claims.Username
+		s.logger.WithField("username", claims.Username).Debug("Using username as user_id for backward compatibility")
+	}
+
 	authContext := &interfaces.ChatAuthContext{
-		UserID:      claims.UserID,
+		UserID:      userID,
 		Username:    claims.Username,
 		Email:       claims.Email,
 		Roles:       claims.Roles,
 		Permissions: claims.Permissions,
 		TokenType:   claims.TokenType,
-		IssuedAt:    claims.IssuedAt.Time,
-		ExpiresAt:   claims.ExpiresAt.Time,
+		IssuedAt:    issuedAt,
+		ExpiresAt:   expiresAt,
 		SessionID:   claims.SessionID,
 		Metadata:    make(map[string]interface{}),
 	}
@@ -517,6 +594,16 @@ func (s *ChatAuthService) SetUserRoles(userID string, roles []string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.userRoles[userID] = roles
+}
+
+// getStringFromClaims safely extracts a string value from JWT MapClaims
+func getStringFromClaims(claims jwt.MapClaims, key string) string {
+	if value, exists := claims[key]; exists {
+		if str, ok := value.(string); ok {
+			return str
+		}
+	}
+	return ""
 }
 
 // CreateAccessToken creates a new access token for a user (public method for login)

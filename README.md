@@ -6,10 +6,14 @@ A comprehensive Go backend system for processing and categorizing cloud consulti
 
 - 🚀 **Service Inquiry Processing**: Handle four main service types (Assessment, Migration, Optimization, Architecture Review)
 - 🤖 **AI Report Generation**: Automatically generate draft reports using Amazon Bedrock AI
+- 💬 **Real-time Chat System**: WebSocket-based chat with AI assistant and automatic polling fallback
 - 📧 **Email Notifications**: Professional email notifications using AWS SES
-- 👨‍💼 **Admin Dashboard**: React-based admin interface for monitoring and management
-- 🔐 **Authentication**: JWT-based admin authentication
-- 📊 **Metrics & Monitoring**: System metrics and email delivery tracking
+- 👨‍💼 **Admin Dashboard**: React-based admin interface with comprehensive management tools
+- 🔐 **Secure Authentication**: JWT-based admin authentication with session management
+- 📊 **Advanced Analytics**: System metrics, performance monitoring, and quality assurance
+- 🔧 **Automation & Integration**: Proactive recommendations and third-party integrations
+- 🎯 **Meeting Preparation**: AI-powered client meeting preparation and competitive analysis
+- 📈 **Performance Optimization**: Intelligent caching, load balancing, and resource optimization
 - 🐳 **Docker Support**: Full containerization with Docker Compose
 
 ## Quick Start
@@ -101,6 +105,23 @@ All methods will make the application available at:
 - Username: `admin`
 - Password: `cloudadmin`
 
+**Admin Dashboard Features:**
+- **AI Consultant Assistant**: Advanced AI-powered chat interface with:
+  - 8 pre-defined quick actions (Cost Estimate, Security Review, Best Practices, etc.)
+  - Context management with client name and meeting type
+  - Fullscreen mode for focused conversations
+  - Real-time connection status monitoring
+  - Debounced input for optimal performance
+  - Session persistence across page reloads
+- Real-time chat with AI assistant (WebSocket + polling fallback)
+- Inquiry and report management with AI-generated reports
+- System metrics and performance monitoring
+- Email delivery tracking with AWS SES integration
+- Meeting preparation tools with competitive analysis
+- Quality assurance dashboard with peer review system
+- Integration management for third-party services
+- Performance optimization tools with intelligent caching
+
 ## API Endpoints
 
 ### Public Endpoints
@@ -110,11 +131,31 @@ All methods will make the application available at:
 - `GET /health` - Health check
 
 ### Admin Endpoints (Protected)
-- `POST /api/v1/auth/login` - Admin login
-- `GET /api/v1/admin/inquiries` - List all inquiries
-- `GET /api/v1/admin/metrics` - System metrics
-- `GET /api/v1/admin/email-status/{id}` - Email delivery status
-- `GET /api/v1/admin/reports/{id}/download/{format}` - Download reports
+- `POST /api/v1/auth/login` - Admin login with JWT token generation
+- `GET /api/v1/admin/inquiries` - List all inquiries with filtering and pagination
+- `GET /api/v1/admin/metrics` - System metrics and performance data
+- `GET /api/v1/admin/email-status/{id}` - Email delivery status tracking
+- `GET /api/v1/admin/reports/{id}/download/{format}` - Download reports (PDF/HTML)
+
+### Chat Endpoints (Protected)
+- `GET /api/v1/admin/chat/ws` - WebSocket connection for real-time chat
+- `POST /api/v1/admin/chat/sessions` - Create new chat session
+- `GET /api/v1/admin/chat/sessions` - List chat sessions with metadata
+- `GET /api/v1/admin/chat/sessions/{id}/history` - Get chat history with pagination
+- `GET /api/v1/admin/chat/metrics` - Chat system performance metrics
+- `POST /api/v1/admin/chat/polling` - HTTP polling fallback for chat messages
+- `POST /api/v1/admin/chat/send` - Send message with context and quick actions
+
+### AI Consultant Endpoints (Protected)
+- `POST /api/v1/admin/simple-chat/messages` - Send message to AI assistant with context
+- `GET /api/v1/admin/simple-chat/messages` - Retrieve chat messages by session ID
+
+### Advanced Admin Features (Protected)
+- `GET /api/v1/admin/meeting-prep/*` - AI-powered meeting preparation tools
+- `GET /api/v1/admin/quality-assurance/*` - Quality assurance and peer review system
+- `GET /api/v1/admin/integrations` - Third-party integration management
+- `GET /api/v1/admin/cost-analysis` - Cost analysis and optimization recommendations
+- `GET /api/v1/admin/performance/*` - Performance optimization and monitoring
 
 ## Development
 
@@ -141,19 +182,40 @@ Key environment variables in `.env`:
 PORT=8061
 JWT_SECRET=cloud-consulting-demo-secret
 
-# AWS Bedrock (for AI report generation)
+# Authentication
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=cloudadmin
+JWT_EXPIRATION=24h
+
+# AWS Bedrock (for AI report generan)
 AWS_BEARER_TOKEN_BEDROCK=your-bedrock-token
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS-key
+et-key
+AWS_REGION=us-e
 
 # AWS SES (for email notifications)
 SES_SENDER_EMAIL=noreply@yourdomain.com
-```
+SES_REGION=us-east-1
+
+# Database Configuration (for produ
+DATABASE_URL=postgreng
+REDIS_URL=redis://localhost:6379
+
+guration
+REACT_APP_API_UR1
+61
+
+# Performance and Monitoring
+ENABLE_METRICS=true
+ENABLE_CHAT_LOGGING=true
+L=3600
+```CACHE_TTlhost:80locas://=wT_APP_WS_URLREAC806calhost:L=http://lod Confironten# Fud_consulti2/cloalhost:543@locer:passwordsql://uson)ctiast-1ecrS_KEY=your-sT_ACCES_SECREAWScess=your-acIDCCESS_KEY__A
 
 ## Architecture
 
 - **Backend**: Go with Gin framework
-- **Frontend**: React with TypeScript
+- **Frontend**: React with TypeScript and Redux Toolkit
+- **Real-time Communication**: WebSocket with HTTP polling fallback
 - **Storage**: In-memory (for demo) with plans for PostgreSQL
 - **AI**: Amazon Bedrock Nova model
 - **Email**: AWS SES
@@ -213,6 +275,13 @@ curl http://localhost:3006
 # or
 docker-compose down
 ```
+
+## Recent Updates
+
+### Code Quality Improvements
+- **Authentication System**: Cleaned up debug logging in AuthContext for production readiness
+- **Error Handling**: Improved error logging while removing verbose debug output
+- **Console Output**: Cleaner browser console experience for end users
 
 ## Contributing
 

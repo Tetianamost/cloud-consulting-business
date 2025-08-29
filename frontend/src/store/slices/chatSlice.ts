@@ -284,6 +284,59 @@ const chatSlice = createSlice({
         }
       });
     },
+
+    // Polling-specific actions
+    markMessageAsDelivered: (state, action: PayloadAction<string>) => {
+      const messageId = action.payload;
+      
+      // Update in current messages
+      const messageIndex = state.messages.findIndex(m => m.id === messageId);
+      if (messageIndex >= 0) {
+        state.messages[messageIndex].status = 'delivered';
+      }
+      
+      // Update in message history
+      Object.keys(state.messageHistory).forEach(sessionId => {
+        const historyIndex = state.messageHistory[sessionId].findIndex(m => m.id === messageId);
+        if (historyIndex >= 0) {
+          state.messageHistory[sessionId][historyIndex].status = 'delivered';
+        }
+      });
+      
+      // Remove from pending messages
+      state.pendingMessages = state.pendingMessages.filter(m => m.id !== messageId);
+    },
+
+    // Batch message updates for efficient polling
+    addMessages: (state, action: PayloadAction<ChatMessage[]>) => {
+      const newMessages = action.payload;
+      
+      newMessages.forEach(message => {
+        // Check if message already exists
+        const existingIndex = state.messages.findIndex(m => m.id === message.id);
+        if (existingIndex === -1) {
+          // Add new message
+          state.messages.push(message);
+          
+          // Add to message history
+          if (!state.messageHistory[message.session_id]) {
+            state.messageHistory[message.session_id] = [];
+          }
+          state.messageHistory[message.session_id].push(message);
+        }
+      });
+    },
+
+    // Handle offline message queue
+    queueOfflineMessage: (state, action: PayloadAction<ChatMessage>) => {
+      const message = { ...action.payload, status: 'sending' as const };
+      state.pendingMessages.push(message);
+    },
+
+    // Clear offline queue when messages are sent
+    clearOfflineQueue: (state) => {
+      state.pendingMessages = [];
+    },
   },
   
   extraReducers: (builder) => {
@@ -355,6 +408,10 @@ export const {
   clearError,
   updateSettings,
   retryFailedMessages,
+  markMessageAsDelivered,
+  addMessages,
+  queueOfflineMessage,
+  clearOfflineQueue,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

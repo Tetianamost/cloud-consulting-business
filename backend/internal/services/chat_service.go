@@ -801,8 +801,10 @@ func (s *ChatServiceImpl) generateBasicAIResponse(ctx context.Context, session *
 	}
 
 	// Configure AI service options
+	// Use the configured model ID from the Bedrock service
+	modelInfo := s.aiService.GetModelInfo()
 	options := &interfaces.BedrockOptions{
-		ModelID:     "anthropic.claude-3-sonnet-20240229-v1:0",
+		ModelID:     modelInfo.ModelID,
 		MaxTokens:   1000,
 		Temperature: 0.7,
 		TopP:        0.9,

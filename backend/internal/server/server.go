@@ -1,7 +1,9 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,21 +19,27 @@ import (
 
 // Server represents the HTTP server
 type Server struct {
-	config         *config.Config
-	logger         *logrus.Logger
-	router         *gin.Engine
-	inquiryHandler *handlers.InquiryHandler
-	reportHandler  *handlers.ReportHandler
-	adminHandler   *handlers.AdminHandler
-	authHandler    *handlers.AuthHandler
-	chatHandler    *handlers.ChatHandler
-	healthHandler  *handlers.HealthHandler
+	config             *config.Config
+	logger             *logrus.Logger
+	router             *gin.Engine
+	inquiryHandler     *handlers.InquiryHandler
+	reportHandler      *handlers.ReportHandler
+	adminHandler       *handlers.AdminHandler
+	authHandler        *handlers.AuthHandler
+	chatHandler        *handlers.ChatHandler
+	pollingChatHandler *handlers.PollingChatHandler
+	chatConfigHandler  *handlers.ChatConfigHandler
+	healthHandler      *handlers.HealthHandler
+	simpleChatHandler  *handlers.SimpleChatHandler
+	bedrockService     interfaces.BedrockService
 }
 
 // New creates a new server instance
 func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	// Set Gin mode
 	gin.SetMode(cfg.GinMode)
+
+	fmt.Printf("[SERVER DEBUG] cfg.CORSAllowedOrigins: %v\n", cfg.CORSAllowedOrigins)
 
 	router := gin.New()
 
@@ -100,21 +108,40 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	reportHandler := handlers.NewReportHandler(memStorage)
 	adminHandler := handlers.NewAdminHandler(memStorage, inquiryService, reportGenerator, emailService)
 	authHandler := handlers.NewAuthHandler(cfg.JWTSecret)
-	chatHandler := handlers.NewChatHandler(logger, bedrockService, knowledgeBase, sessionService, chatService, authHandler, cfg.JWTSecret, chatMetricsCollector, chatPerformanceMonitor)
+	chatHandler := handlers.NewChatHandler(logger, bedrockService, knowledgeBase, sessionService, chatService, authHandler, cfg.JWTSecret, cfg.CORSAllowedOrigins, chatMetricsCollector, chatPerformanceMonitor)
+
+	// Initialize security services for polling chat
+	chatAuthService := services.NewChatAuthService(cfg.JWTSecret, logger)
+	chatRateLimiter := services.NewChatRateLimiter(logger)
+	chatAuditLogger := services.NewChatAuditLogger(logger)
+	chatSecurityService := services.NewChatSecurityService(logger, cfg.JWTSecret, chatRateLimiter, chatAuditLogger)
+
+	// Initialize polling chat handler
+	pollingChatHandler := handlers.NewPollingChatHandler(logger, chatService, sessionService, authHandler, chatAuthService, chatSecurityService, chatRateLimiter, chatAuditLogger)
+
+	// Initialize chat configuration handler
+	chatConfigHandler := handlers.NewChatConfigHandler(cfg)
 
 	// Initialize health handler with connection pool from chat handler
 	healthHandler := handlers.NewHealthHandler(logger, nil, chatHandler.GetConnectionPool())
 
+	// Initialize simple chat handler
+	simpleChatHandler := handlers.NewSimpleChatHandler(logger, bedrockService)
+
 	server := &Server{
-		config:         cfg,
-		logger:         logger,
-		router:         router,
-		inquiryHandler: inquiryHandler,
-		reportHandler:  reportHandler,
-		adminHandler:   adminHandler,
-		authHandler:    authHandler,
-		chatHandler:    chatHandler,
-		healthHandler:  healthHandler,
+		config:             cfg,
+		logger:             logger,
+		router:             router,
+		inquiryHandler:     inquiryHandler,
+		reportHandler:      reportHandler,
+		adminHandler:       adminHandler,
+		authHandler:        authHandler,
+		chatHandler:        chatHandler,
+		pollingChatHandler: pollingChatHandler,
+		chatConfigHandler:  chatConfigHandler,
+		healthHandler:      healthHandler,
+		simpleChatHandler:  simpleChatHandler,
+		bedrockService:     bedrockService,
 	}
 
 	// Setup routes
@@ -179,10 +206,8 @@ func (s *Server) setupRoutes() {
 			admin.GET("/metrics", s.adminHandler.GetSystemMetrics)
 			admin.GET("/email-status/:inquiryId", s.adminHandler.GetEmailStatus)
 
-			// Chat routes
-			admin.GET("/chat/ws", s.chatHandler.HandleWebSocket)
-
 			// REST API endpoints for chat management
+
 			admin.POST("/chat/sessions", s.chatHandler.CreateChatSession)
 			admin.GET("/chat/sessions", s.chatHandler.ListChatSessions)
 			admin.GET("/chat/sessions/:id", s.chatHandler.GetChatSessionByID)
@@ -193,6 +218,31 @@ func (s *Server) setupRoutes() {
 			// Legacy endpoints for backward compatibility
 			admin.GET("/chat/sessions-legacy", s.chatHandler.GetChatSessions)
 			admin.GET("/chat/sessions-legacy/:sessionId", s.chatHandler.GetChatSession)
+
+			// Simple working chat endpoints (bypass complex polling)
+			simpleChat := admin.Group("/simple-chat", s.authHandler.AuthMiddleware())
+			{
+				simpleChat.POST("/messages", s.simpleChatHandler.SendMessage)
+				simpleChat.GET("/messages", s.simpleChatHandler.GetMessages)
+			}
+
+			// Polling-based chat endpoints
+			chatPolling := admin.Group("/chat", s.pollingChatHandler.AuthMiddleware)
+			{
+				chatPolling.POST("/messages", s.pollingChatHandler.SendMessage)
+				chatPolling.GET("/messages", s.pollingChatHandler.GetMessages)
+			}
+
+			// Chat configuration endpoints
+			admin.GET("/chat/config", s.chatConfigHandler.GetChatConfig)
+			admin.PUT("/chat/config", s.chatConfigHandler.UpdateChatConfig)
+		}
+
+		// WebSocket routes - use WebSocket-specific auth middleware that supports query parameters
+		adminWS := v1.Group("/admin")
+		{
+			// Chat WebSocket route with WebSocket-specific authentication
+			adminWS.GET("/chat/ws", s.chatHandler.HandleWebSocket)
 		}
 
 		// System management routes
@@ -263,13 +313,17 @@ func (s *Server) getServiceConfig(c *gin.Context) {
 
 // corsMiddleware handles CORS headers
 func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
+	fmt.Printf("[CORS DEBUG] Allowed origins: %v\n", allowedOrigins)
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
+		fmt.Printf("[CORS DEBUG] Incoming request Origin: %s\n", origin)
 
 		// Check if origin is allowed
 		allowed := false
 		for _, allowedOrigin := range allowedOrigins {
-			if origin == allowedOrigin || allowedOrigin == "*" {
+			trimmedOrigin := strings.TrimSpace(allowedOrigin)
+			trimmedRequestOrigin := strings.TrimSpace(origin)
+			if trimmedRequestOrigin == trimmedOrigin || trimmedOrigin == "*" {
 				allowed = true
 				break
 			}
@@ -277,18 +331,33 @@ func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 
 		if allowed {
 			c.Header("Access-Control-Allow-Origin", origin)
+		} else {
+			c.Header("Access-Control-Allow-Origin", "null")
 		}
+		// Log CORS diagnostics for debugging
+		c.Header("X-Debug-CORS-Origin", origin)
+		c.Header("X-Debug-CORS-Allowed", fmt.Sprintf("%v", allowed))
+		fmt.Printf("[CORS DEBUG] Response Access-Control-Allow-Origin: %s\n", c.Writer.Header().Get("Access-Control-Allow-Origin"))
 
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, Upgrade, Connection, Sec-WebSocket-Key, Sec-WebSocket-Version, Sec-WebSocket-Protocol")
 		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Max-Age", "86400")
+
+		// Handle WebSocket upgrade requests
+		if c.Request.Header.Get("Upgrade") == "websocket" {
+			// Allow WebSocket upgrade for allowed origins
+			if allowed {
+				c.Header("Access-Control-Allow-Origin", origin)
+			}
+		}
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 
+		fmt.Printf("[CORS DEBUG] End of middleware for %s, Access-Control-Allow-Origin: %s\n", c.Request.URL.Path, c.Writer.Header().Get("Access-Control-Allow-Origin"))
 		c.Next()
 	}
 }

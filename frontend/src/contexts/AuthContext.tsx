@@ -36,6 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiService.login(username, password);
 
       if (response.success && response.token) {
+        localStorage.setItem('adminToken', response.token);
         apiService.setAuthToken(response.token);
         setIsAuthenticated(true);
         return true;

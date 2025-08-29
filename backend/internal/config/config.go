@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -17,15 +19,26 @@ type Config struct {
 	JWTSecret          string
 	Bedrock            BedrockConfig
 	SES                SESConfig
+	Chat               ChatConfig
+}
+
+// ChatConfig holds chat system configuration including feature flags
+type ChatConfig struct {
+	Mode                    string // "websocket", "polling", or "auto"
+	EnableWebSocketFallback bool   // Enable automatic fallback from WebSocket to polling
+	WebSocketTimeout        int    // WebSocket connection timeout in seconds
+	PollingInterval         int    // Default polling interval in milliseconds
+	MaxReconnectAttempts    int    // Maximum reconnection attempts before fallback
+	FallbackDelay           int    // Delay before fallback in milliseconds
 }
 
 // BedrockConfig holds Amazon Bedrock configuration
 type BedrockConfig struct {
-	APIKey    string
-	Region    string
-	ModelID   string
-	BaseURL   string
-	Timeout   int
+	APIKey  string
+	Region  string
+	ModelID string
+	BaseURL string
+	Timeout int
 }
 
 // SESConfig holds AWS SES configuration
@@ -42,13 +55,17 @@ type SESConfig struct {
 func Load() (*Config, error) {
 	// Load .env file if it exists (ignore errors for minimal setup)
 	_ = godotenv.Load()
-	
+
 	cfg := &Config{
-		Port:               getEnv("PORT", "8080"),
-		LogLevel:           getEnvAsInt("LOG_LEVEL", 4), // Info level
-		GinMode:            getEnv("GIN_MODE", "debug"),
-		CORSAllowedOrigins: getEnvAsSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
-		JWTSecret:          getEnv("JWT_SECRET", "cloud-consulting-demo-secret"),
+		Port:     getEnv("PORT", "8080"),
+		LogLevel: getEnvAsInt("LOG_LEVEL", 4), // Info level
+		GinMode:  getEnv("GIN_MODE", "debug"),
+		// Added http://localhost:3007 for development only
+		CORSAllowedOrigins: getEnvAsSlice("CORS_ALLOWED_ORIGINS", []string{
+			"http://localhost:3000",
+			"http://localhost:3007", // for development only
+		}),
+		JWTSecret: getEnv("JWT_SECRET", "cloud-consulting-demo-secret"),
 		Bedrock: BedrockConfig{
 			APIKey:  getEnv("AWS_BEARER_TOKEN_BEDROCK", ""),
 			Region:  getEnv("BEDROCK_REGION", "us-east-1"),
@@ -64,8 +81,19 @@ func Load() (*Config, error) {
 			ReplyToEmail:    getEnv("SES_REPLY_TO_EMAIL", ""),
 			Timeout:         getEnvAsInt("SES_TIMEOUT_SECONDS", 30),
 		},
+		Chat: ChatConfig{
+			Mode:                    getEnv("CHAT_MODE", "auto"), // "websocket", "polling", or "auto"
+			EnableWebSocketFallback: getEnvAsBool("CHAT_ENABLE_WEBSOCKET_FALLBACK", true),
+			WebSocketTimeout:        getEnvAsInt("CHAT_WEBSOCKET_TIMEOUT", 10),
+			PollingInterval:         getEnvAsInt("CHAT_POLLING_INTERVAL", 3000),
+			MaxReconnectAttempts:    getEnvAsInt("CHAT_MAX_RECONNECT_ATTEMPTS", 3),
+			FallbackDelay:           getEnvAsInt("CHAT_FALLBACK_DELAY", 5000),
+		},
 	}
-	
+
+	log.Println("[CONFIG DEBUG] about to print CORSAllowedOrigins")
+	fmt.Printf("[CONFIG DEBUG] CORSAllowedOrigins loaded: %v\n", cfg.CORSAllowedOrigins)
+	log.Println("[CONFIG DEBUG] finished printing CORSAllowedOrigins")
 	return cfg, nil
 }
 
@@ -101,4 +129,3 @@ func getEnvAsSlice(key string, defaultValue []string) []string {
 	}
 	return defaultValue
 }
-

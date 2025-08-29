@@ -1,448 +1,480 @@
-import { websocketService } from './websocketService';
+/**
+ * Connection Diagnostics Service
+ * Provides comprehensive diagnostics for WebSocket connectivity issues
+ */
 
-export interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  responseTime: number;
+export interface DiagnosticResult {
+  test: string;
+  status: 'pass' | 'fail' | 'warning';
+  message: string;
+  details?: any;
   timestamp: Date;
-  details: string[];
-}
-
-export interface EndpointStatus {
-  available: boolean;
-  responseTime: number;
-  error?: string;
-  timestamp: Date;
-}
-
-export interface NetworkStatus {
-  online: boolean;
-  connectionType?: string;
-  effectiveType?: string;
-  downlink?: number;
-  rtt?: number;
-  timestamp: Date;
-}
-
-export interface ConfigStatus {
-  valid: boolean;
-  issues: string[];
-  configuration: {
-    wsUrl: string;
-    apiUrl: string;
-    protocol: string;
-    host: string;
-    token: boolean;
-  };
-}
-
-export interface ConnectionAttempt {
-  timestamp: Date;
-  url: string;
-  result: 'success' | 'failed' | 'timeout';
-  errorCode?: number;
-  errorMessage?: string;
-  duration: number;
 }
 
 export interface DiagnosticReport {
   timestamp: Date;
-  connectionAttempts: ConnectionAttempt[];
-  healthStatus: HealthStatus;
-  endpointStatus: EndpointStatus;
-  networkStatus: NetworkStatus;
-  configStatus: ConfigStatus;
+  overallStatus: 'healthy' | 'degraded' | 'unhealthy';
+  results: DiagnosticResult[];
   recommendations: string[];
 }
 
-class ConnectionDiagnostics {
-  private connectionHistory: ConnectionAttempt[] = [];
-  private readonly maxHistorySize = 50;
+export class ConnectionDiagnosticsService {
+  private apiUrl: string;
+  private wsUrl: string;
+
+  constructor() {
+    this.apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8061';
+    this.wsUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8061/api/v1/admin/chat/ws';
+  }
 
   /**
-   * Check backend health status
+   * Run comprehensive connection diagnostics
    */
-  public async checkBackendHealth(): Promise<HealthStatus> {
-    const startTime = Date.now();
-    const details: string[] = [];
-    
+  async runDiagnostics(): Promise<DiagnosticReport> {
+    const results: DiagnosticResult[] = [];
+    const recommendations: string[] = [];
+
+    console.log('🔍 Starting WebSocket connection diagnostics...');
+
+    // Test 1: Check if backend server is reachable
+    results.push(await this.testBackendHealth());
+
+    // Test 2: Check authentication token
+    results.push(await this.testAuthenticationToken());
+
+    // Test 3: Check WebSocket endpoint configuration
+    results.push(await this.testWebSocketConfiguration());
+
+    // Test 4: Test basic HTTP connectivity
+    results.push(await this.testHttpConnectivity());
+
+    // Test 5: Test CORS configuration
+    results.push(await this.testCorsConfiguration());
+
+    // Test 6: Test WebSocket endpoint availability
+    results.push(await this.testWebSocketEndpoint());
+
+    // Analyze results and generate recommendations
+    const failedTests = results.filter(r => r.status === 'fail');
+    const warningTests = results.filter(r => r.status === 'warning');
+
+    if (failedTests.length === 0 && warningTests.length === 0) {
+      recommendations.push('All diagnostics passed. WebSocket should be working correctly.');
+    } else {
+      if (failedTests.some(t => t.test === 'Backend Health Check')) {
+        recommendations.push('🚨 CRITICAL: Backend server is not running or not accessible. Start the backend server on port 8061.');
+        recommendations.push('Run: cd backend && go run cmd/server/main.go');
+      }
+      
+      if (failedTests.some(t => t.test === 'Authentication Token')) {
+        recommendations.push('🔐 Authentication required: Please log in to get a valid admin token.');
+      }
+      
+      if (failedTests.some(t => t.test === 'WebSocket Endpoint')) {
+        const wsTest = failedTests.find(t => t.test === 'WebSocket Endpoint');
+        if (wsTest?.details?.diagnosis === 'immediate_close_issue') {
+          recommendations.push('🔌 WebSocket connects but closes immediately (code 1005). This is likely caused by React StrictMode or client-side connection management issues.');
+          recommendations.push('Try: 1) Disable React StrictMode in development, 2) Check for multiple connection attempts, 3) Review WebSocket service cleanup logic.');
+        } else {
+          recommendations.push('🔌 WebSocket endpoint is not accessible. Check if the backend WebSocket handler is properly configured.');
+        }
+      }
+      
+      if (failedTests.some(t => t.test === 'CORS Configuration')) {
+        recommendations.push('🌐 CORS issue detected. Ensure backend CORS allows origin: http://localhost:3007');
+      }
+    }
+
+    const overallStatus = failedTests.length > 0 ? 'unhealthy' : 
+                         warningTests.length > 0 ? 'degraded' : 'healthy';
+
+    return {
+      timestamp: new Date(),
+      overallStatus,
+      results,
+      recommendations
+    };
+  }
+
+  /**
+   * Test if backend server is running and healthy
+   */
+  private async testBackendHealth(): Promise<DiagnosticResult> {
     try {
-      const response = await fetch('/api/v1/health', {
+      console.log('🏥 Testing backend health...');
+      const response = await fetch(`${this.apiUrl}/health`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(5000), // 5 second timeout
       });
 
-      const responseTime = Date.now() - startTime;
-      
       if (response.ok) {
         const data = await response.json();
-        details.push(`Backend responded in ${responseTime}ms`);
-        details.push(`Status: ${data.status || 'unknown'}`);
-        
         return {
-          status: responseTime < 1000 ? 'healthy' : 'degraded',
-          responseTime,
-          timestamp: new Date(),
-          details,
+          test: 'Backend Health Check',
+          status: 'pass',
+          message: `Backend server is running (${data.status})`,
+          details: data,
+          timestamp: new Date()
         };
       } else {
-        details.push(`HTTP ${response.status}: ${response.statusText}`);
         return {
-          status: 'unhealthy',
-          responseTime,
-          timestamp: new Date(),
-          details,
+          test: 'Backend Health Check',
+          status: 'fail',
+          message: `Backend server returned ${response.status}: ${response.statusText}`,
+          details: { status: response.status, statusText: response.statusText },
+          timestamp: new Date()
         };
       }
     } catch (error) {
-      const responseTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      details.push(`Connection failed: ${errorMessage}`);
-      
       return {
-        status: 'unhealthy',
-        responseTime,
-        timestamp: new Date(),
-        details,
+        test: 'Backend Health Check',
+        status: 'fail',
+        message: `Cannot reach backend server: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: { error: error instanceof Error ? error.message : error },
+        timestamp: new Date()
       };
     }
   }
 
   /**
-   * Validate WebSocket endpoint availability
+   * Test authentication token availability
    */
-  public async validateWebSocketEndpoint(): Promise<EndpointStatus> {
-    const startTime = Date.now();
-    
-    return new Promise((resolve) => {
+  private async testAuthenticationToken(): Promise<DiagnosticResult> {
+    try {
+      console.log('🔐 Testing authentication token...');
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        return {
+          test: 'Authentication Token',
+          status: 'fail',
+          message: 'No admin token found in localStorage',
+          details: { tokenExists: false },
+          timestamp: new Date()
+        };
+      }
+
+      // Try to decode JWT to check if it's valid format
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/api/v1/admin/chat/ws`;
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const now = Math.floor(Date.now() / 1000);
         
-        const testWs = new WebSocket(wsUrl);
-        
-        const timeout = setTimeout(() => {
-          testWs.close();
-          resolve({
-            available: false,
-            responseTime: Date.now() - startTime,
-            error: 'Connection timeout',
-            timestamp: new Date(),
-          });
-        }, 5000);
+        if (payload.exp && payload.exp < now) {
+          return {
+            test: 'Authentication Token',
+            status: 'fail',
+            message: 'Admin token has expired',
+            details: { tokenExists: true, expired: true, exp: payload.exp, now },
+            timestamp: new Date()
+          };
+        }
 
-        testWs.onopen = () => {
-          clearTimeout(timeout);
-          testWs.close();
-          resolve({
-            available: true,
-            responseTime: Date.now() - startTime,
-            timestamp: new Date(),
-          });
+        return {
+          test: 'Authentication Token',
+          status: 'pass',
+          message: 'Valid admin token found',
+          details: { tokenExists: true, expired: false, exp: payload.exp },
+          timestamp: new Date()
         };
-
-        testWs.onerror = (error) => {
-          clearTimeout(timeout);
-          resolve({
-            available: false,
-            responseTime: Date.now() - startTime,
-            error: 'WebSocket connection error',
-            timestamp: new Date(),
-          });
+      } catch (decodeError) {
+        return {
+          test: 'Authentication Token',
+          status: 'warning',
+          message: 'Admin token exists but format is invalid',
+          details: { tokenExists: true, validFormat: false },
+          timestamp: new Date()
         };
+      }
+    } catch (error) {
+      return {
+        test: 'Authentication Token',
+        status: 'fail',
+        message: `Error checking authentication token: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: { error: error instanceof Error ? error.message : error },
+        timestamp: new Date()
+      };
+    }
+  }
 
-        testWs.onclose = (event) => {
-          clearTimeout(timeout);
-          if (event.code !== 1000) {
+  /**
+   * Test WebSocket configuration
+   */
+  private async testWebSocketConfiguration(): Promise<DiagnosticResult> {
+    try {
+      console.log('⚙️ Testing WebSocket configuration...');
+      const issues: string[] = [];
+      
+      // Check environment variables
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const wsUrl = process.env.REACT_APP_WS_URL;
+      
+      if (!apiUrl) {
+        issues.push('REACT_APP_API_URL environment variable not set');
+      }
+      
+      if (!wsUrl) {
+        issues.push('REACT_APP_WS_URL environment variable not set');
+      }
+      
+      // Check URL formats
+      try {
+        new URL(this.apiUrl);
+      } catch {
+        issues.push(`Invalid API URL format: ${this.apiUrl}`);
+      }
+      
+      // Check WebSocket URL format
+      if (!this.wsUrl.startsWith('ws://') && !this.wsUrl.startsWith('wss://')) {
+        issues.push(`Invalid WebSocket URL format: ${this.wsUrl}`);
+      }
+
+      if (issues.length === 0) {
+        return {
+          test: 'WebSocket Configuration',
+          status: 'pass',
+          message: 'WebSocket configuration is valid',
+          details: { apiUrl: this.apiUrl, wsUrl: this.wsUrl },
+          timestamp: new Date()
+        };
+      } else {
+        return {
+          test: 'WebSocket Configuration',
+          status: 'fail',
+          message: `Configuration issues found: ${issues.join(', ')}`,
+          details: { issues, apiUrl: this.apiUrl, wsUrl: this.wsUrl },
+          timestamp: new Date()
+        };
+      }
+    } catch (error) {
+      return {
+        test: 'WebSocket Configuration',
+        status: 'fail',
+        message: `Error checking WebSocket configuration: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: { error: error instanceof Error ? error.message : error },
+        timestamp: new Date()
+      };
+    }
+  }
+
+  /**
+   * Test basic HTTP connectivity to backend
+   */
+  private async testHttpConnectivity(): Promise<DiagnosticResult> {
+    try {
+      console.log('🌐 Testing HTTP connectivity...');
+      const startTime = Date.now();
+      
+      const response = await fetch(`${this.apiUrl}/api/v1/config/services`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+
+      if (response.ok) {
+        return {
+          test: 'HTTP Connectivity',
+          status: 'pass',
+          message: `HTTP connectivity working (${responseTime}ms)`,
+          details: { responseTime, status: response.status },
+          timestamp: new Date()
+        };
+      } else {
+        return {
+          test: 'HTTP Connectivity',
+          status: 'fail',
+          message: `HTTP request failed: ${response.status} ${response.statusText}`,
+          details: { status: response.status, statusText: response.statusText, responseTime },
+          timestamp: new Date()
+        };
+      }
+    } catch (error) {
+      return {
+        test: 'HTTP Connectivity',
+        status: 'fail',
+        message: `HTTP connectivity failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: { error: error instanceof Error ? error.message : error },
+        timestamp: new Date()
+      };
+    }
+  }
+
+  /**
+   * Test CORS configuration
+   */
+  private async testCorsConfiguration(): Promise<DiagnosticResult> {
+    try {
+      console.log('🔒 Testing CORS configuration...');
+      
+      const response = await fetch(`${this.apiUrl}/health`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Origin': 'http://localhost:3007', // Explicitly set origin
+        },
+      });
+
+      const corsHeaders = {
+        'access-control-allow-origin': response.headers.get('Access-Control-Allow-Origin'),
+        'access-control-allow-methods': response.headers.get('Access-Control-Allow-Methods'),
+        'access-control-allow-headers': response.headers.get('Access-Control-Allow-Headers'),
+        'access-control-allow-credentials': response.headers.get('Access-Control-Allow-Credentials'),
+      };
+
+      const allowedOrigin = corsHeaders['access-control-allow-origin'];
+      
+      // Check if CORS is properly configured
+      if (allowedOrigin === 'http://localhost:3007' || allowedOrigin === '*') {
+        return {
+          test: 'CORS Configuration',
+          status: 'pass',
+          message: 'CORS is properly configured for frontend origin',
+          details: { corsHeaders, allowedOrigin },
+          timestamp: new Date()
+        };
+      } else {
+        return {
+          test: 'CORS Configuration',
+          status: 'fail',
+          message: `CORS not configured for frontend origin. Allowed: ${allowedOrigin}`,
+          details: { corsHeaders, expectedOrigin: 'http://localhost:3007', allowedOrigin },
+          timestamp: new Date()
+        };
+      }
+    } catch (error) {
+      return {
+        test: 'CORS Configuration',
+        status: 'warning',
+        message: `Could not test CORS: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: { error: error instanceof Error ? error.message : error },
+        timestamp: new Date()
+      };
+    }
+  }
+
+  /**
+   * Test WebSocket endpoint availability
+   */
+  private async testWebSocketEndpoint(): Promise<DiagnosticResult> {
+    return new Promise((resolve) => {
+      console.log('🔌 Testing WebSocket endpoint...');
+      
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        resolve({
+          test: 'WebSocket Endpoint',
+          status: 'fail',
+          message: 'Cannot test WebSocket endpoint without authentication token',
+          details: { reason: 'no_token' },
+          timestamp: new Date()
+        });
+        return;
+      }
+
+      const wsUrl = `${this.wsUrl}?token=${encodeURIComponent(token)}`;
+      const ws = new WebSocket(wsUrl);
+      
+      const timeout = setTimeout(() => {
+        ws.close();
+        resolve({
+          test: 'WebSocket Endpoint',
+          status: 'fail',
+          message: 'WebSocket connection timeout (10 seconds)',
+          details: { reason: 'timeout', url: wsUrl.replace(/token=[^&]+/, 'token=***') },
+          timestamp: new Date()
+        });
+      }, 10000);
+
+      ws.onopen = () => {
+        console.log('🔌 WebSocket opened, waiting to check stability...');
+        // Don't close immediately - wait to see if connection stays stable
+        setTimeout(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            clearTimeout(timeout);
+            ws.close();
             resolve({
-              available: false,
-              responseTime: Date.now() - startTime,
-              error: `WebSocket closed with code ${event.code}: ${event.reason}`,
-              timestamp: new Date(),
+              test: 'WebSocket Endpoint',
+              status: 'pass',
+              message: 'WebSocket endpoint is accessible and maintains stable connections',
+              details: { url: wsUrl.replace(/token=[^&]+/, 'token=***') },
+              timestamp: new Date()
             });
           }
-        };
-      } catch (error) {
+        }, 2000); // Wait 2 seconds to check if connection stays open
+      };
+
+      ws.onerror = (error) => {
+        clearTimeout(timeout);
         resolve({
-          available: false,
-          responseTime: Date.now() - startTime,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date(),
+          test: 'WebSocket Endpoint',
+          status: 'fail',
+          message: 'WebSocket connection failed',
+          details: { error, url: wsUrl.replace(/token=[^&]+/, 'token=***') },
+          timestamp: new Date()
         });
-      }
-    });
-  }
+      };
 
-  /**
-   * Test network connectivity
-   */
-  public async testNetworkConnectivity(): Promise<NetworkStatus> {
-    const networkStatus: NetworkStatus = {
-      online: navigator.onLine,
-      timestamp: new Date(),
-    };
-
-    // Get connection information if available
-    if ('connection' in navigator) {
-      const connection = (navigator as any).connection;
-      if (connection) {
-        networkStatus.connectionType = connection.type;
-        networkStatus.effectiveType = connection.effectiveType;
-        networkStatus.downlink = connection.downlink;
-        networkStatus.rtt = connection.rtt;
-      }
-    }
-
-    return networkStatus;
-  }
-
-  /**
-   * Validate frontend WebSocket configuration
-   */
-  public validateConfiguration(): ConfigStatus {
-    const issues: string[] = [];
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/v1/admin/chat/ws`;
-    const apiUrl = `/api/v1`;
-    const token = !!localStorage.getItem('adminToken');
-
-    // Check token
-    if (!token) {
-      issues.push('No admin token found in localStorage');
-    }
-
-    // Check protocol consistency
-    if (window.location.protocol === 'https:' && protocol !== 'wss:') {
-      issues.push('HTTPS page should use WSS protocol');
-    }
-
-    // Check URL format
-    try {
-      new URL(wsUrl.replace('ws:', 'http:').replace('wss:', 'https:'));
-    } catch (error) {
-      issues.push('Invalid WebSocket URL format');
-    }
-
-    // Check if running on localhost
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      if (!window.location.port) {
-        issues.push('Localhost connection without port may cause issues');
-      }
-    }
-
-    return {
-      valid: issues.length === 0,
-      issues,
-      configuration: {
-        wsUrl,
-        apiUrl,
-        protocol,
-        host: window.location.host,
-        token,
-      },
-    };
-  }
-
-  /**
-   * Record a connection attempt
-   */
-  public recordConnectionAttempt(attempt: ConnectionAttempt): void {
-    this.connectionHistory.unshift(attempt);
-    
-    // Limit history size
-    if (this.connectionHistory.length > this.maxHistorySize) {
-      this.connectionHistory = this.connectionHistory.slice(0, this.maxHistorySize);
-    }
-  }
-
-  /**
-   * Get connection attempt history
-   */
-  public getConnectionHistory(): ConnectionAttempt[] {
-    return [...this.connectionHistory];
-  }
-
-  /**
-   * Generate comprehensive diagnostic report
-   */
-  public async generateDiagnosticReport(): Promise<DiagnosticReport> {
-    const [healthStatus, endpointStatus, networkStatus] = await Promise.all([
-      this.checkBackendHealth(),
-      this.validateWebSocketEndpoint(),
-      this.testNetworkConnectivity(),
-    ]);
-
-    const configStatus = this.validateConfiguration();
-    const recommendations = this.generateRecommendations(
-      healthStatus,
-      endpointStatus,
-      networkStatus,
-      configStatus
-    );
-
-    return {
-      timestamp: new Date(),
-      connectionAttempts: this.getConnectionHistory(),
-      healthStatus,
-      endpointStatus,
-      networkStatus,
-      configStatus,
-      recommendations,
-    };
-  }
-
-  /**
-   * Generate recommendations based on diagnostic results
-   */
-  private generateRecommendations(
-    health: HealthStatus,
-    endpoint: EndpointStatus,
-    network: NetworkStatus,
-    config: ConfigStatus
-  ): string[] {
-    const recommendations: string[] = [];
-
-    // Health-based recommendations
-    if (health.status === 'unhealthy') {
-      recommendations.push('Backend server appears to be down or unreachable');
-      recommendations.push('Check if the backend service is running');
-      recommendations.push('Verify network connectivity to the server');
-    } else if (health.status === 'degraded') {
-      recommendations.push('Backend server is responding slowly');
-      recommendations.push('Check server load and performance');
-    }
-
-    // Endpoint-based recommendations
-    if (!endpoint.available) {
-      recommendations.push('WebSocket endpoint is not available');
-      if (endpoint.error?.includes('timeout')) {
-        recommendations.push('Connection timeout - check firewall settings');
-      }
-      if (endpoint.error?.includes('1006')) {
-        recommendations.push('WebSocket closed abnormally - check server logs');
-      }
-    }
-
-    // Network-based recommendations
-    if (!network.online) {
-      recommendations.push('Device appears to be offline');
-      recommendations.push('Check internet connection');
-    } else if (network.effectiveType === 'slow-2g' || network.effectiveType === '2g') {
-      recommendations.push('Slow network connection detected');
-      recommendations.push('WebSocket may have difficulty maintaining connection');
-    }
-
-    // Configuration-based recommendations
-    config.issues.forEach(issue => {
-      recommendations.push(`Configuration issue: ${issue}`);
-    });
-
-    if (config.issues.includes('No admin token found')) {
-      recommendations.push('Please log in again to refresh authentication');
-    }
-
-    // General recommendations
-    if (recommendations.length === 0) {
-      recommendations.push('All diagnostics passed - connection should work normally');
-    } else {
-      recommendations.push('Try refreshing the page after addressing the issues above');
-      recommendations.push('If problems persist, contact system administrator');
-    }
-
-    return recommendations;
-  }
-
-  /**
-   * Test WebSocket connection with detailed logging
-   */
-  public async testWebSocketConnection(): Promise<ConnectionAttempt> {
-    const startTime = Date.now();
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/v1/admin/chat/ws`;
-
-    return new Promise((resolve) => {
-      try {
-        const testWs = new WebSocket(wsUrl);
-        
-        const timeout = setTimeout(() => {
-          testWs.close();
-          const attempt: ConnectionAttempt = {
-            timestamp: new Date(),
-            url: wsUrl,
-            result: 'timeout',
-            duration: Date.now() - startTime,
-            errorMessage: 'Connection timeout after 10 seconds',
-          };
-          this.recordConnectionAttempt(attempt);
-          resolve(attempt);
-        }, 10000);
-
-        testWs.onopen = () => {
-          clearTimeout(timeout);
-          testWs.close();
-          const attempt: ConnectionAttempt = {
-            timestamp: new Date(),
-            url: wsUrl,
-            result: 'success',
-            duration: Date.now() - startTime,
-          };
-          this.recordConnectionAttempt(attempt);
-          resolve(attempt);
-        };
-
-        testWs.onerror = () => {
-          clearTimeout(timeout);
-          const attempt: ConnectionAttempt = {
-            timestamp: new Date(),
-            url: wsUrl,
-            result: 'failed',
-            duration: Date.now() - startTime,
-            errorMessage: 'WebSocket connection error',
-          };
-          this.recordConnectionAttempt(attempt);
-          resolve(attempt);
-        };
-
-        testWs.onclose = (event) => {
-          clearTimeout(timeout);
-          if (event.code !== 1000) {
-            const attempt: ConnectionAttempt = {
-              timestamp: new Date(),
-              url: wsUrl,
-              result: 'failed',
-              duration: Date.now() - startTime,
-              errorCode: event.code,
-              errorMessage: `WebSocket closed with code ${event.code}: ${event.reason || 'No reason provided'}`,
-            };
-            this.recordConnectionAttempt(attempt);
-            resolve(attempt);
+      ws.onclose = (event) => {
+        clearTimeout(timeout);
+        if (event.code !== 1000) { // 1000 is normal closure
+          let message = `WebSocket closed unexpectedly: ${event.code}`;
+          if (event.code === 1005) {
+            message += ' (no status) - Connection closes immediately after opening. This indicates a client-side connection management issue.';
           }
-        };
-      } catch (error) {
-        const attempt: ConnectionAttempt = {
-          timestamp: new Date(),
-          url: wsUrl,
-          result: 'failed',
-          duration: Date.now() - startTime,
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        };
-        this.recordConnectionAttempt(attempt);
-        resolve(attempt);
-      }
+          if (event.reason) {
+            message += ` ${event.reason}`;
+          }
+          
+          resolve({
+            test: 'WebSocket Endpoint',
+            status: 'fail',
+            message,
+            details: { 
+              code: event.code, 
+              reason: event.reason || 'No reason provided', 
+              url: wsUrl.replace(/token=[^&]+/, 'token=***'),
+              diagnosis: event.code === 1005 ? 'immediate_close_issue' : 'unexpected_close'
+            },
+            timestamp: new Date()
+          });
+        }
+      };
     });
   }
 
   /**
-   * Clear connection history
+   * Print diagnostic report to console
    */
-  public clearHistory(): void {
-    this.connectionHistory = [];
+  printReport(report: DiagnosticReport): void {
+    console.log('\n🔍 WebSocket Connection Diagnostic Report');
+    console.log('==========================================');
+    console.log(`Timestamp: ${report.timestamp.toISOString()}`);
+    console.log(`Overall Status: ${report.overallStatus.toUpperCase()}`);
+    console.log('\nTest Results:');
+    
+    report.results.forEach((result, index) => {
+      const icon = result.status === 'pass' ? '✅' : result.status === 'warning' ? '⚠️' : '❌';
+      console.log(`${index + 1}. ${icon} ${result.test}: ${result.message}`);
+      if (result.details) {
+        console.log(`   Details:`, result.details);
+      }
+    });
+
+    if (report.recommendations.length > 0) {
+      console.log('\nRecommendations:');
+      report.recommendations.forEach((rec, index) => {
+        console.log(`${index + 1}. ${rec}`);
+      });
+    }
+    
+    console.log('\n==========================================\n');
   }
 }
 
-// Create singleton instance
-export const connectionDiagnostics = new ConnectionDiagnostics();
-
-export default connectionDiagnostics;
+// Export singleton instance
+export const connectionDiagnostics = new ConnectionDiagnosticsService();

@@ -7,10 +7,14 @@ import { MetricsDashboard } from './metrics-dashboard';
 import { EmailMonitor } from './email-monitor';
 import { InquiryAnalysisDashboard } from './inquiry-analysis-dashboard';
 import ChatToggle from './ChatToggle';
+import SimpleChat from './SimpleChat';
 import ChatPage from './ChatPage';
 import ConnectionStatus from './ConnectionStatus';
+import SimpleWebSocketTest from './SimpleWebSocketTest';
+import ChatModeToggle from './ChatModeToggle';
+import { SimpleWorkingChat } from './SimpleWorkingChat';
 import { RootState } from '../../store';
-import websocketService from '../../services/websocketService';
+import { chatModeManager } from '../../services/chatModeManager';
 
 interface IntegratedAdminDashboardProps {
   children?: React.ReactNode;
@@ -21,23 +25,49 @@ export const IntegratedAdminDashboard: React.FC<IntegratedAdminDashboardProps> =
   const { currentSession, messages } = useSelector((state: RootState) => state.chat);
   const { status: connectionStatus } = useSelector((state: RootState) => state.connection);
 
-  // Initialize WebSocket connection when dashboard loads
+  // Initialize chat service when dashboard loads (single connection point)
   useEffect(() => {
-    if (connectionStatus === 'disconnected') {
-      const connectPromise = websocketService.connect();
-      if (connectPromise && typeof connectPromise.catch === 'function') {
-        connectPromise.catch(console.error);
-      }
-    }
+    let isComponentMounted = true;
 
-    // Cleanup on unmount
-    return () => {
-      // Don't disconnect here as other components might be using the connection
+    const initializeConnection = async () => {
+      if (!isComponentMounted) {
+        return;
+      }
+      
+      // Only initialize if we're not already connected or connecting
+      if (connectionStatus === 'disconnected') {
+        try {
+          console.log('[Dashboard] Initializing chat service via mode manager');
+          await chatModeManager.initializeChatService();
+        } catch (error) {
+          console.error('Failed to initialize chat service:', error);
+        }
+      }
     };
-  }, [connectionStatus]);
+
+    // Initialize connection immediately
+    initializeConnection();
+
+    // Cleanup on unmount - but be careful with React StrictMode
+    return () => {
+      console.log('[Dashboard] Component cleanup called - STACK TRACE:', {
+        stack: new Error().stack?.split('\n').slice(1, 6).join('\n')
+      });
+      isComponentMounted = false;
+      
+      // In development mode, DO NOT cleanup chat service on component unmount
+      // This prevents React StrictMode from breaking the connection
+      if (process.env.NODE_ENV === 'production') {
+        console.log('[Dashboard] Production mode - cleaning up chat service on unmount');
+        chatModeManager.cleanup();
+      } else {
+        console.log('[Dashboard] Development mode - keeping chat service alive to prevent StrictMode issues');
+      }
+    };
+  }, []); // Only run once on mount
 
   const handleReconnect = () => {
-    websocketService.forceReconnect();
+    chatModeManager.forceReconnect();
   };
 
   return (
@@ -83,8 +113,11 @@ export const IntegratedAdminDashboard: React.FC<IntegratedAdminDashboardProps> =
               <Route path="dashboard" element={<InquiryAnalysisDashboard />} />
               <Route path="inquiries" element={<InquiryList />} />
               <Route path="chat" element={<ChatPage />} />
+              <Route path="chat-mode" element={<ChatModeToggle />} />
               <Route path="metrics" element={<MetricsDashboard />} />
               <Route path="email-status" element={<EmailMonitor />} />
+              <Route path="websocket-test" element={<SimpleWebSocketTest />} />
+              <Route path="simple-chat" element={<SimpleWorkingChat />} />
             </Routes>
           )}
         </div>
@@ -92,6 +125,19 @@ export const IntegratedAdminDashboard: React.FC<IntegratedAdminDashboardProps> =
       
       {/* Consultant Chat Toggle - Always visible */}
       <ChatToggle />
+
+      {/* Simple Working Chat Demo */}
+      <div className="mt-8 bg-white rounded-lg shadow-lg">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-4 text-green-600 flex items-center">
+            ✅ Working Chat Demo
+            <span className="ml-2 text-sm text-gray-500 font-normal">(No complex polling - just works!)</span>
+          </h2>
+          <div className="h-96">
+            <SimpleChat />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

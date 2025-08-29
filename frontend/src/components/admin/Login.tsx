@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { theme } from '../../styles/theme';
 import { useNavigate } from 'react-router-dom';
-import apiService from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import Icon from '../ui/Icon';
 import { FiLock, FiUser, FiAlertCircle } from 'react-icons/fi';
 
@@ -141,6 +141,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,19 +155,13 @@ const Login: React.FC = () => {
     setError(null);
     
     try {
-      const response = await apiService.login(username, password);
+      const success = await login(username, password);
       
-      if (response.success && response.token) {
-        // Store token in localStorage
-        localStorage.setItem('adminToken', response.token);
-        
-        // Set token in API service
-        apiService.setAuthToken(response.token);
-        
+      if (success) {
         // Redirect to admin dashboard
         navigate('/admin/dashboard');
       } else {
-        setError(response.error || 'Login failed');
+        setError('Invalid username or password');
       }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');

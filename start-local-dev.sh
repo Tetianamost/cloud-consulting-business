@@ -4,15 +4,27 @@
 
 echo "🚀 Starting Cloud Consulting Backend and Frontend (Local Development)..."
 echo "=================================================================="
+# // kill this frontend port as well - lsof -ti:3007 | xargs kill -9 || true 
+
 
 # Function to kill processes on specific ports
 kill_port() {
     local port=$1
-    local pids=$(lsof -ti:$port)
+    echo "🔍 Checking for processes on port $port..."
+    local pids=$(lsof -ti:$port 2>/dev/null)
     if [ ! -z "$pids" ]; then
         echo "🔪 Killing processes on port $port: $pids"
-        kill -9 $pids 2>/dev/null
-        sleep 1
+        echo "$pids" | xargs kill -9 2>/dev/null || true
+        sleep 2
+        # Double check if processes are still running
+        local remaining=$(lsof -ti:$port 2>/dev/null)
+        if [ ! -z "$remaining" ]; then
+            echo "⚠️  Some processes still running on port $port: $remaining"
+            echo "$remaining" | xargs kill -9 2>/dev/null || true
+            sleep 1
+        fi
+    else
+        echo "✅ Port $port is free"
     fi
 }
 
@@ -20,6 +32,7 @@ kill_port() {
 echo "🧹 Cleaning up existing processes..."
 kill_port 8061
 kill_port 3006
+kill_port 3007
 
 # Check if Go is installed
 if ! command -v go &> /dev/null; then
@@ -50,6 +63,7 @@ export JWT_SECRET=${JWT_SECRET:-cloud-consulting-demo-secret}
 export GIN_MODE=${GIN_MODE:-debug}
 export LOG_LEVEL=${LOG_LEVEL:-4}
 export FRONTEND_PORT=3007
+export CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-"http://localhost:3007, http://localhost:3006, http://localhost:3000"}
 
 echo "🔧 Configuration:"
 echo "  Backend Port: $PORT"
@@ -70,6 +84,7 @@ cleanup() {
     # Also kill any processes still running on our ports
     kill_port 8061
     kill_port 3006
+    kill_port 3007
     
     exit 0
 }

@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Send, MessageSquare, User, Bot, Clock, Minimize2, Maximize2, X, Search, Filter, Settings, History, Download, Copy, RefreshCw, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { Send, MessageSquare, User, Bot, Minimize2, Maximize2, X, AlertCircle, Loader } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import {
-  setCurrentSession,
+  clearCurrentSession,
   updateSessionContextAction,
-  addOptimisticMessage,
+  addMessage,
   setLoading,
   clearMessages,
-  updateSettings,
+  setError,
   ChatMessage as StoreChatMessage,
   SessionContext,
 } from '../../store/slices/chatSlice';
-import websocketService from '../../services/websocketService';
-import VirtualizedMessageList from './VirtualizedMessageList';
-import usePaginatedMessages from '../../hooks/usePaginatedMessages';
+import enhancedAIService from '../../services/simpleAIService';
 import useDebouncedInput from '../../hooks/useDebouncedInput';
 
 interface ChatMessage {
@@ -25,30 +23,7 @@ interface ChatMessage {
   session_id: string;
 }
 
-interface ChatSession {
-  id: string;
-  consultant_id: string;
-  client_name?: string;
-  context?: string;
-  messages: ChatMessage[];
-  created_at: string;
-  last_activity: string;
-}
 
-interface ChatRequest {
-  message: string;
-  session_id?: string;
-  client_name?: string;
-  context?: string;
-  quick_action?: string;
-}
-
-interface ChatResponse {
-  message: ChatMessage;
-  session_id: string;
-  success: boolean;
-  error?: string;
-}
 
 interface ConsultantChatProps {
   isMinimized?: boolean;
@@ -69,23 +44,31 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
   onToggleMinimize,
   onClose
 }) => {
+  // Get state from Redux store first
+  const dispatch = useDispatch();
+  const connectionState = useSelector((state: RootState) => state.connection);
+  const chatState = useSelector((state: RootState) => state.chat);
+  
+  const isConnected = connectionState.status === 'connected' || connectionState.status === 'polling';
+  const isLoading = chatState.isLoading;
+  const sessionId = chatState.currentSession?.id || null;
+
   const [clientName, setClientName] = useState('');
   const [meetingContext, setMeetingContext] = useState('');
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [useVirtualScrolling, setUseVirtualScrolling] = useState(true);
+  const [isServiceHealthy, setIsServiceHealthy] = useState(false);
   
-  const wsRef = useRef<WebSocket | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Use paginated messages hook
-  const [messageState, messageActions] = usePaginatedMessages({
-    sessionId: sessionId || '',
-    pageSize: 50,
-    initialLoad: !!sessionId,
-  });
+  
+  // Update session context when client name or meeting context changes
+  useEffect(() => {
+    if (sessionId && (clientName || meetingContext)) {
+      const contextUpdate: SessionContext = {
+        client_name: clientName,
+        meeting_type: meetingContext,
+      };
+      dispatch(updateSessionContextAction(contextUpdate));
+    }
+  }, [clientName, meetingContext, sessionId, dispatch]);
 
   // Use debounced input for search and typing
   const [inputState, inputActions] = useDebouncedInput({
@@ -93,100 +76,93 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
     minLength: 1,
   });
 
-  // Memoize messages for performance
-  const messages = useMemo(() => messageState.messages, [messageState.messages]);
+  // Get messages from Redux store
+  const messages = useMemo(() => chatState.messages, [chatState.messages]);
 
-  // Initialize WebSocket connection
+  // Initialize simple AI service
   useEffect(() => {
-    connectWebSocket();
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
+    const initializeChat = async () => {
+      try {
+        console.log('[ConsultantChat] Initializing AI service...');
+        const connected = await enhancedAIService.checkConnection();
+        setIsServiceHealthy(connected);
+        if (connected) {
+          console.log('[ConsultantChat] AI service initialized successfully');
+        } else {
+          console.warn('[ConsultantChat] AI service connection failed');
+          dispatch(setError('Failed to connect to AI service'));
+        }
+      } catch (error) {
+        console.error('[ConsultantChat] Failed to initialize AI service:', error);
+        dispatch(setError('Failed to initialize AI service'));
+        setIsServiceHealthy(false);
       }
     };
-  }, []);
 
-  const connectWebSocket = () => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      console.error('No admin token found');
-      return;
-    }
+    initializeChat();
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/v1/admin/chat/ws`;
-    
-    try {
-      wsRef.current = new WebSocket(wsUrl);
-      
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
-        setIsConnected(true);
-      };
-      
-      wsRef.current.onmessage = (event) => {
-        try {
-          const response: ChatResponse = JSON.parse(event.data);
-          if (response.success) {
-            messageActions.addMessage(response.message);
-            setSessionId(response.session_id);
-          } else {
-            console.error('Chat error:', response.error);
-          }
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
-        }
-        setIsLoading(false);
-      };
-      
-      wsRef.current.onclose = () => {
-        console.log('WebSocket disconnected');
-        setIsConnected(false);
-        // Attempt to reconnect after 3 seconds
-        setTimeout(connectWebSocket, 3000);
-      };
-      
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setIsConnected(false);
-      };
-    } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
-    }
-  };
+    // Set up periodic connection check
+    const connectionCheckInterval = setInterval(async () => {
+      const currentHealth = enhancedAIService.isHealthy();
+      if (!currentHealth) {
+        console.log('[ConsultantChat] Attempting to reconnect...');
+        const reconnected = await enhancedAIService.forceReconnect();
+        setIsServiceHealthy(reconnected);
+      } else {
+        setIsServiceHealthy(true);
+      }
+    }, 30000); // Check every 30 seconds
 
-  const sendMessage = useCallback((message: string, quickAction?: string) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.error('WebSocket not connected');
-      return;
-    }
+    return () => {
+      clearInterval(connectionCheckInterval);
+    };
+  }, [dispatch]);
 
+  const sendMessage = useCallback(async (message: string) => {
     if (!message.trim()) return;
 
-    const request: ChatRequest = {
-      message: message.trim(),
-      session_id: sessionId || undefined,
-      client_name: clientName || undefined,
-      context: meetingContext || undefined,
-      quick_action: quickAction || undefined,
-    };
+    try {
+      dispatch(setLoading(true));
+      inputActions.clearValue();
 
-    // Add user message to UI immediately (optimistic update)
-    const userMessage: StoreChatMessage = {
-      id: `temp-${Date.now()}`,
-      type: 'user',
-      content: message.trim(),
-      timestamp: new Date().toISOString(),
-      session_id: sessionId || '',
-    };
-    
-    messageActions.addMessage(userMessage);
-    inputActions.clearValue();
-    setIsLoading(true);
+      // Add user message to UI immediately
+      const userMessage: StoreChatMessage = {
+        id: `msg-${Date.now()}-user`,
+        type: 'user',
+        content: message.trim(),
+        timestamp: new Date().toISOString(),
+        session_id: enhancedAIService.getSessionId(),
+        status: 'sending',
+      };
+      dispatch(addMessage(userMessage));
 
-    // Send to WebSocket
-    wsRef.current.send(JSON.stringify(request));
-  }, [sessionId, clientName, meetingContext, messageActions, inputActions]);
+      // Send using enhanced AI service
+      const response = await enhancedAIService.sendMessage({
+        message: message.trim(),
+        context: {
+          clientName: clientName || undefined,
+          meetingType: meetingContext || undefined,
+        }
+      });
+
+      // Add AI response to UI
+      const aiMessage: StoreChatMessage = {
+        id: `msg-${Date.now()}-ai`,
+        type: 'assistant',
+        content: response.content,
+        timestamp: response.timestamp,
+        session_id: enhancedAIService.getSessionId(),
+        status: 'delivered',
+      };
+      dispatch(addMessage(aiMessage));
+      
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      dispatch(setError('Failed to send message. Please try again.'));
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }, [clientName, meetingContext, dispatch, inputActions]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -194,7 +170,7 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
   }, [sendMessage, inputState.value]);
 
   const handleQuickAction = (action: typeof QUICK_ACTIONS[0]) => {
-    sendMessage(action.prompt, action.id);
+    sendMessage(action.prompt);
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -205,9 +181,10 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
   };
 
   const clearChat = useCallback(() => {
-    messageActions.reset();
-    setSessionId(null);
-  }, [messageActions]);
+    dispatch(clearMessages());
+    dispatch(clearCurrentSession());
+    enhancedAIService.resetSession();
+  }, [dispatch]);
 
   if (isMinimized) {
     return (
@@ -223,75 +200,47 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
   }
 
   return (
-    <div className="fixed bottom-4 right-4 w-96 h-[600px] bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col z-50">
+    <div className="fixed bottom-4 right-4 w-80 h-[500px] bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col z-50">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-blue-600 text-white rounded-t-lg">
-        <div className="flex items-center space-x-2">
-          <MessageSquare className="h-5 w-5" />
-          <h3 className="font-semibold">Consultant Assistant</h3>
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} />
+      <div className="flex items-center justify-between p-2 border-b border-gray-200 bg-blue-600 text-white rounded-t-lg flex-shrink-0">
+        <div className="flex items-center space-x-2 min-w-0">
+          <MessageSquare className="h-4 w-4 flex-shrink-0" />
+          <div className="flex flex-col min-w-0">
+            <h3 className="font-semibold text-xs truncate">AI Assistant</h3>
+            <span className="text-xs opacity-75 truncate">
+              {isServiceHealthy ? 'Connected' : 'Offline'}
+            </span>
+          </div>
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isServiceHealthy ? 'bg-green-400' : 'bg-red-400'}`} />
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 flex-shrink-0">
           <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="text-white hover:text-gray-200 transition-colors"
+            onClick={() => window.open('/admin/ai-consultant', '_blank')}
+            className="text-white hover:text-gray-200 transition-colors p-1 bg-blue-700 rounded text-xs"
+            title="Open Full AI Assistant"
           >
-            <Clock className="h-4 w-4" />
+            <Maximize2 className="h-3 w-3" />
           </button>
           {onToggleMinimize && (
             <button
               onClick={onToggleMinimize}
-              className="text-white hover:text-gray-200 transition-colors"
+              className="text-white hover:text-gray-200 transition-colors p-1"
             >
-              <Minimize2 className="h-4 w-4" />
+              <Minimize2 className="h-3 w-3" />
             </button>
           )}
           {onClose && (
             <button
               onClick={onClose}
-              className="text-white hover:text-gray-200 transition-colors"
+              className="text-white hover:text-gray-200 transition-colors p-1"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Settings Panel */}
-      {showSettings && (
-        <div className="p-3 border-b border-gray-200 bg-gray-50 space-y-2">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Client Name
-            </label>
-            <input
-              type="text"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="Enter client name..."
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Meeting Context
-            </label>
-            <input
-              type="text"
-              value={meetingContext}
-              onChange={(e) => setMeetingContext(e.target.value)}
-              placeholder="e.g., Migration planning, Cost optimization..."
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            onClick={clearChat}
-            className="text-xs text-red-600 hover:text-red-800 transition-colors"
-          >
-            Clear Chat History
-          </button>
-        </div>
-      )}
+
 
       {/* Quick Actions */}
       <div className="p-2 border-b border-gray-200 bg-gray-50">
@@ -300,7 +249,7 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
             <button
               key={action.id}
               onClick={() => handleQuickAction(action)}
-              disabled={isLoading || !isConnected}
+              disabled={isLoading}
               className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {action.label}
@@ -310,95 +259,100 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 relative">
-        {useVirtualScrolling && messages.length > 100 ? (
-          <VirtualizedMessageList
-            messages={messages}
-            height={400}
-            isLoading={messageState.isLoading}
-            onLoadMore={messageActions.loadMore}
-            hasMore={messageState.hasMore}
-          />
-        ) : (
-          <div className="h-full overflow-y-auto p-4 space-y-4">
-            {messageState.isLoading && messageState.messages.length === 0 && (
-              <div className="text-center text-gray-500 text-sm">
-                <Loader className="h-6 w-6 mx-auto mb-2 animate-spin" />
-                <p>Loading messages...</p>
-              </div>
-            )}
-            
-            {messages.length === 0 && !messageState.isLoading && (
-              <div className="text-center text-gray-500 text-sm">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                <p>Start a conversation to get real-time AWS consulting assistance during your client meeting.</p>
-              </div>
-            )}
-            
-            {messageState.hasMore && messages.length > 0 && (
-              <div className="text-center pb-4">
+      <div className="flex-1 overflow-hidden relative">
+        <div className="h-full overflow-y-auto p-2 space-y-2">
+          {!isServiceHealthy && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1">
+                  <AlertCircle className="h-3 w-3 text-yellow-600 flex-shrink-0" />
+                  <p className="text-xs text-yellow-700">Connection lost. Trying to reconnect...</p>
+                </div>
                 <button
-                  onClick={messageActions.loadMore}
-                  disabled={messageState.isLoading}
-                  className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                  onClick={async () => {
+                    console.log('[ConsultantChat] Manual reconnect attempt');
+                    const connected = await enhancedAIService.forceReconnect();
+                    setIsServiceHealthy(connected);
+                    if (connected) {
+                      console.log('[ConsultantChat] Reconnected successfully');
+                    } else {
+                      console.log('[ConsultantChat] Reconnection failed');
+                    }
+                  }}
+                  className="text-xs bg-yellow-600 text-white px-2 py-1 rounded hover:bg-yellow-700"
                 >
-                  {messageState.isLoading ? 'Loading...' : 'Load more messages'}
+                  Retry
                 </button>
               </div>
-            )}
-            
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+            </div>
+          )}
+
+          {messages.length === 0 && !isLoading && (
+            <div className="text-center text-gray-500 text-xs py-4">
+              <MessageSquare className="h-6 w-6 mx-auto mb-2 text-gray-400" />
+              <p className="px-2">Start a conversation or click to open full AI Assistant.</p>
+              <button
+                onClick={() => window.open('/admin/ai-consultant', '_blank')}
+                className="mt-2 text-blue-600 hover:text-blue-800 underline text-xs"
               >
-                <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.type === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-900'
-                  }`}
-                >
-                  <div className="flex items-start space-x-2">
-                    {message.type === 'assistant' && (
-                      <Bot className="h-4 w-4 mt-0.5 text-blue-600" />
-                    )}
-                    {message.type === 'user' && (
-                      <User className="h-4 w-4 mt-0.5 text-white" />
-                    )}
-                    <div className="flex-1">
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        message.type === 'user' ? 'text-blue-200' : 'text-gray-500'
-                      }`}>
-                        {formatTimestamp(message.timestamp)}
-                      </p>
-                    </div>
+                Open Full AI Assistant
+              </button>
+            </div>
+          )}
+          
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[90%] rounded p-2 text-xs ${
+                  message.type === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                }`}
+              >
+                <div className="flex items-start space-x-1">
+                  {message.type === 'assistant' && (
+                    <Bot className="h-3 w-3 mt-0.5 text-blue-600 flex-shrink-0" />
+                  )}
+                  {message.type === 'user' && (
+                    <User className="h-3 w-3 mt-0.5 text-white flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="whitespace-pre-wrap break-words leading-tight">
+                      {message.content.length > 200 ? `${message.content.substring(0, 200)}...` : message.content}
+                    </p>
+                    <p className={`text-xs mt-1 opacity-75 ${
+                      message.type === 'user' ? 'text-blue-200' : 'text-gray-500'
+                    }`}>
+                      {formatTimestamp(message.timestamp)}
+                    </p>
                   </div>
                 </div>
               </div>
-            ))}
-            
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-lg p-3 max-w-[80%]">
-                  <div className="flex items-center space-x-2">
-                    <Bot className="h-4 w-4 text-blue-600" />
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                    </div>
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 rounded p-2 max-w-[90%]">
+                <div className="flex items-center space-x-1">
+                  <Bot className="h-3 w-3 text-blue-600 flex-shrink-0" />
+                  <div className="flex space-x-1">
+                    <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" />
+                    <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
+      <form onSubmit={handleSubmit} className="p-3 border-t border-gray-200 flex-shrink-0">
         <div className="flex space-x-2">
           <input
             ref={inputRef}
@@ -407,17 +361,17 @@ export const ConsultantChat: React.FC<ConsultantChatProps> = ({
             onChange={(e) => inputActions.setValue(e.target.value)}
             placeholder={isConnected ? "Ask about AWS services, costs, best practices..." : "Connecting..."}
             disabled={isLoading || !isConnected}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-50"
           />
           {inputState.isDebouncing && (
-            <div className="px-2 text-gray-400">
+            <div className="flex items-center px-2 text-gray-400">
               <Loader className="h-4 w-4 animate-spin" />
             </div>
           )}
           <button
             type="submit"
             disabled={isLoading || !isConnected || !inputState.value.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
           >
             <Send className="h-4 w-4" />
           </button>

@@ -262,6 +262,44 @@ func (a *ChatAuditLogger) LogMessageSent(ctx context.Context, userID, sessionID,
 	return nil
 }
 
+// LogMessage logs a generic message event
+func (a *ChatAuditLogger) LogMessage(ctx context.Context, userID, sessionID, action string, metadata map[string]interface{}) error {
+	auditLog := &interfaces.AuditLog{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		Action:    action,
+		Resource:  "chat_message",
+		Result:    "success",
+		Timestamp: time.Now(),
+		Metadata:  metadata,
+		SessionID: sessionID,
+	}
+
+	// Extract message ID from metadata if available
+	if messageID, ok := metadata["message_id"].(string); ok {
+		auditLog.MessageID = messageID
+	}
+
+	// Extract IP and User Agent from metadata if available
+	if ip, ok := metadata["ip_address"].(string); ok {
+		auditLog.IPAddress = ip
+	}
+	if ua, ok := metadata["user_agent"].(string); ok {
+		auditLog.UserAgent = ua
+	}
+
+	a.addAuditLog(auditLog)
+
+	a.logger.WithFields(logrus.Fields{
+		"audit_id":   auditLog.ID,
+		"user_id":    userID,
+		"session_id": sessionID,
+		"action":     action,
+	}).Debug("Message event logged")
+
+	return nil
+}
+
 // LogMessageAccessed logs a message access event
 func (a *ChatAuditLogger) LogMessageAccessed(ctx context.Context, userID, messageID string, metadata map[string]interface{}) error {
 	auditLog := &interfaces.AuditLog{

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -99,15 +100,8 @@ type ChatResponse struct {
 	Error     string      `json:"error,omitempty"`
 }
 
-// WebSocket upgrader
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		// In production, implement proper origin checking
-		return true
-	},
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
+// WebSocket upgrader with proper origin checking
+// Note: This will be configured per handler instance to use proper CORS settings
 
 // PendingMessage represents a message waiting for acknowledgment
 type PendingMessage struct {
@@ -259,6 +253,8 @@ type ChatHandler struct {
 	connectionPool   *ConnectionPool
 	rateLimiter      *RateLimiter
 	jwtSecret        string
+	corsOrigins      []string                   // CORS allowed origins for WebSocket
+	upgrader         websocket.Upgrader         // WebSocket upgrader with custom CheckOrigin
 	sessions         map[string]*ChatSession    // Legacy - will be removed
 	connections      map[string]*websocket.Conn // Legacy - will be removed
 	sessionsMutex    sync.RWMutex               // Legacy - will be removed
@@ -285,6 +281,7 @@ func NewChatHandler(
 	chatService interfaces.ChatService,
 	authHandler *AuthHandler,
 	jwtSecret string,
+	corsOrigins []string,
 	metricsCollector *services.ChatMetricsCollector,
 	performanceMonitor *services.ChatPerformanceMonitor,
 ) *ChatHandler {
@@ -299,6 +296,21 @@ func NewChatHandler(
 	chatSecurityService := services.NewChatSecurityService(logger, jwtSecret, chatRateLimiter, chatAuditLogger)
 	authMiddleware := services.NewChatAuthMiddleware(chatAuthService, chatAuditLogger, logger)
 
+	// Custom CheckOrigin for WebSocket upgrader
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			for _, allowed := range corsOrigins {
+				if allowed == "*" || origin == allowed {
+					return true
+				}
+			}
+			return false
+		},
+	}
+
 	return &ChatHandler{
 		logger:          logger,
 		bedrockService:  bedrockService,
@@ -310,6 +322,8 @@ func NewChatHandler(
 		connectionPool:  NewConnectionPool(),
 		rateLimiter:     NewRateLimiter(60, time.Minute), // 60 messages per minute
 		jwtSecret:       jwtSecret,
+		corsOrigins:     corsOrigins,
+		upgrader:        upgrader,
 		sessions:        make(map[string]*ChatSession),    // Legacy
 		connections:     make(map[string]*websocket.Conn), // Legacy
 
@@ -328,17 +342,22 @@ func NewChatHandler(
 
 // WebSocketAuthMiddleware authenticates WebSocket connections using enhanced security
 func (h *ChatHandler) WebSocketAuthMiddleware(c *gin.Context) {
+	fmt.Printf("[CHAT DEBUG] WebSocketAuthMiddleware called\n")
 	// Extract token from query parameter or header
 	token := c.Query("token")
+	fmt.Printf("[CHAT DEBUG] Token from query: %s\n", token)
 	if token == "" {
 		authHeader := c.GetHeader("Authorization")
+		fmt.Printf("[CHAT DEBUG] Authorization header: %s\n", authHeader)
 		if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
 			token = authHeader[7:]
+			fmt.Printf("[CHAT DEBUG] Token from header: %s\n", token)
 		}
 	}
 
 	if token == "" {
 		h.logger.Error("WebSocket authentication failed: no token provided")
+		fmt.Printf("[CHAT DEBUG] No token provided, aborting\n")
 
 		// Log authentication attempt
 		metadata := map[string]interface{}{
@@ -360,6 +379,7 @@ func (h *ChatHandler) WebSocketAuthMiddleware(c *gin.Context) {
 	authContext, err := h.chatAuthService.ValidateToken(context.Background(), token)
 	if err != nil {
 		h.logger.WithError(err).Error("WebSocket authentication failed: invalid token")
+		fmt.Printf("[CHAT DEBUG] Token validation error: %v\n", err)
 
 		// Log failed authentication attempt
 		metadata := map[string]interface{}{
@@ -378,27 +398,33 @@ func (h *ChatHandler) WebSocketAuthMiddleware(c *gin.Context) {
 	}
 
 	// Check rate limit for WebSocket connections
-	rateLimitResult, err := h.chatSecurityService.CheckRateLimit(context.Background(), authContext.UserID, "connection")
-	if err != nil {
-		h.logger.WithError(err).Warn("Failed to check rate limit for WebSocket connection")
-	} else if !rateLimitResult.Allowed {
-		h.logger.WithField("user_id", authContext.UserID).Warn("WebSocket connection rate limit exceeded")
+	// --- for development only: allow unlimited connections from localhost ---
+	clientIP := c.ClientIP()
+	if clientIP == "127.0.0.1" || clientIP == "::1" {
+		// Skip rate limiting for localhost during development
+	} else {
+		rateLimitResult, err := h.chatSecurityService.CheckRateLimit(context.Background(), authContext.UserID, "connection")
+		if err != nil {
+			h.logger.WithError(err).Warn("Failed to check rate limit for WebSocket connection")
+		} else if !rateLimitResult.Allowed {
+			h.logger.WithField("user_id", authContext.UserID).Warn("WebSocket connection rate limit exceeded")
 
-		// Log rate limit exceeded
-		metadata := map[string]interface{}{
-			"ip_address": c.ClientIP(),
-			"user_agent": c.GetHeader("User-Agent"),
-			"action":     "connection",
+			// Log rate limit exceeded
+			metadata := map[string]interface{}{
+				"ip_address": c.ClientIP(),
+				"user_agent": c.GetHeader("User-Agent"),
+				"action":     "connection",
+			}
+			h.chatAuditLogger.LogRateLimitExceeded(context.Background(), authContext.UserID, "connection", metadata)
+
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"success":     false,
+				"error":       "Connection rate limit exceeded",
+				"retry_after": int(rateLimitResult.RetryAfter.Seconds()),
+			})
+			c.Abort()
+			return
 		}
-		h.chatAuditLogger.LogRateLimitExceeded(context.Background(), authContext.UserID, "connection", metadata)
-
-		c.JSON(http.StatusTooManyRequests, gin.H{
-			"success":     false,
-			"error":       "Connection rate limit exceeded",
-			"retry_after": int(rateLimitResult.RetryAfter.Seconds()),
-		})
-		c.Abort()
-		return
 	}
 
 	// Set enhanced authentication context
@@ -421,6 +447,7 @@ func (h *ChatHandler) WebSocketAuthMiddleware(c *gin.Context) {
 
 // HandleWebSocket handles WebSocket connections for real-time chat with enhanced session management
 func (h *ChatHandler) HandleWebSocket(c *gin.Context) {
+	fmt.Println("[CHAT DEBUG] HandleWebSocket called")
 	// Authenticate the WebSocket connection
 	h.WebSocketAuthMiddleware(c)
 	if c.IsAborted() {
@@ -441,7 +468,7 @@ func (h *ChatHandler) HandleWebSocket(c *gin.Context) {
 	userIDStr := userID.(string)
 
 	// Upgrade to WebSocket
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to upgrade WebSocket connection")
 		// Record connection failure
@@ -451,10 +478,16 @@ func (h *ChatHandler) HandleWebSocket(c *gin.Context) {
 		}
 		return
 	}
-	defer conn.Close()
-
 	// Generate connection ID
 	connID := generateID()
+
+	defer func() {
+		h.logger.WithFields(logrus.Fields{
+			"connection_id": connID,
+			"user_id":       userIDStr,
+		}).Info("WebSocket connection closed (deferred cleanup)")
+		conn.Close()
+	}()
 
 	// Create connection object
 	connection := &Connection{
@@ -510,20 +543,25 @@ func (h *ChatHandler) HandleWebSocket(c *gin.Context) {
 	go h.messageSender(connection, connID)
 
 	// Handle incoming messages
+	fmt.Printf("[CHAT DEBUG] WebSocket message loop started for connection %s\n", connID)
 	for {
 		var wsMessage WebSocketMessage
 		err := conn.ReadJSON(&wsMessage)
 		if err != nil {
+			fmt.Printf("[CHAT DEBUG] ReadJSON error for connection %s: %v\n", connID, err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				h.logger.WithError(err).WithField("connection_id", connID).Error("WebSocket error")
+				h.logger.WithError(err).WithField("connection_id", connID).Error("WebSocket unexpected close error")
 				// Record WebSocket error
 				if h.metricsCollector != nil {
 					h.metricsCollector.RecordConnection("error")
 					h.metricsCollector.RecordError("system")
 				}
+			} else {
+				h.logger.WithError(err).WithField("connection_id", connID).Info("WebSocket connection closed by client or normal closure")
 			}
 			break
 		}
+		fmt.Printf("[CHAT DEBUG] Received WebSocket message for connection %s: %+v\n", connID, wsMessage)
 
 		// Record message received
 		if h.metricsCollector != nil {
@@ -571,6 +609,11 @@ func (h *ChatHandler) HandleWebSocket(c *gin.Context) {
 	}
 
 	// Signal connection close
+	fmt.Printf("[CHAT DEBUG] WebSocket message loop exiting for connection %s\n", connID)
+	h.logger.WithFields(logrus.Fields{
+		"connection_id": connID,
+		"user_id":       userIDStr,
+	}).Info("WebSocket connection handler exiting, closing connection")
 	close(connection.CloseChan)
 }
 
@@ -583,7 +626,7 @@ func (h *ChatHandler) pingRoutine(conn *websocket.Conn, connID string) {
 		select {
 		case <-ticker.C:
 			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				h.logger.WithError(err).WithField("connection_id", connID).Error("Failed to send ping")
+				h.logger.WithError(err).WithField("connection_id", connID).Error("Failed to send ping, closing connection")
 				return
 			}
 		}
@@ -607,6 +650,10 @@ func (h *ChatHandler) connectionMonitor(connection *Connection, connID string) {
 				}).Info("Connection is stale, closing")
 
 				// Close the connection
+				h.logger.WithFields(logrus.Fields{
+					"connection_id": connID,
+					"user_id":       connection.UserID,
+				}).Info("Closing stale WebSocket connection due to inactivity")
 				connection.Conn.Close()
 				return
 			}
@@ -831,8 +878,10 @@ func (h *ChatHandler) generateAIResponse(session *ChatSession, request ChatReque
 		mockInquiry := h.createMockInquiryFromChat(session, request)
 
 		// Configure Bedrock options for chat responses
+		// Use the configured model ID from the Bedrock service
+		modelInfo := h.bedrockService.GetModelInfo()
 		options := &interfaces.BedrockOptions{
-			ModelID:     "anthropic.claude-3-sonnet-20240229-v1:0",
+			ModelID:     modelInfo.ModelID,
 			MaxTokens:   1000,
 			Temperature: 0.7,
 			TopP:        0.9,
@@ -867,8 +916,10 @@ func (h *ChatHandler) generateAIResponse(session *ChatSession, request ChatReque
 	prompt := h.buildConsultantPrompt(session, request)
 
 	// Configure Bedrock options for chat responses
+	// Use the configured model ID from the Bedrock service
+	modelInfo := h.bedrockService.GetModelInfo()
 	options := &interfaces.BedrockOptions{
-		ModelID:     "anthropic.claude-3-sonnet-20240229-v1:0",
+		ModelID:     modelInfo.ModelID,
 		MaxTokens:   1000,
 		Temperature: 0.7,
 		TopP:        0.9,
@@ -1041,6 +1092,7 @@ func (h *ChatHandler) GetChatSession(c *gin.Context) {
 
 // CreateChatSession creates a new chat session with security validation
 func (h *ChatHandler) CreateChatSession(c *gin.Context) {
+	fmt.Println("[CHAT DEBUG] CreateChatSession called")
 	ctx := context.Background()
 
 	// Get user information from context (set by auth middleware)
@@ -1997,4 +2049,12 @@ func (h *ChatHandler) GetConnectionPool() *ConnectionPool {
 // GetAuthService returns the authentication service
 func (h *ChatHandler) GetAuthService() interfaces.ChatAuthService {
 	return h.chatAuthService
+}
+
+// getEnvAsSlice parses environment variable as comma-separated slice
+func getEnvAsSlice(key string, defaultValue []string) []string {
+	if value := os.Getenv(key); value != "" {
+		return strings.Split(value, ",")
+	}
+	return defaultValue
 }

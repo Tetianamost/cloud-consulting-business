@@ -1,0 +1,288 @@
+{
+  "test_configuration": {
+    "name": "Polling Chat System Test Suite",
+    "version": "1.0.0",
+    "description": "Comprehensive test configuration for the polling-based chat system",
+    "created": "2025-01-08",
+    "author": "Kiro AI Assistant"
+  },
+  "test_environments": {
+    "unit": {
+      "description": "Unit test environment for isolated component testing",
+      "timeout_seconds": 30,
+      "parallel_execution": true,
+      "coverage_threshold": 80,
+      "mock_external_services": true
+    },
+    "integration": {
+      "description": "Integration test environment for API endpoint testing",
+      "timeout_seconds": 60,
+      "parallel_execution": false,
+      "setup_database": true,
+      "cleanup_after_tests": true
+    },
+    "e2e": {
+      "description": "End-to-end test environment for complete workflow testing",
+      "timeout_seconds": 120,
+      "parallel_execution": false,
+      "start_test_server": true,
+      "simulate_real_conditions": true
+    },
+    "performance": {
+      "description": "Performance test environment for load and stress testing",
+      "timeout_seconds": 300,
+      "parallel_execution": true,
+      "collect_metrics": true,
+      "memory_profiling": true
+    }
+  },
+  "backend_tests": {
+    "unit_tests": {
+      "polling_chat_handler": {
+        "file": "internal/handlers/polling_chat_handler_test.go",
+        "test_cases": [
+          "TestPollingChatHandler_SendMessage_Success",
+          "TestPollingChatHandler_SendMessage_ValidationError",
+          "TestPollingChatHandler_SendMessage_AuthenticationError",
+          "TestPollingChatHandler_SendMessage_RateLimitExceeded",
+          "TestPollingChatHandler_SendMessage_SessionNotFound",
+          "TestPollingChatHandler_GetMessages_Success",
+          "TestPollingChatHandler_GetMessages_MissingSessionID",
+          "TestPollingChatHandler_GetMessages_InvalidLimit",
+          "TestPollingChatHandler_GetMessages_ConditionalRequest_NotModified",
+          "TestPollingChatHandler_GetMessages_WithSinceParameter",
+          "TestPollingChatHandler_ConcurrentAccess",
+          "TestPollingChatHandler_MessageValidation_EdgeCases",
+          "TestPollingChatHandler_PerformanceUnderLoad"
+        ],
+        "coverage_target": 90,
+        "performance_benchmarks": {
+          "max_response_time_ms": 100,
+          "min_throughput_rps": 100,
+          "max_memory_usage_mb": 50
+        }
+      }
+    },
+    "integration_tests": {
+      "api_endpoints": {
+        "send_message_endpoint": {
+          "url": "/api/v1/admin/chat/messages",
+          "method": "POST",
+          "test_scenarios": [
+            "valid_message_with_auth",
+            "invalid_message_content",
+            "missing_session_id",
+            "rate_limit_exceeded",
+            "concurrent_requests"
+          ]
+        },
+        "get_messages_endpoint": {
+          "url": "/api/v1/admin/chat/messages",
+          "method": "GET",
+          "test_scenarios": [
+            "retrieve_messages_with_session_id",
+            "retrieve_messages_with_pagination",
+            "retrieve_messages_with_since_parameter",
+            "conditional_requests_with_etag",
+            "invalid_session_access"
+          ]
+        }
+      }
+    },
+    "e2e_tests": {
+      "file": "test_polling_chat_e2e.go",
+      "test_scenarios": [
+        "TestPollingChatE2E_BasicMessageFlow",
+        "TestPollingChatE2E_MessagePolling",
+        "TestPollingChatE2E_ConversationFlow",
+        "TestPollingChatE2E_ConcurrentUsers",
+        "TestPollingChatE2E_MessageValidation",
+        "TestPollingChatE2E_ErrorHandling",
+        "TestPollingChatE2E_PerformanceUnderLoad",
+        "TestPollingChatE2E_MessageOrdering",
+        "TestPollingChatE2E_SessionManagement"
+      ],
+      "test_data": {
+        "concurrent_users": 10,
+        "messages_per_user": 5,
+        "test_duration_seconds": 60,
+        "max_response_time_ms": 500
+      }
+    }
+  },
+  "frontend_tests": {
+    "unit_tests": {
+      "polling_chat_service": {
+        "file": "src/services/pollingChatService.test.ts",
+        "test_suites": [
+          "Initialization",
+          "Message Sending",
+          "Message Polling",
+          "Smart Polling Intervals",
+          "Error Handling and Retry Logic",
+          "Connection State Management",
+          "Message Queue Processing",
+          "Performance Optimizations",
+          "Configuration Management"
+        ],
+        "coverage_target": 85,
+        "mock_dependencies": [
+          "store",
+          "ConnectionManager",
+          "fetch",
+          "localStorage",
+          "navigator",
+          "window",
+          "document"
+        ]
+      }
+    },
+    "performance_tests": {
+      "file": "src/services/pollingChatService.performance.test.ts",
+      "test_suites": [
+        "Message Sending Performance",
+        "Message Polling Performance",
+        "Concurrent Operations Performance",
+        "Memory Usage Performance",
+        "Network Efficiency Performance",
+        "Polling Interval Optimization"
+      ],
+      "performance_thresholds": {
+        "message_send_avg_ms": 100,
+        "message_send_max_ms": 500,
+        "polling_avg_ms": 50,
+        "polling_max_ms": 200,
+        "memory_leak_threshold_mb": 10,
+        "min_requests_per_second": 10
+      }
+    }
+  },
+  "test_data": {
+    "sample_messages": [
+      "Hello, I need help with AWS migration",
+      "What are the best practices for cloud migration?",
+      "How much would it cost to migrate a 100-server environment?",
+      "Can you help me with Kubernetes deployment?",
+      "I'm having issues with my database performance",
+      "What's the difference between EC2 and Lambda?",
+      "How do I set up auto-scaling for my application?",
+      "Can you recommend a backup strategy for my data?",
+      "I need help with security best practices",
+      "How do I optimize my cloud costs?"
+    ],
+    "test_sessions": [
+      {
+        "id": "test-session-basic",
+        "user_id": "test-user-1",
+        "client_name": "Test Client Basic"
+      },
+      {
+        "id": "test-session-advanced",
+        "user_id": "test-user-2",
+        "client_name": "Test Client Advanced"
+      },
+      {
+        "id": "test-session-performance",
+        "user_id": "test-user-3",
+        "client_name": "Test Client Performance"
+      }
+    ],
+    "auth_tokens": {
+      "valid_token": "test-valid-token-12345",
+      "expired_token": "test-expired-token-67890",
+      "invalid_token": "test-invalid-token-abcde"
+    }
+  },
+  "performance_benchmarks": {
+    "response_times": {
+      "send_message_p50_ms": 50,
+      "send_message_p95_ms": 200,
+      "send_message_p99_ms": 500,
+      "get_messages_p50_ms": 30,
+      "get_messages_p95_ms": 100,
+      "get_messages_p99_ms": 300
+    },
+    "throughput": {
+      "messages_per_second": 100,
+      "concurrent_users": 50,
+      "polling_requests_per_second": 200
+    },
+    "resource_usage": {
+      "max_cpu_percent": 80,
+      "max_memory_mb": 512,
+      "max_database_connections": 20,
+      "max_file_descriptors": 1000
+    }
+  },
+  "error_scenarios": {
+    "network_errors": [
+      "connection_timeout",
+      "connection_refused",
+      "dns_resolution_failure",
+      "ssl_handshake_failure"
+    ],
+    "server_errors": [
+      "internal_server_error_500",
+      "service_unavailable_503",
+      "gateway_timeout_504"
+    ],
+    "client_errors": [
+      "bad_request_400",
+      "unauthorized_401",
+      "forbidden_403",
+      "not_found_404",
+      "rate_limit_exceeded_429"
+    ],
+    "validation_errors": [
+      "empty_message_content",
+      "message_too_long",
+      "invalid_session_id",
+      "malformed_json"
+    ]
+  },
+  "monitoring_and_alerts": {
+    "metrics_to_collect": [
+      "request_count",
+      "response_time",
+      "error_rate",
+      "active_sessions",
+      "message_throughput",
+      "polling_frequency",
+      "cache_hit_rate",
+      "memory_usage",
+      "cpu_usage"
+    ],
+    "alert_thresholds": {
+      "error_rate_percent": 5,
+      "response_time_p95_ms": 1000,
+      "memory_usage_percent": 90,
+      "cpu_usage_percent": 85
+    }
+  },
+  "test_execution": {
+    "ci_cd_integration": {
+      "run_on_pull_request": true,
+      "run_on_merge": true,
+      "run_nightly": true,
+      "fail_on_coverage_drop": true,
+      "fail_on_performance_regression": true
+    },
+    "test_parallelization": {
+      "max_parallel_processes": 4,
+      "group_by_test_type": true,
+      "isolate_database_tests": true
+    },
+    "reporting": {
+      "generate_html_report": true,
+      "generate_junit_xml": true,
+      "upload_coverage_to_codecov": false,
+      "send_slack_notifications": false
+    }
+  },
+  "cleanup_and_maintenance": {
+    "cleanup_test_data": true,
+    "cleanup_temp_files": true,
+    "archive_test_results": true,
+    "retention_days": 30
+  }
+}

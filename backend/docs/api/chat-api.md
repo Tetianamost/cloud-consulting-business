@@ -30,7 +30,22 @@ GET /api/v1/admin/chat/ws
 
 ### Connection Protocol
 
-The WebSocket connection follows a structured message protocol for real-time communication.
+The WebSocket connection follows a structured message protocol for real-time communication. The system supports dual communication modes:
+
+- **WebSocket (Primary)**: Real-time bidirectional communication for optimal performance
+- **HTTP Polling (Fallback)**: Automatic fallback when WebSocket connections are not available
+
+### Connection States
+
+The frontend connection manager recognizes the following states:
+- `disconnected`: No active connection
+- `connecting`: Attempting to establish connection  
+- `connected`: WebSocket connection established and active
+- `polling`: HTTP polling connection active (fallback mode)
+- `reconnecting`: Attempting to reconnect after connection loss
+- `error`: Connection failed
+
+Both `connected` and `polling` states are treated as valid connected states, ensuring seamless user experience regardless of the underlying communication method.
 
 #### Message Types
 

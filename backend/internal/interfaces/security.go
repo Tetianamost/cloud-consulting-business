@@ -92,6 +92,7 @@ type ChatAuditLogger interface {
 	// Message Events
 	LogMessageSent(ctx context.Context, userID, sessionID, messageID string, metadata map[string]interface{}) error
 	LogMessageAccessed(ctx context.Context, userID, messageID string, metadata map[string]interface{}) error
+	LogMessage(ctx context.Context, userID, sessionID, action string, metadata map[string]interface{}) error
 
 	// Security Events
 	LogSecurityViolation(ctx context.Context, userID string, violation *SecurityViolation) error

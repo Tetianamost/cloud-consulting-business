@@ -41,6 +41,14 @@ ON chat_messages USING gin(to_tsvector('english', content));
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_messages_session_pagination 
 ON chat_messages (session_id, created_at ASC, id);
 
+-- Index for efficient polling with timestamp-based queries
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_messages_session_timestamp 
+ON chat_messages (session_id, created_at DESC, id DESC);
+
+-- Index for conditional requests optimization (ETag generation)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_sessions_etag_optimization 
+ON chat_sessions (id, last_activity DESC);
+
 -- Composite index for filtering by session, type, and status
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_messages_session_type_status 
 ON chat_messages (session_id, type, status, created_at DESC);

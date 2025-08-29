@@ -27,27 +27,29 @@ const MessageItem: React.FC<MessageItemProps> = ({ index, style, data }) => {
   if (!message) return null;
 
   return (
-    <div style={style} className="px-4 py-2">
+    <div style={style} className="px-3 py-2">
       <div
         className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
       >
         <div
-          className={`max-w-[80%] rounded-lg p-3 ${
+          className={`max-w-[85%] rounded-lg p-3 shadow-sm ${
             message.type === 'user'
               ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-900'
+              : 'bg-gray-100 text-gray-900 border border-gray-200'
           }`}
         >
           <div className="flex items-start space-x-2">
             {message.type === 'assistant' && (
-              <Bot className="h-4 w-4 mt-0.5 text-blue-600" />
+              <Bot className="h-4 w-4 mt-0.5 text-blue-600 flex-shrink-0" />
             )}
             {message.type === 'user' && (
-              <User className="h-4 w-4 mt-0.5 text-white" />
+              <User className="h-4 w-4 mt-0.5 text-white flex-shrink-0" />
             )}
-            <div className="flex-1">
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-              <p className={`text-xs mt-1 ${
+            <div className="flex-1 min-w-0">
+              <p className="text-sm whitespace-pre-wrap break-words word-wrap-break-word hyphens-auto leading-relaxed">
+                {message.content}
+              </p>
+              <p className={`text-xs mt-2 ${
                 message.type === 'user' ? 'text-blue-200' : 'text-gray-500'
               }`}>
                 {formatTimestamp(message.timestamp)}

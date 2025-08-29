@@ -32,10 +32,16 @@ The AI Consultant Live Chat system provides real-time AI-powered assistance for 
 
 ### Connection Status Indicators
 
-- 🟢 **Connected**: Real-time communication active
+The chat system automatically manages your connection and provides seamless communication through multiple methods:
+
+- 🟢 **Connected**: WebSocket real-time communication active (optimal performance)
+- 🟠 **Polling**: HTTP polling mode active (reliable fallback with near real-time updates)
 - 🟡 **Connecting**: Establishing connection
-- 🔴 **Disconnected**: Connection lost, attempting reconnect
+- 🔄 **Reconnecting**: Attempting to restore connection after interruption
+- 🔴 **Disconnected**: No active connection
 - ⚠️ **Error**: Connection error, manual refresh may be needed
+
+**Note**: Both "Connected" and "Polling" states provide full chat functionality. The system automatically switches between WebSocket and HTTP polling to ensure reliable communication regardless of network conditions.
 
 ## Using Chat Features
 

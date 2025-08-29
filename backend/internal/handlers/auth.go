@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cloud-consulting/backend/internal/interfaces"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -54,12 +55,27 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Create a JWT token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": req.Username,
-		"role":     "admin",
-		"exp":      time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours
-	})
+	// Create a JWT token with ChatJWTClaims structure
+	now := time.Now()
+	expiresAt := now.Add(time.Hour * 24)
+
+	claims := &interfaces.ChatJWTClaims{
+		UserID:      req.Username, // Use username as UserID for now
+		Username:    req.Username,
+		Email:       "", // Empty for now
+		Roles:       []string{"admin"},
+		Permissions: []string{}, // Will be populated by ChatAuthService
+		TokenType:   "access",
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			NotBefore: jwt.NewNumericDate(now),
+			Issuer:    "auth-service",
+			Subject:   req.Username,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign the token with the secret key
 	tokenString, err := token.SignedString([]byte(h.jwtSecret))

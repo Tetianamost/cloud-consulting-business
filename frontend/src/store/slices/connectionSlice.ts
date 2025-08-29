@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'failed';
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'failed' | 'polling';
 
 interface ConnectionState {
   status: ConnectionStatus;
@@ -13,8 +13,15 @@ interface ConnectionState {
   error: string | null;
   latency: number | null;
   lastPingTime: number | null;
+  lastPongTime: number | null;
   isHealthy: boolean;
   connectionId: string | null;
+  // Polling-specific state
+  isPolling: boolean;
+  lastPollTime: number | null;
+  pollInterval: number;
+  errorCount: number;
+  lastSuccessfulPoll: string | null;
 }
 
 const initialState: ConnectionState = {
@@ -28,8 +35,15 @@ const initialState: ConnectionState = {
   error: null,
   latency: null,
   lastPingTime: null,
+  lastPongTime: null,
   isHealthy: false,
   connectionId: null,
+  // Polling-specific state
+  isPolling: false,
+  lastPollTime: null,
+  pollInterval: 3000, // 3 seconds default
+  errorCount: 0,
+  lastSuccessfulPoll: null,
 };
 
 const connectionSlice = createSlice({
@@ -105,6 +119,10 @@ const connectionSlice = createSlice({
       state.lastPingTime = action.payload;
     },
     
+    setPongTime: (state, action: PayloadAction<number>) => {
+      state.lastPongTime = action.payload;
+    },
+    
     setHealthStatus: (state, action: PayloadAction<boolean>) => {
       state.isHealthy = action.payload;
     },
@@ -124,7 +142,13 @@ const connectionSlice = createSlice({
       state.connectionId = null;
       state.latency = null;
       state.lastPingTime = null;
+      state.lastPongTime = null;
       state.isHealthy = false;
+      // Reset polling state
+      state.isPolling = false;
+      state.lastPollTime = null;
+      state.errorCount = 0;
+      state.lastSuccessfulPoll = null;
     },
     
     // Force reconnection
@@ -133,6 +157,39 @@ const connectionSlice = createSlice({
       state.reconnectAttempts = 0;
       state.reconnectDelay = 1000;
       state.error = null;
+    },
+
+    // Polling-specific actions
+    setPollingStatus: (state, action: PayloadAction<boolean>) => {
+      state.isPolling = action.payload;
+      if (action.payload) {
+        state.status = 'polling';
+        state.lastPollTime = Date.now();
+      } else {
+        state.status = 'disconnected';
+      }
+    },
+
+    updatePollTime: (state) => {
+      state.lastPollTime = Date.now();
+    },
+
+    setPollInterval: (state, action: PayloadAction<number>) => {
+      state.pollInterval = action.payload;
+    },
+
+    incrementErrorCount: (state) => {
+      state.errorCount += 1;
+    },
+
+    resetErrorCount: (state) => {
+      state.errorCount = 0;
+    },
+
+    setLastSuccessfulPoll: (state, action: PayloadAction<string>) => {
+      state.lastSuccessfulPoll = action.payload;
+      state.errorCount = 0; // Reset error count on successful poll
+      state.isHealthy = true;
     },
   },
 });
@@ -148,9 +205,16 @@ export const {
   clearConnectionError,
   updateLatency,
   setPingTime,
+  setPongTime,
   setHealthStatus,
   cleanup,
   forceReconnect,
+  setPollingStatus,
+  updatePollTime,
+  setPollInterval,
+  incrementErrorCount,
+  resetErrorCount,
+  setLastSuccessfulPoll,
 } = connectionSlice.actions;
 
 export default connectionSlice.reducer;

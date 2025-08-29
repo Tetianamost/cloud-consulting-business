@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Disconnected</div>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <button onclick="testLongConnection()">Test Long Connection</button>
+    <div id="log"></div>
+
+    <script>
+        let ws = null;
+        const statusDiv = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+
+        function log(message) {
+            const timestamp = new Date().toISOString();
+            logDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('Already connected');
+                return;
+            }
+
+            // Get token from localStorage (assuming you're logged in)
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                log('ERROR: No admin token found. Please log in first.');
+                return;
+            }
+
+            const wsUrl = `ws://localhost:8061/api/v1/admin/chat/ws?token=${encodeURIComponent(token)}`;
+            log(`Connecting to: ${wsUrl.replace(/token=[^&]+/, 'token=***')}`);
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function(event) {
+                log('✅ WebSocket OPENED successfully');
+                statusDiv.textContent = 'Connected';
+                statusDiv.style.color = 'green';
+            };
+
+            ws.onmessage = function(event) {
+                log(`📨 Message received: ${event.data}`);
+            };
+
+            ws.onclose = function(event) {
+                log(`❌ WebSocket CLOSED - Code: ${event.code}, Reason: ${event.reason || 'No reason'}, Clean: ${event.wasClean}`);
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.style.color = 'red';
+            };
+
+            ws.onerror = function(error) {
+                log(`🚨 WebSocket ERROR: ${error}`);
+                statusDiv.textContent = 'Error';
+                statusDiv.style.color = 'red';
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                log('Disconnecting...');
+                ws.close(1000, 'Manual disconnect');
+                ws = null;
+            }
+        }
+
+        // Auto-connect on page load if token exists
+        window.onload = function() {
+            if (localStorage.getItem('adminToken')) {
+                log('Token found, auto-connecting...');
+                setTimeout(connect, 1000);
+            } else {
+                log('No token found. Please log in at http://localhost:3007/admin/login first.');
+            }
+        };
+
+        // Test if connection stays open for longer periods
+        function testLongConnection() {
+            connect();
+            setTimeout(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    log('✅ Connection still open after 5 seconds');
+                    setTimeout(() => {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            log('✅ Connection still open after 10 seconds');
+                        } else {
+                            log('❌ Connection closed between 5-10 seconds');
+                        }
+                    }, 5000);
+                } else {
+                    log('❌ Connection closed within 5 seconds');
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

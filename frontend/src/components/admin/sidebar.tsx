@@ -113,6 +113,16 @@ const navItems = [
     icon: Bot,
   },
   {
+    title: "Simple Chat",
+    href: "/admin/simple-chat",
+    icon: MessageSquare,
+  },
+  {
+    title: "Chat Mode",
+    href: "/admin/chat-mode",
+    icon: Settings,
+  },
+  {
     title: "Metrics",
     href: "/admin/metrics",
     icon: FileText,
@@ -121,6 +131,11 @@ const navItems = [
     title: "Email Status",
     href: "/admin/email-status",
     icon: Mail,
+  },
+  {
+    title: "WebSocket Test",
+    href: "/admin/websocket-test",
+    icon: Settings,
   },
 ]
 

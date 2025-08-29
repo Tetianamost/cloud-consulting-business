@@ -7,10 +7,10 @@ import reportWebVitals from './reportWebVitals';
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
+// Temporarily disable StrictMode to fix WebSocket connection issues
+// StrictMode causes double mounting in development which closes WebSocket connections immediately
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <App />
 );
 
 // If you want to start measuring performance in your app, pass a function

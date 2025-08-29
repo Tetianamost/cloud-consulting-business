@@ -480,8 +480,10 @@ func (c *ChatAwareBedrockService) GenerateChatResponse(ctx context.Context, requ
 	optimizedPrompt := c.optimizePrompt(prompt)
 
 	// Generate response using enhanced Bedrock service
+	// Use the configured model ID from the base service
+	modelInfo := c.EnhancedBedrockService.GetModelInfo()
 	options := &interfaces.BedrockOptions{
-		ModelID:     "anthropic.claude-3-sonnet-20240229-v1:0",
+		ModelID:     modelInfo.ModelID,
 		MaxTokens:   1000,
 		Temperature: 0.7,
 		TopP:        0.9,
@@ -991,8 +993,10 @@ func (c *ChatAwareBedrockService) OptimizeResponse(ctx context.Context, request 
 	optimizedPrompt = optimizer.promptOptimizer.Optimize(optimizedPrompt)
 
 	// Step 3: Generate response with optimized settings
+	// Use the configured model ID from the base service
+	modelInfo := c.EnhancedBedrockService.GetModelInfo()
 	options := &interfaces.BedrockOptions{
-		ModelID:     "anthropic.claude-3-sonnet-20240229-v1:0",
+		ModelID:     modelInfo.ModelID,
 		MaxTokens:   800, // Reduced from 1000 for optimization
 		Temperature: 0.7,
 		TopP:        0.9,

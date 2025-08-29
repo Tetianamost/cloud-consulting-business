@@ -9,11 +9,12 @@ import {
   setLoading,
   clearMessages,
   updateSettings,
+  setError,
   ChatMessage,
   SessionContext,
   ChatSession,
 } from '../../store/slices/chatSlice';
-import websocketService from '../../services/websocketService';
+import { pollingChatService } from '../../services/pollingChatService';
 import ChatSessionManager from './ChatSessionManager';
 
 interface ChatRequest {
@@ -84,21 +85,28 @@ export const ChatPage: React.FC = () => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Initialize WebSocket connection
-  useEffect(() => {
-    if (connectionStatus === 'disconnected') {
-      websocketService.connect().catch(console.error);
-    }
-
-    return () => {
-      // Don't disconnect on unmount as other components might be using it
-    };
-  }, [connectionStatus]);
 
   // Focus input when component mounts
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Start/stop polling based on session
+  useEffect(() => {
+    if (currentSession) {
+      console.log('[ChatPage] Starting polling for session:', currentSession.id);
+      pollingChatService.startPolling();
+    } else {
+      console.log('[ChatPage] No session, stopping polling');
+      pollingChatService.stopPolling();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      console.log('[ChatPage] Component unmounting, stopping polling');
+      pollingChatService.stopPolling();
+    };
+  }, [currentSession]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -158,7 +166,7 @@ export const ChatPage: React.FC = () => {
     return QUICK_ACTIONS.filter(action => action.category === selectedQuickActionCategory);
   }, [selectedQuickActionCategory]);
 
-  const sendMessage = useCallback((message: string, quickAction?: string) => {
+  const sendMessage = useCallback(async (message: string, quickAction?: string) => {
     if (!message.trim()) return;
 
     const request: ChatRequest = {
@@ -169,10 +177,15 @@ export const ChatPage: React.FC = () => {
       quick_action: quickAction,
     };
 
-    // Send via WebSocket service
-    websocketService.sendChatMessage(request);
-    setInputMessage('');
-  }, [currentSession?.id, sessionContext]);
+    try {
+      // Send via polling service
+      await pollingChatService.sendMessage(request);
+      setInputMessage('');
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      dispatch(setError('Failed to send message. Please try again.'));
+    }
+  }, [currentSession?.id, sessionContext, dispatch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -436,7 +449,7 @@ export const ChatPage: React.FC = () => {
               <button
                 key={action.id}
                 onClick={() => handleQuickAction(action)}
-                disabled={isLoading || connectionStatus !== 'connected'}
+                disabled={isLoading || (connectionStatus !== 'connected' && connectionStatus !== 'polling')}
                 className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
                 aria-label={`Quick action: ${action.label}`}
                 title={action.prompt}
@@ -605,11 +618,11 @@ export const ChatPage: React.FC = () => {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder={
-                connectionStatus === 'connected' 
+                (connectionStatus === 'connected' || connectionStatus === 'polling')
                   ? "Ask about AWS services, costs, best practices..." 
                   : "Connecting..."
               }
-              disabled={isLoading || connectionStatus !== 'connected'}
+              disabled={isLoading || (connectionStatus !== 'connected' && connectionStatus !== 'polling')}
               className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50 text-sm sm:text-base"
               aria-describedby="message-input-help"
             />
@@ -618,7 +631,7 @@ export const ChatPage: React.FC = () => {
             </div>
             <button
               type="submit"
-              disabled={isLoading || connectionStatus !== 'connected' || !inputMessage.trim()}
+              disabled={isLoading || (connectionStatus !== 'connected' && connectionStatus !== 'polling') || !inputMessage.trim()}
               className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 touch-manipulation"
               aria-label={isLoading ? 'Sending message' : 'Send message'}
             >

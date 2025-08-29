@@ -219,7 +219,6 @@ func (r *EnhancedChatMessageRepository) GetBySessionID(ctx context.Context, sess
 	}
 
 	// Fallback to database
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, session_id, type, content, metadata, status, created_at
 		FROM chat_messages
@@ -256,7 +255,6 @@ func (r *EnhancedChatMessageRepository) GetBySessionID(ctx context.Context, sess
 
 // List retrieves chat messages based on filters with optimized queries
 func (r *EnhancedChatMessageRepository) List(ctx context.Context, filters *domain.ChatMessageFilters) ([]*domain.ChatMessage, error) {
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, session_id, type, content, metadata, status, created_at
 		FROM chat_messages`
@@ -376,7 +374,6 @@ func (r *EnhancedChatMessageRepository) Count(ctx context.Context, filters *doma
 
 // GetByType retrieves messages of a specific type for a session
 func (r *EnhancedChatMessageRepository) GetByType(ctx context.Context, sessionID string, messageType domain.MessageType) ([]*domain.ChatMessage, error) {
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, session_id, type, content, metadata, status, created_at
 		FROM chat_messages
@@ -388,7 +385,6 @@ func (r *EnhancedChatMessageRepository) GetByType(ctx context.Context, sessionID
 
 // GetByStatus retrieves messages with a specific status for a session
 func (r *EnhancedChatMessageRepository) GetByStatus(ctx context.Context, sessionID string, status domain.MessageStatus) ([]*domain.ChatMessage, error) {
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, session_id, type, content, metadata, status, created_at
 		FROM chat_messages
@@ -442,8 +438,6 @@ func (r *EnhancedChatMessageRepository) UpdateStatus(ctx context.Context, messag
 
 // Search searches for messages containing the query text with optimized full-text search
 func (r *EnhancedChatMessageRepository) Search(ctx context.Context, sessionID string, query string, limit int) ([]*domain.ChatMessage, error) {
-	db := r.pool.GetDB()
-
 	// Use PostgreSQL's ILIKE for case-insensitive search with index support
 	sqlQuery := `
 		SELECT id, session_id, type, content, metadata, status, created_at
@@ -503,7 +497,6 @@ func (r *EnhancedChatMessageRepository) GetLatestBySessionID(ctx context.Context
 	}
 
 	// Fallback to database
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, session_id, type, content, metadata, status, created_at
 		FROM chat_messages

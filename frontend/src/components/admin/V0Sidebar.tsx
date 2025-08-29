@@ -36,6 +36,12 @@ const navItems: NavItem[] = [
     description: "Customer inquiries"
   },
   {
+    title: "AI Consultant",
+    href: "/admin/ai-consultant",
+    icon: Bot,
+    description: "Full AI Assistant"
+  },
+  {
     title: "AI Reports",
     href: "/admin/reports",
     icon: FileText,

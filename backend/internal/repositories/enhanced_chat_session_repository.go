@@ -275,7 +275,6 @@ func (r *EnhancedChatSessionRepository) GetByUserID(ctx context.Context, userID 
 	}
 
 	// Fallback to database
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, user_id, client_name, context, status, metadata, created_at, updated_at, last_activity, expires_at
 		FROM chat_sessions
@@ -303,7 +302,6 @@ func (r *EnhancedChatSessionRepository) GetByUserID(ctx context.Context, userID 
 
 // GetActiveByUserID retrieves active chat sessions for a user
 func (r *EnhancedChatSessionRepository) GetActiveByUserID(ctx context.Context, userID string) ([]*domain.ChatSession, error) {
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, user_id, client_name, context, status, metadata, created_at, updated_at, last_activity, expires_at
 		FROM chat_sessions
@@ -315,7 +313,6 @@ func (r *EnhancedChatSessionRepository) GetActiveByUserID(ctx context.Context, u
 
 // List retrieves chat sessions based on filters with optimized queries
 func (r *EnhancedChatSessionRepository) List(ctx context.Context, filters *domain.ChatSessionFilters) ([]*domain.ChatSession, error) {
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, user_id, client_name, context, status, metadata, created_at, updated_at, last_activity, expires_at
 		FROM chat_sessions`
@@ -441,7 +438,6 @@ func (r *EnhancedChatSessionRepository) Count(ctx context.Context, filters *doma
 
 // GetExpiredSessions retrieves sessions that have expired
 func (r *EnhancedChatSessionRepository) GetExpiredSessions(ctx context.Context) ([]*domain.ChatSession, error) {
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, user_id, client_name, context, status, metadata, created_at, updated_at, last_activity, expires_at
 		FROM chat_sessions
@@ -453,7 +449,6 @@ func (r *EnhancedChatSessionRepository) GetExpiredSessions(ctx context.Context) 
 
 // GetInactiveSessions retrieves sessions that have been inactive for longer than the threshold
 func (r *EnhancedChatSessionRepository) GetInactiveSessions(ctx context.Context, threshold time.Duration) ([]*domain.ChatSession, error) {
-	db := r.pool.GetDB()
 	query := `
 		SELECT id, user_id, client_name, context, status, metadata, created_at, updated_at, last_activity, expires_at
 		FROM chat_sessions

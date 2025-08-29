@@ -42,15 +42,8 @@ export const ChatToggle: React.FC = () => {
     localStorage.setItem('chatWidgetState', JSON.stringify(state));
   }, [isChatOpen, isMinimized]);
 
-  // Initialize WebSocket connection when component mounts
-  useEffect(() => {
-    if (connectionStatus === 'disconnected') {
-      const connectPromise = websocketService.connect();
-      if (connectPromise && typeof connectPromise.catch === 'function') {
-        connectPromise.catch(console.error);
-      }
-    }
-  }, [connectionStatus]);
+  // WebSocket connection is managed by the IntegratedAdminDashboard
+  // No need to initialize here
 
   // Handle new messages for notifications
   useEffect(() => {

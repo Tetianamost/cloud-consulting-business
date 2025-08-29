@@ -24,6 +24,7 @@ const ProtectedRoute = React.lazy(() => import('./components/admin/ProtectedRout
 const AdminLayoutWrapper = React.lazy(() => import('./components/admin/AdminLayoutWrapper'));
 const V0DashboardNew = React.lazy(() => import('./components/admin/V0DashboardNew'));
 const ChatPage = React.lazy(() => import('./components/admin/ChatPage'));
+const AIConsultantPage = React.lazy(() => import('./components/admin/AIConsultantPage'));
 const AIReportsPage = React.lazy(() => import('./components/admin/AIReportsPage'));
 const ReportPage = React.lazy(() => import('./components/admin/ReportPage'));
 
@@ -123,6 +124,15 @@ function App() {
                     <ProtectedRoute>
                       <AdminLayoutWrapper>
                         <ChatPage />
+                      </AdminLayoutWrapper>
+                    </ProtectedRoute>
+                  </Suspense>
+                } />
+                <Route path="/admin/ai-consultant" element={
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <ProtectedRoute>
+                      <AdminLayoutWrapper>
+                        <AIConsultantPage />
                       </AdminLayoutWrapper>
                     </ProtectedRoute>
                   </Suspense>
