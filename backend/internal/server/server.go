@@ -78,11 +78,12 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	// Initialize email services (with graceful degradation if SES config is missing)
 	var emailService interfaces.EmailService
 	if cfg.SES.AccessKeyID != "" && cfg.SES.SecretAccessKey != "" && cfg.SES.SenderEmail != "" {
-		sesService, err := services.NewSESService(cfg.SES, logger)
+		var err error
+		emailService, err = services.NewEmailServiceWithSES(cfg.SES, logger)
 		if err != nil {
 			logger.WithError(err).Warn("Failed to initialize SES service, email notifications will be disabled")
+			emailService = nil
 		} else {
-			emailService = services.NewEmailService(sesService, templateService, cfg.SES, logger)
 			logger.Info("Email service initialized successfully with branded templates")
 		}
 	} else {

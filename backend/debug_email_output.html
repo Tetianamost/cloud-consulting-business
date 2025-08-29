@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{if .IsHighPriority}}🚨 HIGH PRIORITY{{else}}New{{end}} Cloud Consulting {{if .Report}}Report Generated{{else}}Inquiry{{end}} - CloudPartner Pro</title>
+    <title>🚨 HIGH PRIORITY Cloud Consulting Report Generated - CloudPartner Pro</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <style>
-        /* Reset and base styles */
+         
         * {
             margin: 0;
             padding: 0;
@@ -24,7 +24,7 @@
             -moz-osx-font-smoothing: grayscale;
         }
         
-        /* Container */
+         
         .email-container {
             max-width: 800px;
             margin: 0 auto;
@@ -34,7 +34,7 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
         
-        /* Header with dynamic branding based on priority */
+         
         .header {
             color: #ffffff;
             padding: 35px 30px;
@@ -111,7 +111,7 @@
             font-weight: 300;
         }
         
-        /* Priority alert */
+         
         .priority-alert {
             padding: 25px 30px;
             text-align: center;
@@ -144,12 +144,12 @@
             60% { transform: translateY(-4px); }
         }
         
-        /* Content */
+         
         .content {
             padding: 35px 30px;
         }
         
-        /* Client information card */
+         
         .client-info {
             background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
             border-left: 4px solid #667eea;
@@ -240,7 +240,7 @@
             transform: none;
         }
         
-        /* Message section */
+         
         .message-section {
             background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
             border-left: 4px solid #f59e0b;
@@ -289,7 +289,7 @@
             font-size: 15px;
         }
         
-        /* Report section */
+         
         .report-section {
             background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
             border-left: 4px solid #48bb78;
@@ -409,7 +409,7 @@
             margin: 30px 0;
         }
         
-        /* Action required section */
+         
         .action-section {
             padding: 25px;
             margin: 25px 0;
@@ -445,7 +445,7 @@
             display: block;
         }
         
-        /* Footer */
+         
         .footer {
             background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
             color: #ffffff;
@@ -466,7 +466,7 @@
             margin: 0;
         }
         
-        /* Responsive design */
+         
         @media (max-width: 800px) {
             body {
                 padding: 10px 0;
@@ -504,8 +504,8 @@
 </head>
 <body>
     <div class="email-container">
-        <!-- Header with dynamic branding -->
-        <div class="header {{if .IsHighPriority}}high-priority{{else}}normal{{end}}">
+        
+        <div class="header high-priority">
             <div class="logo">
                 <div class="logo-icon">
                     <svg viewBox="0 0 24 24">
@@ -513,95 +513,203 @@
                     </svg>
                 </div>
                 <h1 class="header-title">
-                    {{if .IsHighPriority}}🚨 HIGH PRIORITY{{else}}🔔{{end}} 
-                    {{if .Report}}Report Generated{{else}}New Inquiry{{end}}
+                    🚨 HIGH PRIORITY 
+                    Report Generated
                 </h1>
                 <p class="header-subtitle">CloudPartner Pro - Internal Notification System</p>
             </div>
         </div>
         
-        <!-- Priority alert -->
-        <div class="priority-alert {{if .IsHighPriority}}high-priority{{else}}normal{{end}}">
+        
+        <div class="priority-alert high-priority">
             <span class="alert-icon">
-                {{if .IsHighPriority}}⚠️{{else}}✅{{end}}
+                ⚠️
             </span>
-            {{if .IsHighPriority}}
+            
                 <strong>URGENT ATTENTION REQUIRED</strong> - This inquiry contains urgent language, meeting requests, or time-sensitive requirements
-            {{else}}
-                {{if .Report}}New AI-generated report is ready for review and client delivery{{else}}New cloud consulting inquiry has been received and processed{{end}}
-            {{end}}
+            
         </div>
         
-        <!-- Main content -->
+        
         <div class="content">
-            <!-- Client information -->
+            
             <div class="client-info">
                 <h3>Client Information</h3>
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">Client Name</div>
-                        <div class="info-value">{{.Name}}</div>
+                        <div class="info-value">John Smith</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Email Address</div>
-                        <div class="info-value">{{.Email}}</div>
+                        <div class="info-value">john.smith@techcorp.com</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Organization</div>
-                        <div class="info-value">{{if .Company}}{{.Company}}{{else}}Individual Client{{end}}</div>
+                        <div class="info-value">TechCorp Solutions</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Phone Number</div>
-                        <div class="info-value">{{if .Phone}}{{.Phone}}{{else}}Not provided{{end}}</div>
+                        <div class="info-value">&#43;1 (555) 123-4567</div>
                     </div>
                     <div class="info-item services-item">
                         <div class="info-label">Services Requested</div>
-                        <div class="info-value">{{.Services}}</div>
+                        <div class="info-value">assessment, migration, optimization</div>
                     </div>
                     <div class="info-item inquiry-id-item">
                         <div class="info-label">Inquiry ID</div>
-                        <div class="info-value">{{.ID}}</div>
+                        <div class="info-value">test-debug-1756509810</div>
                     </div>
-                    {{if .Report}}
+                    
                     <div class="info-item inquiry-id-item">
                         <div class="info-label">Report ID</div>
-                        <div class="info-value">{{.Report.ID}}</div>
+                        <div class="info-value">test-report-debug-1756509810</div>
                     </div>
-                    {{end}}
+                    
                 </div>
             </div>
             
-            <!-- Original message -->
+            
             <div class="message-section">
                 <h3>Original Client Message</h3>
-                <div class="message-content">{{.Message}}</div>
+                <div class="message-content">We need help migrating our legacy applications to AWS. We have about 15 applications running on on-premises servers and need a comprehensive assessment and migration plan. Timeline is critical as our current infrastructure contract expires in 6 months.</div>
             </div>
             
-            <!-- Generated report (if available) -->
-            {{if .Report}}
+            
+            
             <div class="report-section">
                 <h3>AI-Generated Assessment Report</h3>
-                <div class="report-content">{{.Report.HTMLContent}}</div>
+                <div class="report-content"><h1>EXECUTIVE SUMMARY</h1>
+
+<p>This comprehensive assessment report provides detailed recommendations for TechCorp Solutions' cloud migration initiative. Based on our analysis, we recommend a phased approach to migrate 15 applications to AWS over a 4-month timeline.</p>
+
+<h2>KEY RECOMMENDATIONS</h2>
+
+<strong>Immediate Actions Required:</strong>
+<ul>
+  <li>Conduct detailed application dependency mapping</li>
+  <li>Implement AWS Landing Zone with proper security controls</li>
+  <li>Begin with pilot migration of 3 low-risk applications</li>
+</ul>
+
+<p><strong>Priority Level: HIGH</strong> - Timeline constraints require immediate action</p>
+
+<h2>CURRENT STATE ASSESSMENT</h2>
+
+<h3>Infrastructure Overview
+- <strong>Applications</strong>: 15 legacy applications
+- <strong>Current Environment</strong>: On-premises data center
+- <strong>Contract Expiration</strong>: 6 months
+- <strong>Business Impact</strong>: Critical timeline constraints</h3>
+
+<h3>Identified Challenges
+- Legacy application dependencies
+- Data migration complexity
+- Security and compliance requirements
+- Staff training and change management</h3>
+
+<h2>DETAILED RECOMMENDATIONS</h2>
+
+<h3>Phase 1: Foundation (Month 1)
+1. <strong>AWS Account Setup and Security</strong>
+   - Implement AWS Organizations with multi-account strategy
+   - Configure AWS SSO and IAM policies
+   - Set up CloudTrail and Config for compliance</h3>
+
+<ol>
+  <li><strong>Network Architecture</strong></li>
+  <li>Design VPC architecture with proper subnetting</li>
+  <li>Implement Direct Connect for hybrid connectivity</li>
+  <li>Configure security groups and NACLs</li>
+</ol>
+
+<h3>Phase 2: Pilot Migration (Month 2)
+1. <strong>Application Assessment</strong>
+   - Detailed analysis of 3 pilot applications
+   - Performance baseline establishment
+   - Migration strategy validation</h3>
+
+<ol>
+  <li><strong>Migration Execution</strong></li>
+  <li>Database migration using AWS DMS</li>
+  <li>Application server migration</li>
+  <li>Testing and validation</li>
+</ol>
+
+<h3>Phase 3: Production Migration (Months 3-4)
+1. <strong>Remaining Applications</strong>
+   - Batch migration of remaining 12 applications
+   - Performance optimization
+   - Disaster recovery implementation</h3>
+
+<h2>RISK ASSESSMENT</h2>
+
+<h3>High Priority Risks
+- <strong>Timeline Risk</strong>: 6-month contract expiration
+- <strong>Data Loss Risk</strong>: Complex database migrations
+- <strong>Downtime Risk</strong>: Business-critical applications</h3>
+
+<h3>Mitigation Strategies
+- Parallel migration approach to reduce timeline
+- Comprehensive backup and rollback procedures
+- Phased cutover with minimal downtime windows</h3>
+
+<h2>FINANCIAL ANALYSIS</h2>
+
+<h3>Estimated Costs
+- <strong>Migration Services</strong>: $75,000 - $100,000
+- <strong>AWS Infrastructure</strong>: $8,000 - $12,000/month
+- <strong>Training and Support</strong>: $15,000 - $20,000</h3>
+
+<h3>ROI Projections
+- <strong>Year 1 Savings</strong>: $50,000 (reduced infrastructure costs)
+- <strong>Year 2+ Savings</strong>: $80,000/year (operational efficiency)
+- <strong>Payback Period</strong>: 18-24 months</h3>
+
+<h2>NEXT STEPS</h2>
+
+<h3>Immediate Actions (Next 2 Weeks)
+1. <strong>Schedule detailed technical assessment meeting</strong>
+2. <strong>Finalize migration timeline and resource allocation</strong>
+3. <strong>Begin AWS account setup and security configuration</strong>
+4. <strong>Identify pilot applications for Phase 1</strong></h3>
+
+<h3>Meeting Request
+<strong>URGENT</strong>: We recommend scheduling a technical deep-dive meeting within the next week to discuss:
+- Detailed application inventory and dependencies
+- Migration timeline and resource requirements
+- Risk mitigation strategies and contingency planning</h3>
+
+<h2>CONTACT INFORMATION</h2>
+
+For immediate assistance or to schedule the recommended meeting:
+<ul>
+  <li><strong>Primary Contact</strong>: Senior Cloud Architect</li>
+  <li><strong>Email</strong>: info@cloudpartner.pro</li>
+  <li><strong>Phone</strong>: Available upon request</li>
+  <li><strong>Response Time</strong>: Within 4 hours for urgent matters</li>
+</ul>
+
+<hr>
+
+<p>*This report was generated using advanced AI analysis and validated by our certified cloud architects. All recommendations follow AWS Well-Architected Framework principles and industry best practices.*</p></div>
             </div>
-            {{end}}
             
-            <!-- Action required -->
-            <div class="action-section {{if .IsHighPriority}}high-priority{{else}}normal{{end}}">
+            
+            
+            <div class="action-section high-priority">
                 <span class="action-icon">
-                    {{if .IsHighPriority}}🚨{{else}}📌{{end}}
+                    🚨
                 </span>
-                {{if .IsHighPriority}}
+                
                     <strong>HIGH PRIORITY - ACTION REQUIRED:</strong><br>
                     Please review and respond to the client <strong>IMMEDIATELY</strong>.<br>
                     Check for meeting requests, urgent timelines, or critical business needs that require immediate attention.
-                {{else}}
-                    <strong>📌 Action Required:</strong><br>
-                    Please review {{if .Report}}the AI-generated report for accuracy and completeness, then {{end}}respond to the client with personalized recommendations and next steps.
-                {{end}}
+                
             </div>
         </div>
         
-        <!-- Footer -->
+        
         <div class="footer">
             <div class="footer-logo">CloudPartner Pro - Internal Notification System</div>
             <p class="footer-text">

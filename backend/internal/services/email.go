@@ -9,9 +9,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	configPkg "github.com/cloud-consulting/backend/internal/config"
 	"github.com/cloud-consulting/backend/internal/domain"
 	"github.com/cloud-consulting/backend/internal/interfaces"
-	configPkg "github.com/cloud-consulting/backend/internal/config"
 )
 
 // emailService implements the EmailService interface
@@ -36,22 +36,22 @@ func NewEmailService(sesService interfaces.SESService, templateService interface
 func (e *emailService) SendReportEmail(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report) error {
 	// Check if this is a high priority inquiry
 	isHighPriority := e.detectHighPriority(inquiry.Message)
-	
+
 	var subject string
 	if isHighPriority {
 		subject = fmt.Sprintf("🚨 HIGH PRIORITY - New Cloud Consulting Report - %s", inquiry.Name)
 	} else {
 		subject = fmt.Sprintf("New Cloud Consulting Report Generated - %s", inquiry.Name)
 	}
-	
+
 	// Use branded template if available, fallback to basic template
 	var htmlBody string
 	var textBody string
-	
+
 	if e.templateService != nil {
 		// Use the template service to prepare data properly
 		templateData := e.templateService.PrepareConsultantNotificationData(inquiry, report, isHighPriority)
-		
+
 		// Render branded HTML template
 		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "consultant_notification", templateData)
 		if err != nil {
@@ -63,7 +63,7 @@ func (e *emailService) SendReportEmail(ctx context.Context, inquiry *domain.Inqu
 	} else {
 		htmlBody = e.buildReportEmailHTML(inquiry, report)
 	}
-	
+
 	// Always use the text version as fallback
 	textBody = e.buildReportEmailText(inquiry, report)
 
@@ -87,11 +87,11 @@ func (e *emailService) SendReportEmail(ctx context.Context, inquiry *domain.Inqu
 	}
 
 	e.logger.WithFields(logrus.Fields{
-		"inquiry_id":      inquiry.ID,
-		"report_id":       report.ID,
-		"recipients":      email.To,
-		"high_priority":   isHighPriority,
-		"template_used":   "branded",
+		"inquiry_id":    inquiry.ID,
+		"report_id":     report.ID,
+		"recipients":    email.To,
+		"high_priority": isHighPriority,
+		"template_used": "branded",
 	}).Info("Internal report email sent successfully")
 
 	return nil
@@ -101,14 +101,14 @@ func (e *emailService) SendReportEmail(ctx context.Context, inquiry *domain.Inqu
 func (e *emailService) SendInquiryNotification(ctx context.Context, inquiry *domain.Inquiry) error {
 	// Check if this is a high priority inquiry
 	isHighPriority := e.detectHighPriority(inquiry.Message)
-	
+
 	var subject string
 	if isHighPriority {
 		subject = fmt.Sprintf("🚨 HIGH PRIORITY - New Cloud Consulting Inquiry - %s", inquiry.Name)
 	} else {
 		subject = fmt.Sprintf("New Cloud Consulting Inquiry - %s", inquiry.Name)
 	}
-	
+
 	textBody := e.buildInquiryEmailText(inquiry)
 	htmlBody := e.buildInquiryEmailHTML(inquiry)
 
@@ -147,21 +147,15 @@ func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *do
 	}
 
 	subject := "Thank you for your cloud consulting inquiry - CloudPartner Pro"
-	
+
 	// Use branded template if available, fallback to basic template
 	var htmlBody string
 	var textBody string
-	
+
 	if e.templateService != nil {
-		// Prepare template data - NO REPORT INFORMATION FOR CUSTOMERS
-		templateData := &CustomerConfirmationTemplateData{
-			Name:     inquiry.Name,
-			Company:  inquiry.Company,
-			Services: strings.Join(inquiry.Services, ", "),
-			ID:       inquiry.ID,
-			// Reports are NEVER included in customer emails
-		}
-		
+		// Use the template service to prepare data properly - NO REPORT INFORMATION FOR CUSTOMERS
+		templateData := e.templateService.PrepareCustomerConfirmationData(inquiry)
+
 		// Render branded HTML template
 		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "customer_confirmation", templateData)
 		if err != nil {
@@ -173,7 +167,7 @@ func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *do
 	} else {
 		htmlBody = e.buildCustomerConfirmationHTML(inquiry)
 	}
-	
+
 	// Always use the text version as fallback - NO REPORTS
 	textBody = e.buildCustomerConfirmationText(inquiry)
 
@@ -218,7 +212,7 @@ func (e *emailService) validateAndCleanEmail(email string) string {
 
 	// Clean the email
 	cleaned := strings.TrimSpace(strings.ToLower(email))
-	
+
 	// Check for placeholder emails or invalid formats
 	placeholders := []string{
 		"test@example.com",
@@ -229,31 +223,31 @@ func (e *emailService) validateAndCleanEmail(email string) string {
 		"test@test.com",
 		"user@test.com",
 	}
-	
+
 	for _, placeholder := range placeholders {
 		if cleaned == placeholder {
 			return ""
 		}
 	}
-	
+
 	// Basic email validation (contains @ and .)
 	if !strings.Contains(cleaned, "@") || !strings.Contains(cleaned, ".") {
 		return ""
 	}
-	
+
 	// Check for minimum length and basic structure
 	parts := strings.Split(cleaned, "@")
 	if len(parts) != 2 || len(parts[0]) < 1 || len(parts[1]) < 3 {
 		return ""
 	}
-	
+
 	return cleaned
 }
 
 // detectHighPriority analyzes the message content for urgency indicators
 func (e *emailService) detectHighPriority(message string) bool {
 	messageLower := strings.ToLower(message)
-	
+
 	// Time-sensitive keywords
 	urgentKeywords := []string{
 		"urgent", "asap", "immediately", "emergency", "critical",
@@ -261,7 +255,7 @@ func (e *emailService) detectHighPriority(message string) bool {
 		"deadline", "time sensitive", "time-sensitive", "rush",
 		"priority", "important", "blocking", "stuck", "help",
 	}
-	
+
 	// Meeting request keywords that suggest urgency
 	meetingKeywords := []string{
 		"schedule today", "schedule tomorrow", "meet today", "meet tomorrow",
@@ -269,69 +263,67 @@ func (e *emailService) detectHighPriority(message string) bool {
 		"schedule asap", "meet asap", "call asap", "discuss today",
 		"discuss tomorrow", "talk today", "talk tomorrow",
 	}
-	
+
 	// Check for urgent keywords
 	for _, keyword := range urgentKeywords {
 		if strings.Contains(messageLower, keyword) {
 			return true
 		}
 	}
-	
+
 	// Check for urgent meeting requests
 	for _, keyword := range meetingKeywords {
 		if strings.Contains(messageLower, keyword) {
 			return true
 		}
 	}
-	
+
 	// Check for specific time patterns that suggest urgency
 	timePatterns := []string{
 		"within", "by end of", "before", "need by", "due",
 		"this morning", "this afternoon", "this evening",
 		"first thing", "end of day", "eod",
 	}
-	
+
 	for _, pattern := range timePatterns {
 		if strings.Contains(messageLower, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
-
-
 
 // sanitizeMarkdownForPlainText cleans up markdown for plain text display
 func (e *emailService) sanitizeMarkdownForPlainText(markdown string) string {
 	// Remove markdown formatting for plain text
 	text := markdown
-	
+
 	// Remove markdown headers
 	text = regexp.MustCompile(`#{1,6}\s*`).ReplaceAllString(text, "")
-	
+
 	// Remove bold/italic markers
 	text = regexp.MustCompile(`\*\*([^*]+)\*\*`).ReplaceAllString(text, "$1")
 	text = regexp.MustCompile(`\*([^*]+)\*`).ReplaceAllString(text, "$1")
 	text = regexp.MustCompile(`__([^_]+)__`).ReplaceAllString(text, "$1")
 	text = regexp.MustCompile(`_([^_]+)_`).ReplaceAllString(text, "$1")
-	
+
 	// Remove markdown links, keep just the text
 	text = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`).ReplaceAllString(text, "$1")
-	
+
 	// Clean up extra whitespace
 	text = regexp.MustCompile(`\n\s*\n`).ReplaceAllString(text, "\n\n")
 	text = strings.TrimSpace(text)
-	
+
 	return text
 }
 
 // buildReportEmailText creates the plain text version of the report email
 func (e *emailService) buildReportEmailText(inquiry *domain.Inquiry, report *domain.Report) string {
 	var builder strings.Builder
-	
+
 	isHighPriority := e.detectHighPriority(inquiry.Message)
-	
+
 	if isHighPriority {
 		builder.WriteString("🚨 HIGH PRIORITY - NEW CLOUD CONSULTING REPORT GENERATED\n\n")
 		builder.WriteString("⚠️  URGENT ATTENTION REQUIRED ⚠️\n")
@@ -340,7 +332,7 @@ func (e *emailService) buildReportEmailText(inquiry *domain.Inquiry, report *dom
 	} else {
 		builder.WriteString("🔔 NEW CLOUD CONSULTING REPORT GENERATED\n\n")
 	}
-	
+
 	builder.WriteString("👤 CLIENT INFORMATION\n")
 	builder.WriteString("=====================\n")
 	builder.WriteString(fmt.Sprintf("Name: %s\n", inquiry.Name))
@@ -350,15 +342,15 @@ func (e *emailService) buildReportEmailText(inquiry *domain.Inquiry, report *dom
 	builder.WriteString(fmt.Sprintf("Services: %s\n", strings.Join(inquiry.Services, ", ")))
 	builder.WriteString(fmt.Sprintf("Inquiry ID: %s\n", inquiry.ID))
 	builder.WriteString(fmt.Sprintf("Report ID: %s\n\n", report.ID))
-	
+
 	builder.WriteString("💬 ORIGINAL MESSAGE\n")
 	builder.WriteString("===================\n")
 	builder.WriteString(fmt.Sprintf("%s\n\n", inquiry.Message))
-	
+
 	builder.WriteString("📋 GENERATED REPORT\n")
 	builder.WriteString("===================\n")
 	builder.WriteString(fmt.Sprintf("%s\n\n", e.sanitizeMarkdownForPlainText(report.Content)))
-	
+
 	builder.WriteString("📌 ACTION REQUIRED\n")
 	builder.WriteString("==================\n")
 	if isHighPriority {
@@ -367,21 +359,21 @@ func (e *emailService) buildReportEmailText(inquiry *domain.Inquiry, report *dom
 	} else {
 		builder.WriteString("Please review and respond to the client accordingly.\n\n")
 	}
-	
+
 	builder.WriteString("---\n")
 	builder.WriteString("This is an automated notification from Cloud Consulting Business.\n")
 	builder.WriteString("Contact: info@cloudpartner.pro")
-	
+
 	return builder.String()
 }
 
 // buildReportEmailHTML creates the HTML version of the report email
 func (e *emailService) buildReportEmailHTML(inquiry *domain.Inquiry, report *domain.Report) string {
 	isHighPriority := e.detectHighPriority(inquiry.Message)
-	
+
 	var headerTitle, priorityAlert, actionText string
 	var headerStyle string
-	
+
 	if isHighPriority {
 		headerTitle = "🚨 HIGH PRIORITY - New Cloud Consulting Report Generated"
 		headerStyle = "background: linear-gradient(135deg, #dc3545, #c82333);"
@@ -585,9 +577,9 @@ func (e *emailService) buildReportEmailHTML(inquiry *domain.Inquiry, report *dom
 // buildInquiryEmailText creates the plain text version of the inquiry notification email
 func (e *emailService) buildInquiryEmailText(inquiry *domain.Inquiry) string {
 	var builder strings.Builder
-	
+
 	builder.WriteString("🔔 NEW CLOUD CONSULTING INQUIRY RECEIVED\n\n")
-	
+
 	builder.WriteString("👤 CLIENT INFORMATION\n")
 	builder.WriteString("=====================\n")
 	builder.WriteString(fmt.Sprintf("Name: %s\n", inquiry.Name))
@@ -596,19 +588,19 @@ func (e *emailService) buildInquiryEmailText(inquiry *domain.Inquiry) string {
 	builder.WriteString(fmt.Sprintf("Phone: %s\n", inquiry.Phone))
 	builder.WriteString(fmt.Sprintf("Services: %s\n", strings.Join(inquiry.Services, ", ")))
 	builder.WriteString(fmt.Sprintf("Inquiry ID: %s\n\n", inquiry.ID))
-	
+
 	builder.WriteString("💬 MESSAGE\n")
 	builder.WriteString("===========\n")
 	builder.WriteString(fmt.Sprintf("%s\n\n", inquiry.Message))
-	
+
 	builder.WriteString("📌 ACTION REQUIRED\n")
 	builder.WriteString("==================\n")
 	builder.WriteString("Please review this inquiry and respond accordingly.\n\n")
-	
+
 	builder.WriteString("---\n")
 	builder.WriteString("This is an automated notification from Cloud Consulting Business.\n")
 	builder.WriteString("Contact: info@cloudpartner.pro")
-	
+
 	return builder.String()
 }
 
@@ -676,124 +668,43 @@ type CustomerConfirmationTemplateData struct {
 	// Report fields have been REMOVED - customers should never receive AI-generated reports
 }
 
-
-
 // buildCustomerConfirmationText creates the plain text version of the customer confirmation email
 func (e *emailService) buildCustomerConfirmationText(inquiry *domain.Inquiry) string {
 	var builder strings.Builder
-	
+
 	builder.WriteString("Thank you for your cloud consulting inquiry!\r\n\r\n")
-	
+
 	builder.WriteString(fmt.Sprintf("Dear %s,\r\n\r\n", inquiry.Name))
-	
+
 	builder.WriteString("We have received your inquiry for cloud consulting services and wanted to confirm that it has been successfully submitted.\r\n\r\n")
-	
+
 	builder.WriteString("Inquiry Details\r\n")
 	builder.WriteString("===============\r\n")
 	builder.WriteString(fmt.Sprintf("Services Requested: %s\r\n", strings.Join(inquiry.Services, ", ")))
 	builder.WriteString(fmt.Sprintf("Company: %s\r\n", inquiry.Company))
 	builder.WriteString(fmt.Sprintf("Reference ID: %s\r\n\r\n", inquiry.ID))
-	
+
 	builder.WriteString("What happens next?\r\n")
 	builder.WriteString("==================\r\n")
 	builder.WriteString("• Our team will review your inquiry within 24 hours\r\n")
 	builder.WriteString("• We'll prepare a customized assessment based on your requirements\r\n")
 	builder.WriteString("• A cloud consultant will reach out to discuss your project in detail\r\n")
 	builder.WriteString("• We'll provide you with a detailed proposal and timeline\r\n\r\n")
-	
+
 	builder.WriteString("If you have any immediate questions or need to provide additional information, please don't hesitate to contact us.\r\n\r\n")
-	
+
 	builder.WriteString("Best regards,\r\n")
 	builder.WriteString("Cloud Consulting Team\r\n")
 	builder.WriteString("info@cloudpartner.pro\r\n\r\n")
-	
+
 	builder.WriteString("---\r\n")
 	builder.WriteString("This is an automated confirmation email. Please do not reply to this message.")
-	
+
 	return builder.String()
 }
 
 // NOTE: buildCustomerConfirmationTextWithReport function has been REMOVED
 // AI-generated reports should NEVER be sent to customers - they are for internal use only
-
-// SendReportEmailWithPDF sends an internal email notification with PDF attachment when a report is generated
-func (e *emailService) SendReportEmailWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error {
-	// Check if this is a high priority inquiry
-	isHighPriority := e.detectHighPriority(inquiry.Message)
-	
-	var subject string
-	if isHighPriority {
-		subject = fmt.Sprintf("🚨 HIGH PRIORITY - New Cloud Consulting Report - %s", inquiry.Name)
-	} else {
-		subject = fmt.Sprintf("New Cloud Consulting Report Generated - %s", inquiry.Name)
-	}
-	
-	// Use branded template if available, fallback to basic template
-	var htmlBody string
-	var textBody string
-	
-	if e.templateService != nil {
-		// Use the template service to prepare data properly
-		templateData := e.templateService.PrepareConsultantNotificationData(inquiry, report, isHighPriority)
-		
-		// Render branded HTML template
-		brandedHTML, err := e.templateService.RenderEmailTemplate(ctx, "consultant_notification", templateData)
-		if err != nil {
-			e.logger.WithError(err).WithField("inquiry_id", inquiry.ID).Warn("Failed to render branded template, using fallback")
-			htmlBody = e.buildReportEmailHTML(inquiry, report)
-		} else {
-			htmlBody = brandedHTML
-		}
-	} else {
-		htmlBody = e.buildReportEmailHTML(inquiry, report)
-	}
-	
-	// Always use the text version as fallback
-	textBody = e.buildReportEmailText(inquiry, report)
-
-	// Create PDF attachment
-	var attachments []interfaces.EmailAttachment
-	if pdfData != nil && len(pdfData) > 0 {
-		filename := e.generatePDFFilename(inquiry, report)
-		attachments = append(attachments, interfaces.EmailAttachment{
-			Filename:    filename,
-			ContentType: "application/pdf",
-			Data:        pdfData,
-		})
-	}
-
-	// Send only to internal address - no customer email included
-	email := &interfaces.EmailMessage{
-		From:        e.config.SenderEmail,
-		To:          []string{"info@cloudpartner.pro"},
-		Subject:     subject,
-		TextBody:    textBody,
-		HTMLBody:    htmlBody,
-		ReplyTo:     e.config.ReplyToEmail,
-		Attachments: attachments,
-	}
-
-	err := e.sesService.SendEmail(ctx, email)
-	if err != nil {
-		e.logger.WithError(err).WithFields(logrus.Fields{
-			"inquiry_id": inquiry.ID,
-			"report_id":  report.ID,
-		}).Error("Failed to send internal report email with PDF")
-		return fmt.Errorf("failed to send internal report email with PDF: %w", err)
-	}
-
-	e.logger.WithFields(logrus.Fields{
-		"inquiry_id":      inquiry.ID,
-		"report_id":       report.ID,
-		"recipients":      email.To,
-		"high_priority":   isHighPriority,
-		"template_used":   "branded",
-		"pdf_attached":    len(pdfData) > 0,
-		"pdf_size":        len(pdfData),
-	}).Info("Internal report email with PDF sent successfully")
-
-	return nil
-}
 
 // buildCustomerConfirmationHTML creates the HTML version of the customer confirmation email
 func (e *emailService) buildCustomerConfirmationHTML(inquiry *domain.Inquiry) string {
@@ -924,31 +835,6 @@ func (e *emailService) buildCustomerConfirmationHTML(inquiry *domain.Inquiry) st
 
 // NOTE: buildCustomerConfirmationHTMLWithReport function has been REMOVED
 // AI-generated reports should NEVER be sent to customers - they are for internal use only
-
-// generatePDFFilename creates a filename for PDF attachments
-func (e *emailService) generatePDFFilename(inquiry *domain.Inquiry, report *domain.Report) string {
-	// Sanitize company name for filename
-	companyName := inquiry.Company
-	if companyName == "" {
-		companyName = "Client"
-	}
-	
-	// Remove special characters and spaces
-	sanitized := ""
-	for _, r := range companyName {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
-			sanitized += string(r)
-		} else if r == ' ' || r == '-' || r == '_' {
-			sanitized += "_"
-		}
-	}
-	
-	if sanitized == "" {
-		sanitized = "Client"
-	}
-	
-	return sanitized + "_" + string(report.Type) + "_report.pdf"
-}
 
 // NOTE: SendCustomerConfirmationWithPDF function has been REMOVED
 // AI-generated reports should NEVER be sent to customers - they are for internal use only

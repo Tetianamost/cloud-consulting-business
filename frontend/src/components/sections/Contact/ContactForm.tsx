@@ -363,10 +363,10 @@ const validationSchema = Yup.object().shape({
 });
 
 const serviceOptions = [
-  { id: 'assessment', label: 'Cloud Assessment' },
-  { id: 'migration', label: 'Cloud Migration' },
-  { id: 'optimization', label: 'Cloud Optimization' },
-  { id: 'architecture_review', label: 'Architecture Review' },
+  { id: 'assessment', label: 'Initial Assessment' },
+  { id: 'migration', label: 'Migration Planning' },
+  { id: 'optimization', label: 'Implementation Assistance' },
+  { id: 'architecture_review', label: 'Cloud Architecture Review' },
 ];
 
 // Animation variants

@@ -76,7 +76,6 @@ type BedrockService interface {
 // EmailService defines the interface for email notifications
 type EmailService interface {
 	SendReportEmail(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report) error
-	SendReportEmailWithPDF(ctx context.Context, inquiry *domain.Inquiry, report *domain.Report, pdfData []byte) error
 	SendInquiryNotification(ctx context.Context, inquiry *domain.Inquiry) error
 	SendCustomerConfirmation(ctx context.Context, inquiry *domain.Inquiry) error
 	// SendCustomerConfirmationWithPDF has been REMOVED - reports should never be sent to customers
