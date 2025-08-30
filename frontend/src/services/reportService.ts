@@ -41,12 +41,5 @@ export async function downloadReport(
   if (!inquiryId) {
     throw new Error('Missing inquiry ID for report download');
   }
-  const response = await fetch(`/api/reports/${inquiryId}/download?format=${format}`, {
-    method: 'GET',
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to download report: ${response.statusText}`);
-  }
-  return await response.blob();
+  return await apiService.downloadReport(inquiryId, format);
 }

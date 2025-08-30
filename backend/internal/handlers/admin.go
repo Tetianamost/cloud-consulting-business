@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/cloud-consulting/backend/internal/domain"
 	"github.com/cloud-consulting/backend/internal/interfaces"
 	"github.com/cloud-consulting/backend/internal/storage"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 // AdminHandler handles admin-related HTTP requests
@@ -17,6 +18,8 @@ type AdminHandler struct {
 	inquiryService interfaces.InquiryService
 	reportService  interfaces.ReportService
 	emailService   interfaces.EmailService
+	logger         *logrus.Logger
+	errorHandler   *ErrorHandler
 }
 
 // NewAdminHandler creates a new admin handler
@@ -25,45 +28,48 @@ func NewAdminHandler(
 	inquiryService interfaces.InquiryService,
 	reportService interfaces.ReportService,
 	emailService interfaces.EmailService,
+	logger *logrus.Logger,
 ) *AdminHandler {
 	return &AdminHandler{
-		storage:       storage,
+		storage:        storage,
 		inquiryService: inquiryService,
 		reportService:  reportService,
 		emailService:   emailService,
+		logger:         logger,
+		errorHandler:   NewErrorHandler(logger),
 	}
 }
 
 // AdminInquiryFilters represents filters for admin inquiry listing
 type AdminInquiryFilters struct {
-	Status     string     `form:"status"`
-	Priority   string     `form:"priority"`
-	Service    string     `form:"service"`
-	DateFrom   string     `form:"date_from"`
-	DateTo     string     `form:"date_to"`
-	Limit      int        `form:"limit"`
-	Offset     int        `form:"offset"`
+	Status   string `form:"status"`
+	Priority string `form:"priority"`
+	Service  string `form:"service"`
+	DateFrom string `form:"date_from"`
+	DateTo   string `form:"date_to"`
+	Limit    int    `form:"limit"`
+	Offset   int    `form:"offset"`
 }
 
 // AdminInquiriesResponse represents the response for admin inquiries listing
 type AdminInquiriesResponse struct {
-	Success bool                `json:"success"`
-	Data    []*domain.Inquiry   `json:"data"`
-	Count   int                 `json:"count"`
-	Total   int64               `json:"total"`
-	Page    int                 `json:"page"`
-	Pages   int                 `json:"pages"`
+	Success bool              `json:"success"`
+	Data    []*domain.Inquiry `json:"data"`
+	Count   int               `json:"count"`
+	Total   int64             `json:"total"`
+	Page    int               `json:"page"`
+	Pages   int               `json:"pages"`
 }
 
 // SystemMetrics represents system metrics for the admin dashboard
 type SystemMetrics struct {
-	TotalInquiries      int64   `json:"total_inquiries"`
-	ReportsGenerated    int64   `json:"reports_generated"`
-	EmailsSent          int64   `json:"emails_sent"`
-	EmailDeliveryRate   float64 `json:"email_delivery_rate"`
-	AvgReportGenTime    float64 `json:"avg_report_gen_time_ms"`
-	SystemUptime        string  `json:"system_uptime"`
-	LastProcessedAt     string  `json:"last_processed_at,omitempty"`
+	TotalInquiries    int64   `json:"total_inquiries"`
+	ReportsGenerated  int64   `json:"reports_generated"`
+	EmailsSent        int64   `json:"emails_sent"`
+	EmailDeliveryRate float64 `json:"email_delivery_rate"`
+	AvgReportGenTime  float64 `json:"avg_report_gen_time_ms"`
+	SystemUptime      string  `json:"system_uptime"`
+	LastProcessedAt   string  `json:"last_processed_at,omitempty"`
 }
 
 // EmailStatus represents email delivery status
@@ -146,22 +152,22 @@ func (h *AdminHandler) ListInquiries(c *gin.Context) {
 
 // AdminReportFilters represents filters for admin report listing
 type AdminReportFilters struct {
-	Status     string `form:"status"`
-	Type       string `form:"type"`
-	DateFrom   string `form:"date_from"`
-	DateTo     string `form:"date_to"`
-	Limit      int    `form:"limit"`
-	Offset     int    `form:"offset"`
+	Status   string `form:"status"`
+	Type     string `form:"type"`
+	DateFrom string `form:"date_from"`
+	DateTo   string `form:"date_to"`
+	Limit    int    `form:"limit"`
+	Offset   int    `form:"offset"`
 }
 
 // AdminReportsResponse represents the response for admin reports listing
 type AdminReportsResponse struct {
-	Success bool              `json:"success"`
+	Success bool                 `json:"success"`
 	Data    []*ReportWithInquiry `json:"data"`
-	Count   int               `json:"count"`
-	Total   int64             `json:"total"`
-	Page    int               `json:"page"`
-	Pages   int               `json:"pages"`
+	Count   int                  `json:"count"`
+	Total   int64                `json:"total"`
+	Page    int                  `json:"page"`
+	Pages   int                  `json:"pages"`
 }
 
 // ReportWithInquiry represents a report with its associated inquiry information
@@ -209,7 +215,7 @@ func (h *AdminHandler) ListReports(c *gin.Context) {
 					Report:  report,
 					Inquiry: inquiry,
 				}
-				
+
 				// Apply filters
 				if filters.Status != "" && string(report.Status) != filters.Status {
 					continue
@@ -217,7 +223,7 @@ func (h *AdminHandler) ListReports(c *gin.Context) {
 				if filters.Type != "" && string(report.Type) != filters.Type {
 					continue
 				}
-				
+
 				allReports = append(allReports, reportWithInquiry)
 			}
 		}
@@ -236,14 +242,14 @@ func (h *AdminHandler) ListReports(c *gin.Context) {
 	total := int64(len(allReports))
 	start := filters.Offset
 	end := start + filters.Limit
-	
+
 	if start > len(allReports) {
 		start = len(allReports)
 	}
 	if end > len(allReports) {
 		end = len(allReports)
 	}
-	
+
 	paginatedReports := allReports[start:end]
 
 	// Calculate pagination info
@@ -268,7 +274,7 @@ func (h *AdminHandler) ListReports(c *gin.Context) {
 // GetReport handles GET /api/v1/admin/reports/:reportId
 func (h *AdminHandler) GetReport(c *gin.Context) {
 	reportID := c.Param("reportId")
-	
+
 	// Get all inquiries to find the report
 	inquiries, err := h.inquiryService.ListInquiries(c.Request.Context(), nil)
 	if err != nil {
@@ -282,7 +288,7 @@ func (h *AdminHandler) GetReport(c *gin.Context) {
 	// Find the report by ID
 	var foundReport *domain.Report
 	var foundInquiry *domain.Inquiry
-	
+
 	for _, inquiry := range inquiries {
 		for _, report := range inquiry.Reports {
 			if report.ID == reportID {
@@ -330,34 +336,34 @@ func (h *AdminHandler) GetSystemMetrics(c *gin.Context) {
 	// For demo purposes, we'll calculate some metrics based on the inquiries
 	// In a real system, these would be tracked and stored
 	inquiries, _ := h.inquiryService.ListInquiries(c.Request.Context(), nil)
-	
+
 	var reportsGenerated int64 = 0
 	var emailsSent int64 = 0
 	var lastProcessed time.Time
-	
+
 	for _, inquiry := range inquiries {
 		if len(inquiry.Reports) > 0 {
 			reportsGenerated += int64(len(inquiry.Reports))
 			emailsSent += 2 // Assume 1 customer email + 1 consultant email per report
 		}
-		
+
 		if inquiry.UpdatedAt.After(lastProcessed) {
 			lastProcessed = inquiry.UpdatedAt
 		}
 	}
-	
+
 	// Calculate email delivery rate (for demo, assume 95% success)
 	emailDeliveryRate := 95.0
 	if emailsSent == 0 {
 		emailDeliveryRate = 100.0
 	}
-	
+
 	// Calculate average report generation time (for demo, use a fixed value)
 	avgReportGenTime := 1250.0 // 1.25 seconds in ms
-	
+
 	// Calculate system uptime (for demo, use a fixed value)
 	systemUptime := "3d 7h 22m"
-	
+
 	metrics := SystemMetrics{
 		TotalInquiries:    totalInquiries,
 		ReportsGenerated:  reportsGenerated,
@@ -366,7 +372,7 @@ func (h *AdminHandler) GetSystemMetrics(c *gin.Context) {
 		AvgReportGenTime:  avgReportGenTime,
 		SystemUptime:      systemUptime,
 	}
-	
+
 	if !lastProcessed.IsZero() {
 		metrics.LastProcessedAt = lastProcessed.Format(time.RFC3339)
 	}
@@ -380,7 +386,7 @@ func (h *AdminHandler) GetSystemMetrics(c *gin.Context) {
 // GetEmailStatus handles GET /api/v1/admin/email-status/:inquiryId
 func (h *AdminHandler) GetEmailStatus(c *gin.Context) {
 	inquiryID := c.Param("inquiryId")
-	
+
 	// Get the inquiry
 	inquiry, err := h.inquiryService.GetInquiry(c.Request.Context(), inquiryID)
 	if err != nil {
@@ -409,7 +415,7 @@ func (h *AdminHandler) GetEmailStatus(c *gin.Context) {
 		SentAt:          inquiry.CreatedAt.Add(time.Minute * 1),
 		DeliveredAt:     inquiry.CreatedAt.Add(time.Minute * 1).Add(time.Second * 3),
 	}
-	
+
 	// If the inquiry was created less than 1 minute ago, show as "sending"
 	if time.Since(inquiry.CreatedAt) < time.Minute {
 		status.Status = "sending"
@@ -426,62 +432,73 @@ func (h *AdminHandler) GetEmailStatus(c *gin.Context) {
 func (h *AdminHandler) DownloadReport(c *gin.Context) {
 	inquiryID := c.Param("inquiryId")
 	format := c.Param("format")
-	
-	// Validate format
-	if format != "pdf" && format != "html" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid format. Supported formats: pdf, html",
-		})
+	userID := GetUserIDFromContext(c)
+	requestID := GetRequestIDFromContext(c)
+
+	// Create error context for logging
+	errorContext := &ErrorContext{
+		InquiryID: inquiryID,
+		Format:    format,
+		UserID:    userID,
+		Action:    "download_report",
+		RequestID: requestID,
+	}
+
+	// Validate inquiry ID
+	if err := h.errorHandler.ValidateInquiryID(inquiryID); err != nil {
+		h.errorHandler.HandleDownloadError(c, err, ErrCodeValidationError, errorContext)
 		return
 	}
-	
+
+	// Validate format parameter
+	if err := h.errorHandler.ValidateDownloadFormat(format); err != nil {
+		h.errorHandler.HandleDownloadError(c, err, ErrCodeInvalidFormat, errorContext)
+		return
+	}
+
 	// Get the inquiry
 	inquiry, err := h.inquiryService.GetInquiry(c.Request.Context(), inquiryID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to retrieve inquiry",
-		})
+		h.errorHandler.HandleDownloadError(c, err, ErrCodeInternalError, errorContext)
 		return
 	}
 
 	if inquiry == nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error":   "Inquiry not found",
-		})
+		h.errorHandler.HandleDownloadError(c, fmt.Errorf("inquiry with ID %s not found", inquiryID), ErrCodeInquiryNotFound, errorContext)
 		return
 	}
 
 	// Check if inquiry has reports
 	if len(inquiry.Reports) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error":   "No reports found for this inquiry",
-		})
+		h.errorHandler.HandleDownloadError(c, fmt.Errorf("no reports available for inquiry %s", inquiryID), ErrCodeNoReports, errorContext)
 		return
 	}
 
-	// Get the first (latest) report
+	// Get the most recent report
 	report := inquiry.Reports[0]
-	
-	// Find the most recent report if there are multiple
 	for _, r := range inquiry.Reports {
 		if r.CreatedAt.After(report.CreatedAt) {
 			report = r
 		}
 	}
 
+	// Log download attempt
+	h.logger.WithFields(logrus.Fields{
+		"inquiry_id":  inquiryID,
+		"format":      format,
+		"user_id":     userID,
+		"request_id":  requestID,
+		"report_id":   report.ID,
+		"report_type": string(report.Type),
+		"action":      "download_report_start",
+	}).Info("Starting report download")
+
 	switch format {
 	case "pdf":
 		// Generate PDF
 		pdfBytes, err := h.reportService.GeneratePDF(c.Request.Context(), inquiry, report)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Failed to generate PDF report: " + err.Error(),
-			})
+			h.errorHandler.HandleDownloadError(c, fmt.Errorf("PDF generation failed: %w", err), ErrCodeReportGeneration, errorContext)
 			return
 		}
 
@@ -490,17 +507,17 @@ func (h *AdminHandler) DownloadReport(c *gin.Context) {
 		c.Header("Content-Type", "application/pdf")
 		c.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")
 		c.Header("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
-		
+
+		// Log successful download
+		h.errorHandler.LogSuccessfulDownload(c, errorContext, int64(len(pdfBytes)))
+
 		c.Data(http.StatusOK, "application/pdf", pdfBytes)
 
 	case "html":
 		// Generate HTML
 		htmlContent, err := h.reportService.GenerateHTML(c.Request.Context(), inquiry, report)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Failed to generate HTML report",
-			})
+			h.errorHandler.HandleDownloadError(c, fmt.Errorf("HTML generation failed: %w", err), ErrCodeReportGeneration, errorContext)
 			return
 		}
 
@@ -509,7 +526,10 @@ func (h *AdminHandler) DownloadReport(c *gin.Context) {
 		c.Header("Content-Type", "text/html; charset=utf-8")
 		c.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")
 		c.Header("Content-Length", fmt.Sprintf("%d", len(htmlContent)))
-		
+
+		// Log successful download
+		h.errorHandler.LogSuccessfulDownload(c, errorContext, int64(len(htmlContent)))
+
 		c.String(http.StatusOK, htmlContent)
 	}
 }
@@ -521,7 +541,7 @@ func generateAdminPDFFilename(inquiry *domain.Inquiry, report *domain.Report) st
 	if companyName == "" {
 		companyName = "Client"
 	}
-	
+
 	// Remove special characters and spaces
 	sanitized := ""
 	for _, r := range companyName {
@@ -531,11 +551,11 @@ func generateAdminPDFFilename(inquiry *domain.Inquiry, report *domain.Report) st
 			sanitized += "_"
 		}
 	}
-	
+
 	if sanitized == "" {
 		sanitized = "Client"
 	}
-	
+
 	timestamp := time.Now().Format("20060102")
 	return "admin_" + sanitized + "_" + string(report.Type) + "_" + timestamp + ".pdf"
 }
@@ -547,7 +567,7 @@ func generateAdminHTMLFilename(inquiry *domain.Inquiry, report *domain.Report) s
 	if companyName == "" {
 		companyName = "Client"
 	}
-	
+
 	// Remove special characters and spaces
 	sanitized := ""
 	for _, r := range companyName {
@@ -557,11 +577,11 @@ func generateAdminHTMLFilename(inquiry *domain.Inquiry, report *domain.Report) s
 			sanitized += "_"
 		}
 	}
-	
+
 	if sanitized == "" {
 		sanitized = "Client"
 	}
-	
+
 	timestamp := time.Now().Format("20060102")
 	return "admin_" + sanitized + "_" + string(report.Type) + "_" + timestamp + ".html"
 }

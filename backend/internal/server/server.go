@@ -107,7 +107,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	// Initialize handlers
 	inquiryHandler := handlers.NewInquiryHandler(inquiryService, reportGenerator)
 	reportHandler := handlers.NewReportHandler(memStorage)
-	adminHandler := handlers.NewAdminHandler(memStorage, inquiryService, reportGenerator, emailService)
+	adminHandler := handlers.NewAdminHandler(memStorage, inquiryService, reportGenerator, emailService, logger)
 	authHandler := handlers.NewAuthHandler(cfg.JWTSecret)
 	chatHandler := handlers.NewChatHandler(logger, bedrockService, knowledgeBase, sessionService, chatService, authHandler, cfg.JWTSecret, cfg.CORSAllowedOrigins, chatMetricsCollector, chatPerformanceMonitor)
 
@@ -201,8 +201,8 @@ func (s *Server) setupRoutes() {
 		admin := v1.Group("/admin", s.authHandler.AuthMiddleware())
 		{
 			admin.GET("/inquiries", s.adminHandler.ListInquiries)
-			admin.GET("/inquiries/:inquiryId/download/:format", s.adminHandler.DownloadReport)
 			admin.GET("/reports", s.adminHandler.ListReports)
+			admin.GET("/reports/:inquiryId/download/:format", s.adminHandler.DownloadReport)
 			admin.GET("/reports/:reportId", s.adminHandler.GetReport)
 			admin.GET("/metrics", s.adminHandler.GetSystemMetrics)
 			admin.GET("/email-status/:inquiryId", s.adminHandler.GetEmailStatus)

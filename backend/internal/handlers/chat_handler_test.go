@@ -16,6 +16,7 @@ import (
 
 	"github.com/cloud-consulting/backend/internal/domain"
 	"github.com/cloud-consulting/backend/internal/interfaces"
+	"github.com/cloud-consulting/backend/internal/services"
 )
 
 // MockBedrockService for testing
@@ -295,6 +296,10 @@ func createTestChatHandler() (*ChatHandler, *MockBedrockService, *MockKnowledgeB
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce log noise in tests
 
+	// Create mock metrics collector and performance monitor
+	mockMetricsCollector := &services.ChatMetricsCollector{}
+	mockPerformanceMonitor := &services.ChatPerformanceMonitor{}
+
 	handler := NewChatHandler(
 		logger,
 		mockBedrock,
@@ -303,6 +308,9 @@ func createTestChatHandler() (*ChatHandler, *MockBedrockService, *MockKnowledgeB
 		mockChatService,
 		nil, // authHandler not needed for these tests
 		"test-jwt-secret",
+		[]string{"http://localhost:3000"}, // corsOrigins
+		mockMetricsCollector,
+		mockPerformanceMonitor,
 	)
 
 	return handler, mockBedrock, mockKB, mockSessionService, mockChatService
@@ -395,8 +403,6 @@ func TestChatHandler_ProcessEnhancedChatRequest_ChatServiceFailure(t *testing.T)
 	request := createTestChatRequest()
 	connID := "test-conn-id"
 	userID := "test-user-id"
-
-	session := createTestDomainSession()
 
 	// Mock successful session creation but failed chat service
 	mockSessionService.On("ValidateSession", mock.Anything, "", userID).Return(nil, assert.AnError)
