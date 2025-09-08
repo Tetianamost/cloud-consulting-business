@@ -197,47 +197,64 @@ export const V0EmailDeliveryDashboard: React.FC<V0EmailDeliveryDashboardProps> =
 
       {/* Email delivery metrics cards */}
       {!loading && !isError && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {emailCards.map((card, index) => {
-          const IconComponent = card.icon;
-          return (
-            <Card key={index} className="relative overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {card.title}
-                </CardTitle>
-                <IconComponent className={`h-4 w-4 ${card.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{card.value}</div>
-                <div className="mt-2 flex items-center space-x-1 text-xs">
-                  {getTrendIcon(card.trend)}
-                  <span className={getTrendColor(card.trend)}>
-                    {card.change}
-                  </span>
+        <>
+          {/* Show no data message if all metrics are zero */}
+          {metrics.totalEmails === 0 && (
+            <Card className="border-gray-200 bg-gray-50 mb-6">
+              <CardContent className="pt-6">
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Mail className="h-5 w-5" />
+                  <span className="font-medium">No Email Activity</span>
                 </div>
-                {/* Progress bar for percentage metrics */}
-                {typeof card.percentage === 'number' && card.title !== 'Failed Emails' && (
-                  <div className="mt-3">
-                    <V0ProgressBar 
-                      value={card.percentage} 
-                      size="sm"
-                      color={card.trend === 'up' ? 'green' : card.trend === 'down' ? 'red' : 'blue'}
-                    />
-                  </div>
-                )}
-                {/* Special handling for failed emails - show as error progress */}
-                {card.title === 'Failed Emails' && (
-                  <Progress 
-                    value={card.percentage} 
-                    className="mt-3 h-1 bg-red-100 [&>div]:bg-red-500" 
-                  />
-                )}
+                <p className="mt-2 text-sm text-gray-600">
+                  No emails have been processed yet. Email metrics will appear once the system starts sending emails.
+                </p>
               </CardContent>
             </Card>
-          );
-          })}
-        </div>
+          )}
+          
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {emailCards.map((card, index) => {
+            const IconComponent = card.icon;
+            return (
+              <Card key={index} className="relative overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {card.title}
+                  </CardTitle>
+                  <IconComponent className={`h-4 w-4 ${card.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{card.value}</div>
+                  <div className="mt-2 flex items-center space-x-1 text-xs">
+                    {getTrendIcon(card.trend)}
+                    <span className={getTrendColor(card.trend)}>
+                      {card.change}
+                    </span>
+                  </div>
+                  {/* Progress bar for percentage metrics */}
+                  {typeof card.percentage === 'number' && card.title !== 'Failed Emails' && (
+                    <div className="mt-3">
+                      <V0ProgressBar 
+                        value={card.percentage} 
+                        size="sm"
+                        color={card.trend === 'up' ? 'green' : card.trend === 'down' ? 'red' : 'blue'}
+                      />
+                    </div>
+                  )}
+                  {/* Special handling for failed emails - show as error progress */}
+                  {card.title === 'Failed Emails' && (
+                    <Progress 
+                      value={card.percentage} 
+                      className="mt-3 h-1 bg-red-100 [&>div]:bg-red-500" 
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            );
+            })}
+          </div>
+        </>
       )}
 
       {/* Horizontal delivery status overview */}

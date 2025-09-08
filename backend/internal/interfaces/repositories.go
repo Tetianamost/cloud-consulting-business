@@ -41,27 +41,37 @@ type ActivityRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+// EmailEventRepository defines the interface for email event data access
+type EmailEventRepository interface {
+	Create(ctx context.Context, event *domain.EmailEvent) error
+	Update(ctx context.Context, event *domain.EmailEvent) error
+	GetByInquiryID(ctx context.Context, inquiryID string) ([]*domain.EmailEvent, error)
+	GetByMessageID(ctx context.Context, messageID string) (*domain.EmailEvent, error)
+	GetMetrics(ctx context.Context, filters domain.EmailEventFilters) (*domain.EmailMetrics, error)
+	List(ctx context.Context, filters domain.EmailEventFilters) ([]*domain.EmailEvent, error)
+}
+
 // Supporting types for repositories
 
 // ReportFilters represents filters for listing reports
 type ReportFilters struct {
-	InquiryID   *string               `json:"inquiry_id,omitempty"`
-	Type        *domain.ReportType    `json:"type,omitempty"`
-	Status      *domain.ReportStatus  `json:"status,omitempty"`
-	GeneratedBy *string               `json:"generated_by,omitempty"`
-	DateFrom    *string               `json:"date_from,omitempty"`
-	DateTo      *string               `json:"date_to,omitempty"`
-	Limit       int                   `json:"limit,omitempty"`
-	Offset      int                   `json:"offset,omitempty"`
+	InquiryID   *string              `json:"inquiry_id,omitempty"`
+	Type        *domain.ReportType   `json:"type,omitempty"`
+	Status      *domain.ReportStatus `json:"status,omitempty"`
+	GeneratedBy *string              `json:"generated_by,omitempty"`
+	DateFrom    *string              `json:"date_from,omitempty"`
+	DateTo      *string              `json:"date_to,omitempty"`
+	Limit       int                  `json:"limit,omitempty"`
+	Offset      int                  `json:"offset,omitempty"`
 }
 
 // ActivityFilters represents filters for listing activities
 type ActivityFilters struct {
-	InquiryID *string                `json:"inquiry_id,omitempty"`
-	Type      *domain.ActivityType   `json:"type,omitempty"`
-	Actor     *string                `json:"actor,omitempty"`
-	DateFrom  *string                `json:"date_from,omitempty"`
-	DateTo    *string                `json:"date_to,omitempty"`
-	Limit     int                    `json:"limit,omitempty"`
-	Offset    int                    `json:"offset,omitempty"`
+	InquiryID *string              `json:"inquiry_id,omitempty"`
+	Type      *domain.ActivityType `json:"type,omitempty"`
+	Actor     *string              `json:"actor,omitempty"`
+	DateFrom  *string              `json:"date_from,omitempty"`
+	DateTo    *string              `json:"date_to,omitempty"`
+	Limit     int                  `json:"limit,omitempty"`
+	Offset    int                  `json:"offset,omitempty"`
 }

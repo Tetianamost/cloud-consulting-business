@@ -391,3 +391,151 @@ func NewValidationError(field, message string) ValidationError {
 		Message: message,
 	}
 }
+
+// Email Event Tracking Models
+
+// EmailEventType represents the type of email event
+type EmailEventType string
+
+const (
+	EmailTypeCustomerConfirmation   EmailEventType = "customer_confirmation"
+	EmailTypeConsultantNotification EmailEventType = "consultant_notification"
+	EmailTypeInquiryNotification    EmailEventType = "inquiry_notification"
+)
+
+// EmailEventStatus represents the status of an email event
+type EmailEventStatus string
+
+const (
+	EmailStatusSent      EmailEventStatus = "sent"
+	EmailStatusDelivered EmailEventStatus = "delivered"
+	EmailStatusFailed    EmailEventStatus = "failed"
+	EmailStatusBounced   EmailEventStatus = "bounced"
+	EmailStatusSpam      EmailEventStatus = "spam"
+)
+
+// EmailEvent represents an email event for tracking email delivery
+type EmailEvent struct {
+	ID             string           `json:"id" db:"id"`
+	InquiryID      string           `json:"inquiry_id" db:"inquiry_id" validate:"required"`
+	EmailType      EmailEventType   `json:"email_type" db:"email_type" validate:"required"`
+	RecipientEmail string           `json:"recipient_email" db:"recipient_email" validate:"required,email"`
+	SenderEmail    string           `json:"sender_email" db:"sender_email" validate:"required,email"`
+	Subject        string           `json:"subject" db:"subject" validate:"max=500"`
+	Status         EmailEventStatus `json:"status" db:"status" validate:"required"`
+	SentAt         time.Time        `json:"sent_at" db:"sent_at"`
+	DeliveredAt    *time.Time       `json:"delivered_at" db:"delivered_at"`
+	ErrorMessage   string           `json:"error_message" db:"error_message"`
+	BounceType     string           `json:"bounce_type" db:"bounce_type" validate:"max=50"`
+	SESMessageID   string           `json:"ses_message_id" db:"ses_message_id" validate:"max=255"`
+	CreatedAt      time.Time        `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time        `json:"updated_at" db:"updated_at"`
+}
+
+// EmailMetrics represents aggregated email metrics
+type EmailMetrics struct {
+	TotalEmails     int64   `json:"total_emails"`
+	DeliveredEmails int64   `json:"delivered_emails"`
+	FailedEmails    int64   `json:"failed_emails"`
+	BouncedEmails   int64   `json:"bounced_emails"`
+	SpamEmails      int64   `json:"spam_emails"`
+	DeliveryRate    float64 `json:"delivery_rate"`
+	BounceRate      float64 `json:"bounce_rate"`
+	SpamRate        float64 `json:"spam_rate"`
+	TimeRange       string  `json:"time_range"`
+}
+
+// EmailStatus represents the email status for a specific inquiry
+type EmailStatus struct {
+	InquiryID           string      `json:"inquiry_id"`
+	CustomerEmail       *EmailEvent `json:"customer_email,omitempty"`
+	ConsultantEmail     *EmailEvent `json:"consultant_email,omitempty"`
+	InquiryNotification *EmailEvent `json:"inquiry_notification,omitempty"`
+	LastEmailSent       *time.Time  `json:"last_email_sent,omitempty"`
+	TotalEmailsSent     int         `json:"total_emails_sent"`
+	DeliveryStatus      string      `json:"delivery_status"`
+}
+
+// TimeRange represents a time range for filtering
+type TimeRange struct {
+	Start time.Time `json:"start"`
+	End   time.Time `json:"end"`
+}
+
+// EmailEventFilters represents filters for querying email events
+type EmailEventFilters struct {
+	TimeRange *TimeRange        `json:"time_range,omitempty"`
+	EmailType *EmailEventType   `json:"email_type,omitempty"`
+	Status    *EmailEventStatus `json:"status,omitempty"`
+	InquiryID *string           `json:"inquiry_id,omitempty"`
+	Limit     int               `json:"limit" validate:"min=1,max=1000"`
+	Offset    int               `json:"offset" validate:"min=0"`
+}
+
+// Validation methods for EmailEvent
+func (ee *EmailEvent) Validate() error {
+	if ee.InquiryID == "" {
+		return NewValidationError("inquiry_id", "Inquiry ID is required")
+	}
+	if ee.EmailType == "" {
+		return NewValidationError("email_type", "Email type is required")
+	}
+	if ee.RecipientEmail == "" {
+		return NewValidationError("recipient_email", "Recipient email is required")
+	}
+	if ee.SenderEmail == "" {
+		return NewValidationError("sender_email", "Sender email is required")
+	}
+	if ee.Status == "" {
+		return NewValidationError("status", "Status is required")
+	}
+	if len(ee.Subject) > 500 {
+		return NewValidationError("subject", "Subject must be 500 characters or less")
+	}
+	if len(ee.BounceType) > 50 {
+		return NewValidationError("bounce_type", "Bounce type must be 50 characters or less")
+	}
+	if len(ee.SESMessageID) > 255 {
+		return NewValidationError("ses_message_id", "SES message ID must be 255 characters or less")
+	}
+	return nil
+}
+
+// IsDelivered checks if the email event was successfully delivered
+func (ee *EmailEvent) IsDelivered() bool {
+	return ee.Status == EmailStatusDelivered
+}
+
+// IsFailed checks if the email event failed to deliver
+func (ee *EmailEvent) IsFailed() bool {
+	return ee.Status == EmailStatusFailed || ee.Status == EmailStatusBounced || ee.Status == EmailStatusSpam
+}
+
+// SetDelivered marks the email event as delivered
+func (ee *EmailEvent) SetDelivered(deliveredAt time.Time) {
+	ee.Status = EmailStatusDelivered
+	ee.DeliveredAt = &deliveredAt
+	ee.UpdatedAt = time.Now()
+}
+
+// SetFailed marks the email event as failed with an error message
+func (ee *EmailEvent) SetFailed(errorMessage string) {
+	ee.Status = EmailStatusFailed
+	ee.ErrorMessage = errorMessage
+	ee.UpdatedAt = time.Now()
+}
+
+// SetBounced marks the email event as bounced with bounce type
+func (ee *EmailEvent) SetBounced(bounceType, errorMessage string) {
+	ee.Status = EmailStatusBounced
+	ee.BounceType = bounceType
+	ee.ErrorMessage = errorMessage
+	ee.UpdatedAt = time.Now()
+}
+
+// SetSpam marks the email event as spam
+func (ee *EmailEvent) SetSpam(errorMessage string) {
+	ee.Status = EmailStatusSpam
+	ee.ErrorMessage = errorMessage
+	ee.UpdatedAt = time.Now()
+}

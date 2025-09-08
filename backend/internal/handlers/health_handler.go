@@ -8,23 +8,34 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/cloud-consulting/backend/internal/interfaces"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
 // HealthHandler handles health check endpoints
 type HealthHandler struct {
-	logger         *logrus.Logger
-	db             *sql.DB
-	connectionPool *ConnectionPool
+	logger              *logrus.Logger
+	db                  *sql.DB
+	connectionPool      *ConnectionPool
+	emailEventRecorder  interfaces.EmailEventRecorder
+	emailMetricsService interfaces.EmailMetricsService
 }
 
 // NewHealthHandler creates a new health handler
-func NewHealthHandler(logger *logrus.Logger, db *sql.DB, connectionPool *ConnectionPool) *HealthHandler {
+func NewHealthHandler(
+	logger *logrus.Logger,
+	db *sql.DB,
+	connectionPool *ConnectionPool,
+	emailEventRecorder interfaces.EmailEventRecorder,
+	emailMetricsService interfaces.EmailMetricsService,
+) *HealthHandler {
 	return &HealthHandler{
-		logger:         logger,
-		db:             db,
-		connectionPool: connectionPool,
+		logger:              logger,
+		db:                  db,
+		connectionPool:      connectionPool,
+		emailEventRecorder:  emailEventRecorder,
+		emailMetricsService: emailMetricsService,
 	}
 }
 
@@ -63,7 +74,7 @@ func (h *HealthHandler) BasicHealthCheck(c *gin.Context) {
 
 // DetailedHealthCheck handles GET /health/detailed
 func (h *HealthHandler) DetailedHealthCheck(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	checks := make(map[string]HealthCheck)
@@ -76,18 +87,40 @@ func (h *HealthHandler) DetailedHealthCheck(c *gin.Context) {
 		overallStatus = "unhealthy"
 	}
 
+	// Email event recorder health check
+	emailRecorderCheck := h.checkEmailEventRecorder(ctx)
+	checks["email_event_recorder"] = emailRecorderCheck
+	if emailRecorderCheck.Status == "unhealthy" {
+		if overallStatus == "healthy" {
+			overallStatus = "degraded" // Email recording issues shouldn't make system unhealthy
+		}
+	}
+
+	// Email metrics service health check
+	emailMetricsCheck := h.checkEmailMetricsService(ctx)
+	checks["email_metrics_service"] = emailMetricsCheck
+	if emailMetricsCheck.Status == "unhealthy" {
+		if overallStatus == "healthy" {
+			overallStatus = "degraded" // Email metrics issues shouldn't make system unhealthy
+		}
+	}
+
 	// Memory health check
 	memCheck := h.checkMemory()
 	checks["memory"] = memCheck
 	if memCheck.Status != "healthy" {
-		overallStatus = "degraded"
+		if overallStatus != "unhealthy" {
+			overallStatus = "degraded"
+		}
 	}
 
 	// Disk health check
 	diskCheck := h.checkDisk()
 	checks["disk"] = diskCheck
 	if diskCheck.Status != "healthy" {
-		overallStatus = "degraded"
+		if overallStatus != "unhealthy" {
+			overallStatus = "degraded"
+		}
 	}
 
 	response := HealthResponse{
@@ -419,4 +452,155 @@ func (h *HealthHandler) getConnectionStats() ConnectionStats {
 		LastActivity:         time.Now().UTC().Format(time.RFC3339),
 		MemoryUsage:          memoryUsage,
 	}
+}
+
+// checkEmailEventRecorder performs email event recorder health check
+func (h *HealthHandler) checkEmailEventRecorder(ctx context.Context) HealthCheck {
+	start := time.Now()
+
+	if h.emailEventRecorder == nil {
+		return HealthCheck{
+			Status:      "unhealthy",
+			Message:     "Email event recorder not configured",
+			Duration:    time.Since(start),
+			LastChecked: time.Now().UTC().Format(time.RFC3339),
+		}
+	}
+
+	// Create a timeout context for the health check
+	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	// Use the context-aware health check if available
+	if recorder, ok := h.emailEventRecorder.(interface {
+		IsHealthyWithContext(context.Context) bool
+	}); ok {
+		if !recorder.IsHealthyWithContext(checkCtx) {
+			return HealthCheck{
+				Status:      "unhealthy",
+				Message:     "Email event recorder health check failed",
+				Duration:    time.Since(start),
+				LastChecked: time.Now().UTC().Format(time.RFC3339),
+			}
+		}
+	} else {
+		// Fallback to basic health check
+		if !h.emailEventRecorder.IsHealthy() {
+			return HealthCheck{
+				Status:      "unhealthy",
+				Message:     "Email event recorder health check failed",
+				Duration:    time.Since(start),
+				LastChecked: time.Now().UTC().Format(time.RFC3339),
+			}
+		}
+	}
+
+	return HealthCheck{
+		Status:      "healthy",
+		Message:     "Email event recorder is operational",
+		Duration:    time.Since(start),
+		LastChecked: time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
+// checkEmailMetricsService performs email metrics service health check
+func (h *HealthHandler) checkEmailMetricsService(ctx context.Context) HealthCheck {
+	start := time.Now()
+
+	if h.emailMetricsService == nil {
+		return HealthCheck{
+			Status:      "unhealthy",
+			Message:     "Email metrics service not configured",
+			Duration:    time.Since(start),
+			LastChecked: time.Now().UTC().Format(time.RFC3339),
+		}
+	}
+
+	// Create a timeout context for the health check
+	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	if !h.emailMetricsService.IsHealthy(checkCtx) {
+		return HealthCheck{
+			Status:      "unhealthy",
+			Message:     "Email metrics service health check failed",
+			Duration:    time.Since(start),
+			LastChecked: time.Now().UTC().Format(time.RFC3339),
+		}
+	}
+
+	return HealthCheck{
+		Status:      "healthy",
+		Message:     "Email metrics service is operational",
+		Duration:    time.Since(start),
+		LastChecked: time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
+// EmailMonitoringHealthCheck handles GET /health/email-monitoring
+func (h *HealthHandler) EmailMonitoringHealthCheck(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	checks := make(map[string]HealthCheck)
+	overallStatus := "healthy"
+
+	// Email event recorder health check
+	emailRecorderCheck := h.checkEmailEventRecorder(ctx)
+	checks["email_event_recorder"] = emailRecorderCheck
+	if emailRecorderCheck.Status != "healthy" {
+		overallStatus = "degraded"
+	}
+
+	// Email metrics service health check
+	emailMetricsCheck := h.checkEmailMetricsService(ctx)
+	checks["email_metrics_service"] = emailMetricsCheck
+	if emailMetricsCheck.Status != "healthy" {
+		overallStatus = "degraded"
+	}
+
+	// Database connectivity check (required for email monitoring)
+	dbCheck := h.checkDatabase(ctx)
+	checks["database"] = dbCheck
+	if dbCheck.Status != "healthy" {
+		overallStatus = "unhealthy"
+	}
+
+	// Calculate email monitoring specific metrics
+	emailMonitoringInfo := h.getEmailMonitoringInfo(ctx)
+
+	response := map[string]interface{}{
+		"status":    overallStatus,
+		"service":   "email-monitoring",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"checks":    checks,
+		"info":      emailMonitoringInfo,
+	}
+
+	statusCode := http.StatusOK
+	if overallStatus == "unhealthy" {
+		statusCode = http.StatusServiceUnavailable
+	}
+
+	c.JSON(statusCode, response)
+}
+
+// getEmailMonitoringInfo gathers email monitoring specific information
+func (h *HealthHandler) getEmailMonitoringInfo(ctx context.Context) map[string]interface{} {
+	info := map[string]interface{}{
+		"event_recorder_configured":  h.emailEventRecorder != nil,
+		"metrics_service_configured": h.emailMetricsService != nil,
+		"database_required":          true,
+	}
+
+	// Try to get recent email activity if services are available
+	if h.emailMetricsService != nil {
+		if recentActivity, err := h.emailMetricsService.GetRecentEmailActivity(ctx, 24); err == nil {
+			info["recent_email_events"] = len(recentActivity)
+		} else {
+			info["recent_email_events_error"] = err.Error()
+		}
+	}
+
+	return info
 }

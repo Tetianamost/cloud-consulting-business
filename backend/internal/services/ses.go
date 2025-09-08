@@ -54,7 +54,7 @@ func NewSESService(cfg configPkg.SESConfig, logger *logrus.Logger) (interfaces.S
 	}, nil
 }
 
-// SendEmail sends an email using AWS SES with proper MIME structure
+// SendEmail sends an email using AWS SES with proper MIME structure and returns message ID
 func (s *sesService) SendEmail(ctx context.Context, email *interfaces.EmailMessage) error {
 	// Create timeout context
 	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(s.config.Timeout)*time.Second)
@@ -92,8 +92,11 @@ func (s *sesService) sendRawEmail(ctx context.Context, email *interfaces.EmailMe
 		return fmt.Errorf("failed to send raw email: %w", err)
 	}
 
+	// Set the message ID on the email message for event recording
+	email.MessageID = aws.ToString(result.MessageId)
+
 	s.logger.WithFields(logrus.Fields{
-		"message_id":  aws.ToString(result.MessageId),
+		"message_id":  email.MessageID,
 		"to":          email.To,
 		"subject":     email.Subject,
 		"attachments": len(email.Attachments),
@@ -325,4 +328,177 @@ func (s *sesService) GetSendingQuota(ctx context.Context) (*interfaces.SendingQu
 	}
 
 	return quota, nil
+}
+
+// GetDeliveryStatus retrieves the delivery status of an email by message ID
+// Note: This is a placeholder implementation as SES doesn't provide direct message status lookup
+// In practice, delivery status is tracked through SNS notifications
+func (s *sesService) GetDeliveryStatus(ctx context.Context, messageID string) (*interfaces.EmailDeliveryStatus, error) {
+	s.logger.WithField("message_id", messageID).Debug("Getting delivery status for message")
+
+	// SES doesn't provide a direct API to get message status by ID
+	// Status tracking is typically done through SNS notifications
+	// This method returns a basic status indicating the message was sent
+	status := &interfaces.EmailDeliveryStatus{
+		MessageID:   messageID,
+		Status:      "sent", // We can only confirm it was sent via SES
+		Timestamp:   time.Now(),
+		Destination: "", // Would need to be tracked separately
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"message_id": messageID,
+		"status":     status.Status,
+	}).Debug("Retrieved delivery status")
+
+	return status, nil
+}
+
+// ProcessSESNotification processes SES notifications (bounces, complaints, deliveries)
+func (s *sesService) ProcessSESNotification(ctx context.Context, notification *interfaces.SESNotification) (*interfaces.SESNotificationResult, error) {
+	s.logger.WithFields(logrus.Fields{
+		"message_id":        notification.MessageID,
+		"notification_type": notification.NotificationType,
+		"source":            notification.Source,
+		"destinations":      notification.Destination,
+	}).Info("Processing SES notification")
+
+	result := &interfaces.SESNotificationResult{
+		MessageID:        notification.MessageID,
+		NotificationType: notification.NotificationType,
+		ProcessedAt:      time.Now(),
+		UpdatedEvents:    0,
+	}
+
+	// Process different notification types
+	switch notification.NotificationType {
+	case "Bounce":
+		result.Status = "bounced"
+		if notification.Bounce != nil {
+			s.logger.WithFields(logrus.Fields{
+				"bounce_type":    notification.Bounce.BounceType,
+				"bounce_subtype": notification.Bounce.BounceSubType,
+				"bounced_count":  len(notification.Bounce.BouncedRecipients),
+			}).Info("Processing bounce notification")
+		}
+
+	case "Complaint":
+		result.Status = "spam"
+		if notification.Complaint != nil {
+			s.logger.WithFields(logrus.Fields{
+				"complaint_type":   notification.Complaint.ComplaintFeedbackType,
+				"complained_count": len(notification.Complaint.ComplainedRecipients),
+			}).Info("Processing complaint notification")
+		}
+
+	case "Delivery":
+		result.Status = "delivered"
+		if notification.Delivery != nil {
+			s.logger.WithFields(logrus.Fields{
+				"processing_time_ms": notification.Delivery.ProcessingTimeMillis,
+				"recipients_count":   len(notification.Delivery.Recipients),
+				"smtp_response":      notification.Delivery.SMTPResponse,
+			}).Info("Processing delivery notification")
+		}
+
+	default:
+		result.Error = fmt.Sprintf("Unknown notification type: %s", notification.NotificationType)
+		s.logger.WithField("notification_type", notification.NotificationType).Warn("Unknown SES notification type")
+		return result, fmt.Errorf("unknown notification type: %s", notification.NotificationType)
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"message_id":        result.MessageID,
+		"notification_type": result.NotificationType,
+		"status":            result.Status,
+		"updated_events":    result.UpdatedEvents,
+	}).Info("SES notification processed successfully")
+
+	return result, nil
+}
+
+// CategorizeError categorizes email errors for better handling and reporting
+func (s *sesService) CategorizeError(errorType string, errorMessage string) *interfaces.EmailErrorCategory {
+	category := &interfaces.EmailErrorCategory{
+		Category:   "unknown",
+		Severity:   "permanent",
+		Reason:     errorMessage,
+		Actionable: false,
+	}
+
+	// Normalize error type for comparison
+	errorTypeLower := strings.ToLower(errorType)
+	errorMessageLower := strings.ToLower(errorMessage)
+
+	// Categorize bounces
+	if strings.Contains(errorTypeLower, "bounce") {
+		category.Category = "bounce"
+
+		// Determine bounce severity
+		if strings.Contains(errorMessageLower, "permanent") ||
+			strings.Contains(errorMessageLower, "5.") ||
+			strings.Contains(errorMessageLower, "mailbox") && strings.Contains(errorMessageLower, "not") && strings.Contains(errorMessageLower, "exist") ||
+			strings.Contains(errorMessageLower, "user unknown") ||
+			strings.Contains(errorMessageLower, "invalid") && strings.Contains(errorMessageLower, "recipient") {
+			category.Severity = "permanent"
+			category.Reason = "Permanent bounce - recipient address is invalid or doesn't exist"
+			category.Actionable = true // Can remove from mailing list
+		} else if strings.Contains(errorMessageLower, "temporary") ||
+			strings.Contains(errorMessageLower, "4.") ||
+			strings.Contains(errorMessageLower, "mailbox full") ||
+			strings.Contains(errorMessageLower, "quota exceeded") ||
+			strings.Contains(errorMessageLower, "try again") {
+			category.Severity = "temporary"
+			category.Reason = "Temporary bounce - recipient mailbox may be full or temporarily unavailable"
+			category.Actionable = true
+			retryAfter := 3600 // Retry after 1 hour
+			category.RetryAfter = &retryAfter
+		}
+	}
+
+	// Categorize complaints (spam reports)
+	if strings.Contains(errorTypeLower, "complaint") || strings.Contains(errorMessageLower, "spam") {
+		category.Category = "complaint"
+		category.Severity = "permanent"
+		category.Reason = "Recipient marked email as spam"
+		category.Actionable = true // Should unsubscribe recipient
+	}
+
+	// Categorize delivery delays
+	if strings.Contains(errorMessageLower, "delay") || strings.Contains(errorMessageLower, "deferred") {
+		category.Category = "delivery_delay"
+		category.Severity = "warning"
+		category.Reason = "Email delivery delayed but will be retried"
+		category.Actionable = false
+	}
+
+	// Categorize rate limiting
+	if strings.Contains(errorMessageLower, "throttl") || strings.Contains(errorMessageLower, "rate limit") {
+		category.Category = "rate_limit"
+		category.Severity = "temporary"
+		category.Reason = "Sending rate limit exceeded"
+		category.Actionable = true
+		retryAfter := 300 // Retry after 5 minutes
+		category.RetryAfter = &retryAfter
+	}
+
+	// Categorize authentication/configuration errors
+	if strings.Contains(errorMessageLower, "authentication") ||
+		strings.Contains(errorMessageLower, "credential") ||
+		strings.Contains(errorMessageLower, "unauthorized") {
+		category.Category = "configuration"
+		category.Severity = "permanent"
+		category.Reason = "Email service configuration error"
+		category.Actionable = true
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"error_type":  errorType,
+		"category":    category.Category,
+		"severity":    category.Severity,
+		"actionable":  category.Actionable,
+		"retry_after": category.RetryAfter,
+	}).Debug("Categorized email error")
+
+	return category
 }

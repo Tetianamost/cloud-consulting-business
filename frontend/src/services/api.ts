@@ -247,6 +247,24 @@ class ApiService {
     return this.request<{ success: boolean; data: EmailStatus }>(`/api/v1/admin/email-status/${inquiryId}`);
   }
   
+  // Get email metrics for a time range
+  async getEmailMetrics(timeRange?: {
+    start?: string;
+    end?: string;
+  }): Promise<{ success: boolean; data: any }> {
+    const queryParams = new URLSearchParams();
+    
+    if (timeRange?.start) {
+      queryParams.append('start', timeRange.start);
+    }
+    if (timeRange?.end) {
+      queryParams.append('end', timeRange.end);
+    }
+    
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return this.request<{ success: boolean; data: any }>(`/api/v1/admin/email-events${queryString}`);
+  }
+  
   // List reports with filtering and pagination
   async listReports(filters?: {
     status?: string;

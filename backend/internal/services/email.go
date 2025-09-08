@@ -6,6 +6,7 @@ import (
 	"html"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -18,15 +19,17 @@ import (
 type emailService struct {
 	sesService      interfaces.SESService
 	templateService interfaces.TemplateService
+	eventRecorder   interfaces.EmailEventRecorder
 	config          configPkg.SESConfig
 	logger          *logrus.Logger
 }
 
 // NewEmailService creates a new email service instance
-func NewEmailService(sesService interfaces.SESService, templateService interfaces.TemplateService, config configPkg.SESConfig, logger *logrus.Logger) interfaces.EmailService {
+func NewEmailService(sesService interfaces.SESService, templateService interfaces.TemplateService, eventRecorder interfaces.EmailEventRecorder, config configPkg.SESConfig, logger *logrus.Logger) interfaces.EmailService {
 	return &emailService{
 		sesService:      sesService,
 		templateService: templateService,
+		eventRecorder:   eventRecorder,
 		config:          config,
 		logger:          logger,
 	}
@@ -79,11 +82,45 @@ func (e *emailService) SendReportEmail(ctx context.Context, inquiry *domain.Inqu
 
 	err := e.sesService.SendEmail(ctx, email)
 	if err != nil {
+		// Record failed email event if event recorder is available
+		if e.eventRecorder != nil {
+			failedEvent := &domain.EmailEvent{
+				InquiryID:      inquiry.ID,
+				EmailType:      domain.EmailTypeConsultantNotification,
+				RecipientEmail: email.To[0], // Use first recipient for internal emails
+				SenderEmail:    email.From,
+				Subject:        email.Subject,
+				Status:         domain.EmailStatusFailed,
+				ErrorMessage:   err.Error(),
+				SentAt:         time.Now(),
+			}
+			// Record in non-blocking manner - don't fail if this fails
+			_ = e.eventRecorder.RecordEmailSent(ctx, failedEvent)
+		}
+
 		e.logger.WithError(err).WithFields(logrus.Fields{
 			"inquiry_id": inquiry.ID,
 			"report_id":  report.ID,
 		}).Error("Failed to send internal report email")
 		return fmt.Errorf("failed to send internal report email: %w", err)
+	}
+
+	// Record successful email event if event recorder is available
+	if e.eventRecorder != nil {
+		successEvent := &domain.EmailEvent{
+			InquiryID:      inquiry.ID,
+			EmailType:      domain.EmailTypeConsultantNotification,
+			RecipientEmail: email.To[0], // Use first recipient for internal emails
+			SenderEmail:    email.From,
+			Subject:        email.Subject,
+			Status:         domain.EmailStatusSent,
+			SESMessageID:   email.MessageID,
+			SentAt:         time.Now(),
+		}
+		// Record in non-blocking manner - don't fail if this fails
+		if recordErr := e.eventRecorder.RecordEmailSent(ctx, successEvent); recordErr != nil {
+			e.logger.WithError(recordErr).WithField("inquiry_id", inquiry.ID).Warn("Failed to record email event, but email was sent successfully")
+		}
 	}
 
 	e.logger.WithFields(logrus.Fields{
@@ -92,6 +129,7 @@ func (e *emailService) SendReportEmail(ctx context.Context, inquiry *domain.Inqu
 		"recipients":    email.To,
 		"high_priority": isHighPriority,
 		"template_used": "branded",
+		"message_id":    email.MessageID,
 	}).Info("Internal report email sent successfully")
 
 	return nil
@@ -123,14 +161,49 @@ func (e *emailService) SendInquiryNotification(ctx context.Context, inquiry *dom
 
 	err := e.sesService.SendEmail(ctx, email)
 	if err != nil {
+		// Record failed email event if event recorder is available
+		if e.eventRecorder != nil {
+			failedEvent := &domain.EmailEvent{
+				InquiryID:      inquiry.ID,
+				EmailType:      domain.EmailTypeInquiryNotification,
+				RecipientEmail: email.To[0], // Use first recipient for internal emails
+				SenderEmail:    email.From,
+				Subject:        email.Subject,
+				Status:         domain.EmailStatusFailed,
+				ErrorMessage:   err.Error(),
+				SentAt:         time.Now(),
+			}
+			// Record in non-blocking manner - don't fail if this fails
+			_ = e.eventRecorder.RecordEmailSent(ctx, failedEvent)
+		}
+
 		e.logger.WithError(err).WithField("inquiry_id", inquiry.ID).Error("Failed to send inquiry notification email")
 		return fmt.Errorf("failed to send inquiry notification email: %w", err)
+	}
+
+	// Record successful email event if event recorder is available
+	if e.eventRecorder != nil {
+		successEvent := &domain.EmailEvent{
+			InquiryID:      inquiry.ID,
+			EmailType:      domain.EmailTypeInquiryNotification,
+			RecipientEmail: email.To[0], // Use first recipient for internal emails
+			SenderEmail:    email.From,
+			Subject:        email.Subject,
+			Status:         domain.EmailStatusSent,
+			SESMessageID:   email.MessageID,
+			SentAt:         time.Now(),
+		}
+		// Record in non-blocking manner - don't fail if this fails
+		if recordErr := e.eventRecorder.RecordEmailSent(ctx, successEvent); recordErr != nil {
+			e.logger.WithError(recordErr).WithField("inquiry_id", inquiry.ID).Warn("Failed to record email event, but email was sent successfully")
+		}
 	}
 
 	e.logger.WithFields(logrus.Fields{
 		"inquiry_id":    inquiry.ID,
 		"recipients":    email.To,
 		"high_priority": isHighPriority,
+		"message_id":    email.MessageID,
 	}).Info("Inquiry notification email sent successfully")
 
 	return nil
@@ -182,6 +255,22 @@ func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *do
 
 	err := e.sesService.SendEmail(ctx, email)
 	if err != nil {
+		// Record failed email event if event recorder is available
+		if e.eventRecorder != nil {
+			failedEvent := &domain.EmailEvent{
+				InquiryID:      inquiry.ID,
+				EmailType:      domain.EmailTypeCustomerConfirmation,
+				RecipientEmail: customerEmail,
+				SenderEmail:    email.From,
+				Subject:        email.Subject,
+				Status:         domain.EmailStatusFailed,
+				ErrorMessage:   err.Error(),
+				SentAt:         time.Now(),
+			}
+			// Record in non-blocking manner - don't fail if this fails
+			_ = e.eventRecorder.RecordEmailSent(ctx, failedEvent)
+		}
+
 		e.logger.WithError(err).WithFields(logrus.Fields{
 			"inquiry_id":     inquiry.ID,
 			"customer_email": customerEmail,
@@ -189,10 +278,29 @@ func (e *emailService) SendCustomerConfirmation(ctx context.Context, inquiry *do
 		return fmt.Errorf("failed to send customer confirmation email: %w", err)
 	}
 
+	// Record successful email event if event recorder is available
+	if e.eventRecorder != nil {
+		successEvent := &domain.EmailEvent{
+			InquiryID:      inquiry.ID,
+			EmailType:      domain.EmailTypeCustomerConfirmation,
+			RecipientEmail: customerEmail,
+			SenderEmail:    email.From,
+			Subject:        email.Subject,
+			Status:         domain.EmailStatusSent,
+			SESMessageID:   email.MessageID,
+			SentAt:         time.Now(),
+		}
+		// Record in non-blocking manner - don't fail if this fails
+		if recordErr := e.eventRecorder.RecordEmailSent(ctx, successEvent); recordErr != nil {
+			e.logger.WithError(recordErr).WithField("inquiry_id", inquiry.ID).Warn("Failed to record email event, but email was sent successfully")
+		}
+	}
+
 	e.logger.WithFields(logrus.Fields{
 		"inquiry_id":     inquiry.ID,
 		"customer_email": customerEmail,
 		"template_used":  "branded",
+		"message_id":     email.MessageID,
 	}).Info("Customer confirmation email sent successfully")
 
 	return nil

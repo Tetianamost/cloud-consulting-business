@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,6 +15,7 @@ import (
 	"github.com/cloud-consulting/backend/internal/domain"
 	"github.com/cloud-consulting/backend/internal/handlers"
 	"github.com/cloud-consulting/backend/internal/interfaces"
+	"github.com/cloud-consulting/backend/internal/repositories"
 	"github.com/cloud-consulting/backend/internal/services"
 	"github.com/cloud-consulting/backend/internal/storage"
 )
@@ -32,6 +35,7 @@ type Server struct {
 	healthHandler      *handlers.HealthHandler
 	simpleChatHandler  *handlers.SimpleChatHandler
 	bedrockService     interfaces.BedrockService
+	dbConnection       *storage.DatabaseConnection
 }
 
 // New creates a new server instance
@@ -50,6 +54,38 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 
 	// Initialize storage
 	memStorage := storage.NewInMemoryStorage()
+
+	// Initialize database connection if configured
+	var dbConnection *storage.DatabaseConnection
+	var emailEventRecorder interfaces.EmailEventRecorder
+	var emailMetricsService interfaces.EmailMetricsService
+
+	if cfg.IsEmailEventTrackingEnabled() {
+		var err error
+		dbConnection, err = storage.NewDatabaseConnection(&cfg.Database, logger)
+		if err != nil {
+			logger.WithError(err).Warn("Failed to initialize database connection, email event tracking will be disabled")
+		} else {
+			// Run email events migration
+			migrationSQL := getEmailEventsMigrationSQL()
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			if err := dbConnection.RunMigration(ctx, migrationSQL); err != nil {
+				logger.WithError(err).Warn("Failed to run email events migration, email event tracking will be disabled")
+				dbConnection.Close()
+				dbConnection = nil
+			} else {
+				// Initialize email event repository and services
+				emailEventRepo := repositories.NewEmailEventRepository(dbConnection.GetDB(), logger)
+				emailEventRecorder = services.NewEmailEventRecorder(emailEventRepo, logger)
+				emailMetricsService = services.NewEmailMetricsService(emailEventRepo, logger)
+				logger.Info("Email event tracking initialized successfully")
+			}
+		}
+	} else {
+		logger.Info("Database not configured or email events disabled, using in-memory storage only")
+	}
 
 	// Initialize template service first
 	templateService := services.NewTemplateService("templates", logger)
@@ -75,16 +111,21 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 		documentationLibrary,
 	)
 
-	// Initialize email services (with graceful degradation if SES config is missing)
+	// Initialize email services using the primary factory method
 	var emailService interfaces.EmailService
 	if cfg.SES.AccessKeyID != "" && cfg.SES.SecretAccessKey != "" && cfg.SES.SenderEmail != "" {
 		var err error
-		emailService, err = services.NewEmailServiceWithSES(cfg.SES, logger)
+		// Use the primary factory method which automatically handles event recording
+		emailService, err = services.NewEmailServiceFactory(cfg.SES, emailEventRecorder, logger)
 		if err != nil {
-			logger.WithError(err).Warn("Failed to initialize SES service, email notifications will be disabled")
+			logger.WithError(err).Warn("Failed to initialize email service, email notifications will be disabled")
 			emailService = nil
 		} else {
-			logger.Info("Email service initialized successfully with branded templates")
+			eventRecordingStatus := "disabled"
+			if emailEventRecorder != nil {
+				eventRecordingStatus = "enabled"
+			}
+			logger.WithField("event_recording", eventRecordingStatus).Info("Email service initialized successfully with branded templates")
 		}
 	} else {
 		logger.Warn("SES configuration incomplete, email notifications will be disabled")
@@ -104,10 +145,12 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	cacheMonitor := services.NewCacheMonitor(nil, logger)
 	chatMetricsCollector := services.NewChatMetricsCollector(chatPerformanceMonitor, cacheMonitor, logger)
 
+	// Email metrics service is already initialized above if database is available
+
 	// Initialize handlers
 	inquiryHandler := handlers.NewInquiryHandler(inquiryService, reportGenerator)
 	reportHandler := handlers.NewReportHandler(memStorage)
-	adminHandler := handlers.NewAdminHandler(memStorage, inquiryService, reportGenerator, emailService, logger)
+	adminHandler := handlers.NewAdminHandler(memStorage, inquiryService, reportGenerator, emailService, emailMetricsService, logger)
 	authHandler := handlers.NewAuthHandler(cfg.JWTSecret)
 	chatHandler := handlers.NewChatHandler(logger, bedrockService, knowledgeBase, sessionService, chatService, authHandler, cfg.JWTSecret, cfg.CORSAllowedOrigins, chatMetricsCollector, chatPerformanceMonitor)
 
@@ -123,8 +166,12 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	// Initialize chat configuration handler
 	chatConfigHandler := handlers.NewChatConfigHandler(cfg)
 
-	// Initialize health handler with connection pool from chat handler
-	healthHandler := handlers.NewHealthHandler(logger, nil, chatHandler.GetConnectionPool())
+	// Initialize health handler with database connection and email event services
+	var db *sql.DB
+	if dbConnection != nil {
+		db = dbConnection.GetDB()
+	}
+	healthHandler := handlers.NewHealthHandler(logger, db, chatHandler.GetConnectionPool(), emailEventRecorder, emailMetricsService)
 
 	// Initialize simple chat handler
 	simpleChatHandler := handlers.NewSimpleChatHandler(logger, bedrockService)
@@ -143,6 +190,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 		healthHandler:      healthHandler,
 		simpleChatHandler:  simpleChatHandler,
 		bedrockService:     bedrockService,
+		dbConnection:       dbConnection,
 	}
 
 	// Setup routes
@@ -206,6 +254,7 @@ func (s *Server) setupRoutes() {
 			admin.GET("/reports/:reportId", s.adminHandler.GetReport)
 			admin.GET("/metrics", s.adminHandler.GetSystemMetrics)
 			admin.GET("/email-status/:inquiryId", s.adminHandler.GetEmailStatus)
+			admin.GET("/email-events", s.adminHandler.GetEmailEventHistory)
 
 			// REST API endpoints for chat management
 
@@ -384,4 +433,114 @@ func loggingMiddleware(logger *logrus.Logger) gin.HandlerFunc {
 			"user_agent": c.Request.UserAgent(),
 		}).Info("HTTP Request")
 	}
+}
+
+// getEmailEventsMigrationSQL returns the SQL for creating email events table and related objects
+func getEmailEventsMigrationSQL() string {
+	return `
+-- Email events tracking database migration
+-- This migration adds email_events table for real email monitoring data
+-- Replaces mock data with actual email delivery tracking
+
+-- Enable UUID extension if not already enabled
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create enum types for better type safety and performance
+DO $$ BEGIN
+    CREATE TYPE email_event_type AS ENUM ('customer_confirmation', 'consultant_notification', 'inquiry_notification');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE email_event_status AS ENUM ('sent', 'delivered', 'failed', 'bounced', 'spam');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE bounce_type AS ENUM ('permanent', 'temporary', 'complaint');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Create email_events table
+CREATE TABLE IF NOT EXISTS email_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    inquiry_id VARCHAR(255) NOT NULL,
+    email_type email_event_type NOT NULL,
+    recipient_email VARCHAR(255) NOT NULL,
+    sender_email VARCHAR(255) NOT NULL,
+    subject VARCHAR(500),
+    status email_event_status NOT NULL DEFAULT 'sent',
+    sent_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    delivered_at TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
+    bounce_type bounce_type,
+    ses_message_id VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for optimal query performance
+CREATE INDEX IF NOT EXISTS idx_email_events_inquiry_id ON email_events(inquiry_id);
+CREATE INDEX IF NOT EXISTS idx_email_events_status ON email_events(status);
+CREATE INDEX IF NOT EXISTS idx_email_events_sent_at ON email_events(sent_at);
+CREATE INDEX IF NOT EXISTS idx_email_events_email_type ON email_events(email_type);
+
+-- Additional composite indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_email_events_inquiry_type ON email_events(inquiry_id, email_type);
+CREATE INDEX IF NOT EXISTS idx_email_events_status_sent ON email_events(status, sent_at DESC);
+CREATE INDEX IF NOT EXISTS idx_email_events_type_status ON email_events(email_type, status);
+CREATE INDEX IF NOT EXISTS idx_email_events_ses_message_id ON email_events(ses_message_id) WHERE ses_message_id IS NOT NULL;
+
+-- Partial indexes for performance optimization
+CREATE INDEX IF NOT EXISTS idx_email_events_failed_status ON email_events(sent_at DESC, error_message) WHERE status IN ('failed', 'bounced', 'spam');
+CREATE INDEX IF NOT EXISTS idx_email_events_recent_events ON email_events(sent_at DESC, status) WHERE sent_at > NOW() - INTERVAL '30 days';
+
+-- Create trigger to automatically update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_email_events_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+DROP TRIGGER IF EXISTS update_email_events_updated_at ON email_events;
+CREATE TRIGGER update_email_events_updated_at 
+    BEFORE UPDATE ON email_events 
+    FOR EACH ROW EXECUTE FUNCTION update_email_events_updated_at();
+
+-- Add table constraints for data integrity
+ALTER TABLE email_events 
+DROP CONSTRAINT IF EXISTS chk_email_events_dates;
+ALTER TABLE email_events 
+ADD CONSTRAINT chk_email_events_dates 
+CHECK (sent_at <= COALESCE(delivered_at, sent_at) AND created_at <= updated_at);
+
+ALTER TABLE email_events 
+DROP CONSTRAINT IF EXISTS chk_email_events_recipient_email;
+ALTER TABLE email_events 
+ADD CONSTRAINT chk_email_events_recipient_email 
+CHECK (recipient_email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+
+ALTER TABLE email_events 
+DROP CONSTRAINT IF EXISTS chk_email_events_sender_email;
+ALTER TABLE email_events 
+ADD CONSTRAINT chk_email_events_sender_email 
+CHECK (sender_email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+
+ALTER TABLE email_events 
+DROP CONSTRAINT IF EXISTS chk_email_events_subject_length;
+ALTER TABLE email_events 
+ADD CONSTRAINT chk_email_events_subject_length 
+CHECK (LENGTH(TRIM(COALESCE(subject, ''))) <= 500);
+
+ALTER TABLE email_events 
+DROP CONSTRAINT IF EXISTS chk_email_events_error_message_length;
+ALTER TABLE email_events 
+ADD CONSTRAINT chk_email_events_error_message_length 
+CHECK (LENGTH(COALESCE(error_message, '')) <= 10000);
+`
 }

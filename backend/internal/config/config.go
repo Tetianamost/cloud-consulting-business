@@ -20,6 +20,7 @@ type Config struct {
 	Bedrock            BedrockConfig
 	SES                SESConfig
 	Chat               ChatConfig
+	Database           DatabaseConfig
 }
 
 // ChatConfig holds chat system configuration including feature flags
@@ -49,6 +50,15 @@ type SESConfig struct {
 	SenderEmail     string
 	ReplyToEmail    string
 	Timeout         int
+}
+
+// DatabaseConfig holds database configuration
+type DatabaseConfig struct {
+	URL                string
+	MaxOpenConnections int
+	MaxIdleConnections int
+	ConnMaxLifetime    int // in minutes
+	EnableEmailEvents  bool
 }
 
 // Load loads basic configuration from environment variables without validation
@@ -89,11 +99,24 @@ func Load() (*Config, error) {
 			MaxReconnectAttempts:    getEnvAsInt("CHAT_MAX_RECONNECT_ATTEMPTS", 3),
 			FallbackDelay:           getEnvAsInt("CHAT_FALLBACK_DELAY", 5000),
 		},
+		Database: DatabaseConfig{
+			URL:                getEnv("DATABASE_URL", ""),
+			MaxOpenConnections: getEnvAsInt("DB_MAX_OPEN_CONNECTIONS", 25),
+			MaxIdleConnections: getEnvAsInt("DB_MAX_IDLE_CONNECTIONS", 5),
+			ConnMaxLifetime:    getEnvAsInt("DB_CONN_MAX_LIFETIME_MINUTES", 30),
+			EnableEmailEvents:  getEnvAsBool("ENABLE_EMAIL_EVENTS", true), // Default to true for production readiness
+		},
 	}
 
 	log.Println("[CONFIG DEBUG] about to print CORSAllowedOrigins")
 	fmt.Printf("[CONFIG DEBUG] CORSAllowedOrigins loaded: %v\n", cfg.CORSAllowedOrigins)
 	log.Println("[CONFIG DEBUG] finished printing CORSAllowedOrigins")
+
+	// Validate email event tracking configuration
+	if err := cfg.ValidateEmailEventTracking(); err != nil {
+		log.Printf("[CONFIG WARN] Email event tracking validation failed: %v", err)
+	}
+
 	return cfg, nil
 }
 
@@ -128,4 +151,40 @@ func getEnvAsSlice(key string, defaultValue []string) []string {
 		return strings.Split(value, ",")
 	}
 	return defaultValue
+}
+
+// ValidateEmailEventTracking validates the configuration for email event tracking
+func (c *Config) ValidateEmailEventTracking() error {
+	if !c.Database.EnableEmailEvents {
+		return nil // Email events are disabled, no validation needed
+	}
+
+	// Check if database URL is provided when email events are enabled
+	if c.Database.URL == "" {
+		return fmt.Errorf("database URL is required when email event tracking is enabled (ENABLE_EMAIL_EVENTS=true)")
+	}
+
+	// Check if SES configuration is complete for email event tracking
+	if c.SES.SenderEmail == "" {
+		return fmt.Errorf("SES sender email is required for email event tracking")
+	}
+
+	if c.SES.AccessKeyID == "" {
+		return fmt.Errorf("AWS access key ID is required for email event tracking")
+	}
+
+	if c.SES.SecretAccessKey == "" {
+		return fmt.Errorf("AWS secret access key is required for email event tracking")
+	}
+
+	return nil
+}
+
+// IsEmailEventTrackingEnabled returns true if email event tracking is properly configured
+func (c *Config) IsEmailEventTrackingEnabled() bool {
+	return c.Database.EnableEmailEvents &&
+		c.Database.URL != "" &&
+		c.SES.SenderEmail != "" &&
+		c.SES.AccessKeyID != "" &&
+		c.SES.SecretAccessKey != ""
 }

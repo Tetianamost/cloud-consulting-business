@@ -3,6 +3,7 @@ package interfaces
 import (
 	"context"
 	"html/template"
+	"time"
 
 	"github.com/cloud-consulting/backend/internal/domain"
 )
@@ -87,6 +88,9 @@ type SESService interface {
 	SendEmail(ctx context.Context, email *EmailMessage) error
 	VerifyEmailAddress(ctx context.Context, email string) error
 	GetSendingQuota(ctx context.Context) (*SendingQuota, error)
+	GetDeliveryStatus(ctx context.Context, messageID string) (*EmailDeliveryStatus, error)
+	ProcessSESNotification(ctx context.Context, notification *SESNotification) (*SESNotificationResult, error)
+	CategorizeError(errorType string, errorMessage string) *EmailErrorCategory
 }
 
 // TemplateService defines the interface for email and report template management
@@ -265,6 +269,7 @@ type EmailMessage struct {
 	HTMLBody    string            `json:"html_body,omitempty"`
 	ReplyTo     string            `json:"reply_to,omitempty"`
 	Attachments []EmailAttachment `json:"attachments,omitempty"`
+	MessageID   string            `json:"message_id,omitempty"` // SES Message ID returned after sending
 }
 
 // EmailAttachment represents an email attachment
@@ -279,6 +284,90 @@ type SendingQuota struct {
 	Max24HourSend   float64 `json:"max_24_hour_send"`
 	MaxSendRate     float64 `json:"max_send_rate"`
 	SentLast24Hours float64 `json:"sent_last_24_hours"`
+}
+
+// EmailDeliveryStatus represents the delivery status of an email from SES
+type EmailDeliveryStatus struct {
+	MessageID     string    `json:"message_id"`
+	Status        string    `json:"status"` // "sent", "delivered", "bounced", "complained"
+	Timestamp     time.Time `json:"timestamp"`
+	Destination   string    `json:"destination"`
+	BounceType    string    `json:"bounce_type,omitempty"` // "Permanent", "Temporary"
+	BounceReason  string    `json:"bounce_reason,omitempty"`
+	ComplaintType string    `json:"complaint_type,omitempty"`
+}
+
+// SESNotification represents an SES notification (bounce, complaint, delivery)
+type SESNotification struct {
+	NotificationType string                 `json:"notificationType"` // "Bounce", "Complaint", "Delivery"
+	MessageID        string                 `json:"messageId"`
+	Timestamp        time.Time              `json:"timestamp"`
+	Source           string                 `json:"source"`
+	Destination      []string               `json:"destination"`
+	Bounce           *SESBounceInfo         `json:"bounce,omitempty"`
+	Complaint        *SESComplaintInfo      `json:"complaint,omitempty"`
+	Delivery         *SESDeliveryInfo       `json:"delivery,omitempty"`
+	RawMessage       map[string]interface{} `json:"rawMessage,omitempty"`
+}
+
+// SESBounceInfo represents bounce information from SES
+type SESBounceInfo struct {
+	BounceType        string                `json:"bounceType"`    // "Permanent", "Temporary"
+	BounceSubType     string                `json:"bounceSubType"` // "General", "NoEmail", "Suppressed", etc.
+	BouncedRecipients []SESBouncedRecipient `json:"bouncedRecipients"`
+	Timestamp         time.Time             `json:"timestamp"`
+	FeedbackID        string                `json:"feedbackId"`
+	ReportingMTA      string                `json:"reportingMTA,omitempty"`
+}
+
+// SESBouncedRecipient represents a bounced recipient
+type SESBouncedRecipient struct {
+	EmailAddress   string `json:"emailAddress"`
+	Action         string `json:"action,omitempty"`
+	Status         string `json:"status,omitempty"`
+	DiagnosticCode string `json:"diagnosticCode,omitempty"`
+}
+
+// SESComplaintInfo represents complaint information from SES
+type SESComplaintInfo struct {
+	ComplainedRecipients  []SESComplainedRecipient `json:"complainedRecipients"`
+	Timestamp             time.Time                `json:"timestamp"`
+	FeedbackID            string                   `json:"feedbackId"`
+	UserAgent             string                   `json:"userAgent,omitempty"`
+	ComplaintFeedbackType string                   `json:"complaintFeedbackType,omitempty"`
+}
+
+// SESComplainedRecipient represents a recipient who complained
+type SESComplainedRecipient struct {
+	EmailAddress string `json:"emailAddress"`
+}
+
+// SESDeliveryInfo represents delivery information from SES
+type SESDeliveryInfo struct {
+	Timestamp            time.Time `json:"timestamp"`
+	ProcessingTimeMillis int64     `json:"processingTimeMillis"`
+	Recipients           []string  `json:"recipients"`
+	SMTPResponse         string    `json:"smtpResponse,omitempty"`
+	ReportingMTA         string    `json:"reportingMTA,omitempty"`
+}
+
+// SESNotificationResult represents the result of processing an SES notification
+type SESNotificationResult struct {
+	MessageID        string    `json:"message_id"`
+	NotificationType string    `json:"notification_type"`
+	Status           string    `json:"status"`
+	ProcessedAt      time.Time `json:"processed_at"`
+	UpdatedEvents    int       `json:"updated_events"`
+	Error            string    `json:"error,omitempty"`
+}
+
+// EmailErrorCategory represents categorized email error information
+type EmailErrorCategory struct {
+	Category   string `json:"category"`              // "bounce", "complaint", "delivery_delay", "unknown"
+	Severity   string `json:"severity"`              // "permanent", "temporary", "warning"
+	Reason     string `json:"reason"`                // Human-readable reason
+	Actionable bool   `json:"actionable"`            // Whether the error can be acted upon
+	RetryAfter *int   `json:"retry_after,omitempty"` // Seconds to wait before retry (for temporary errors)
 }
 
 // PDFOptions represents options for PDF generation
@@ -328,4 +417,49 @@ type ValidationRule struct {
 	Pattern      string `json:"pattern"`
 	ErrorMessage string `json:"error_message"`
 	Required     bool   `json:"required"`
+}
+
+// EmailEventRecorder defines the interface for recording email events
+type EmailEventRecorder interface {
+	RecordEmailSent(ctx context.Context, event *domain.EmailEvent) error
+	UpdateEmailStatus(ctx context.Context, messageID string, status domain.EmailEventStatus, deliveredAt *time.Time, errorMsg string) error
+	GetEmailEventsByInquiry(ctx context.Context, inquiryID string) ([]*domain.EmailEvent, error)
+	IsHealthy() bool
+	IsHealthyWithContext(ctx context.Context) bool
+	GetMetrics() *EmailEventRecorderMetrics
+}
+
+// EmailMetricsService defines the interface for email metrics calculation and retrieval
+type EmailMetricsService interface {
+	GetEmailMetrics(ctx context.Context, timeRange domain.TimeRange) (*domain.EmailMetrics, error)
+	GetEmailStatusByInquiry(ctx context.Context, inquiryID string) (*domain.EmailStatus, error)
+	GetEmailEventHistory(ctx context.Context, filters domain.EmailEventFilters) ([]*domain.EmailEvent, error)
+	GetRecentEmailActivity(ctx context.Context, hours int) ([]*domain.EmailEvent, error)
+	IsHealthy(ctx context.Context) bool
+	GetMetrics() *EmailMetricsServiceMetrics
+}
+
+// EmailEventRecorderMetrics represents metrics for email event recording
+type EmailEventRecorderMetrics struct {
+	TotalRecordingAttempts int64     `json:"total_recording_attempts"`
+	SuccessfulRecordings   int64     `json:"successful_recordings"`
+	FailedRecordings       int64     `json:"failed_recordings"`
+	SuccessRate            float64   `json:"success_rate"`
+	AverageRecordingTime   float64   `json:"average_recording_time_ms"`
+	LastRecordingTime      time.Time `json:"last_recording_time"`
+	RetryAttempts          int64     `json:"retry_attempts"`
+	HealthCheckFailures    int64     `json:"health_check_failures"`
+}
+
+// EmailMetricsServiceMetrics represents metrics for email metrics service
+type EmailMetricsServiceMetrics struct {
+	TotalMetricsRequests int64     `json:"total_metrics_requests"`
+	SuccessfulRequests   int64     `json:"successful_requests"`
+	FailedRequests       int64     `json:"failed_requests"`
+	SuccessRate          float64   `json:"success_rate"`
+	AverageResponseTime  float64   `json:"average_response_time_ms"`
+	LastRequestTime      time.Time `json:"last_request_time"`
+	CacheHits            int64     `json:"cache_hits"`
+	CacheMisses          int64     `json:"cache_misses"`
+	HealthCheckFailures  int64     `json:"health_check_failures"`
 }

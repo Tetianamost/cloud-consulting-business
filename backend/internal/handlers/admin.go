@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -14,12 +15,13 @@ import (
 
 // AdminHandler handles admin-related HTTP requests
 type AdminHandler struct {
-	storage        *storage.InMemoryStorage
-	inquiryService interfaces.InquiryService
-	reportService  interfaces.ReportService
-	emailService   interfaces.EmailService
-	logger         *logrus.Logger
-	errorHandler   *ErrorHandler
+	storage             *storage.InMemoryStorage
+	inquiryService      interfaces.InquiryService
+	reportService       interfaces.ReportService
+	emailService        interfaces.EmailService
+	emailMetricsService interfaces.EmailMetricsService
+	logger              *logrus.Logger
+	errorHandler        *ErrorHandler
 }
 
 // NewAdminHandler creates a new admin handler
@@ -28,15 +30,17 @@ func NewAdminHandler(
 	inquiryService interfaces.InquiryService,
 	reportService interfaces.ReportService,
 	emailService interfaces.EmailService,
+	emailMetricsService interfaces.EmailMetricsService,
 	logger *logrus.Logger,
 ) *AdminHandler {
 	return &AdminHandler{
-		storage:        storage,
-		inquiryService: inquiryService,
-		reportService:  reportService,
-		emailService:   emailService,
-		logger:         logger,
-		errorHandler:   NewErrorHandler(logger),
+		storage:             storage,
+		inquiryService:      inquiryService,
+		reportService:       reportService,
+		emailService:        emailService,
+		emailMetricsService: emailMetricsService,
+		logger:              logger,
+		errorHandler:        NewErrorHandler(logger),
 	}
 }
 
@@ -323,39 +327,92 @@ func (h *AdminHandler) GetReport(c *gin.Context) {
 
 // GetSystemMetrics handles GET /api/v1/admin/metrics
 func (h *AdminHandler) GetSystemMetrics(c *gin.Context) {
-	// Get total inquiries
-	totalInquiries, err := h.inquiryService.GetInquiryCount(c.Request.Context(), nil)
+	// Get time range from query params (default to last 30 days)
+	timeRangeParam := c.DefaultQuery("time_range", "30d")
+	timeRange, err := h.parseTimeRange(timeRangeParam)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		h.logger.WithError(err).WithField("time_range", timeRangeParam).Error("Invalid time range parameter")
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Failed to retrieve inquiry count",
+			"error":   "Invalid time range parameter: " + err.Error(),
+			"code":    "INVALID_TIME_RANGE",
 		})
 		return
 	}
 
-	// For demo purposes, we'll calculate some metrics based on the inquiries
-	// In a real system, these would be tracked and stored
-	inquiries, _ := h.inquiryService.ListInquiries(c.Request.Context(), nil)
+	// Get total inquiries with error handling
+	totalInquiries, err := h.inquiryService.GetInquiryCount(c.Request.Context(), nil)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to retrieve inquiry count")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Unable to retrieve system metrics at this time",
+			"code":    "INQUIRY_COUNT_ERROR",
+			"details": "Failed to access inquiry data",
+		})
+		return
+	}
+
+	// Calculate reports generated with error handling
+	inquiries, err := h.inquiryService.ListInquiries(c.Request.Context(), nil)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to retrieve inquiries for metrics calculation")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Unable to calculate report metrics",
+			"code":    "INQUIRY_LIST_ERROR",
+			"details": "Failed to access inquiry data for report calculation",
+		})
+		return
+	}
 
 	var reportsGenerated int64 = 0
-	var emailsSent int64 = 0
 	var lastProcessed time.Time
 
 	for _, inquiry := range inquiries {
 		if len(inquiry.Reports) > 0 {
 			reportsGenerated += int64(len(inquiry.Reports))
-			emailsSent += 2 // Assume 1 customer email + 1 consultant email per report
 		}
-
 		if inquiry.UpdatedAt.After(lastProcessed) {
 			lastProcessed = inquiry.UpdatedAt
 		}
 	}
 
-	// Calculate email delivery rate (for demo, assume 95% success)
-	emailDeliveryRate := 95.0
-	if emailsSent == 0 {
-		emailDeliveryRate = 100.0
+	// Get real email metrics with comprehensive error handling
+	var emailsSent int64 = 0
+	var emailDeliveryRate float64 = 0.0
+	var emailMetricsAvailable = false
+	var emailMetricsError string
+
+	if h.emailMetricsService != nil {
+		// Check if email metrics service is healthy first
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+		defer cancel()
+
+		if h.emailMetricsService.IsHealthy(ctx) {
+			emailMetrics, err := h.emailMetricsService.GetEmailMetrics(ctx, *timeRange)
+			if err != nil {
+				h.logger.WithError(err).WithFields(logrus.Fields{
+					"time_range_start": timeRange.Start,
+					"time_range_end":   timeRange.End,
+				}).Error("Failed to get email metrics from healthy service")
+				emailMetricsError = "Email metrics temporarily unavailable"
+			} else {
+				emailsSent = emailMetrics.TotalEmails
+				emailDeliveryRate = emailMetrics.DeliveryRate
+				emailMetricsAvailable = true
+				h.logger.WithFields(logrus.Fields{
+					"emails_sent":         emailsSent,
+					"email_delivery_rate": emailDeliveryRate,
+				}).Debug("Successfully retrieved email metrics")
+			}
+		} else {
+			h.logger.Warn("Email metrics service is unhealthy")
+			emailMetricsError = "Email monitoring system is currently unavailable"
+		}
+	} else {
+		h.logger.Warn("Email metrics service not configured")
+		emailMetricsError = "Email monitoring is not configured"
 	}
 
 	// Calculate average report generation time (for demo, use a fixed value)
@@ -377,54 +434,138 @@ func (h *AdminHandler) GetSystemMetrics(c *gin.Context) {
 		metrics.LastProcessedAt = lastProcessed.Format(time.RFC3339)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	// Prepare response with data availability information
+	response := gin.H{
 		"success": true,
 		"data":    metrics,
-	})
+		"meta": gin.H{
+			"email_metrics_available": emailMetricsAvailable,
+			"time_range":              timeRangeParam,
+		},
+	}
+
+	// Add warning if email metrics are not available
+	if !emailMetricsAvailable {
+		response["warnings"] = []string{emailMetricsError}
+		h.logger.WithField("email_metrics_error", emailMetricsError).Info("Returning system metrics with email metrics warning")
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // GetEmailStatus handles GET /api/v1/admin/email-status/:inquiryId
 func (h *AdminHandler) GetEmailStatus(c *gin.Context) {
 	inquiryID := c.Param("inquiryId")
 
-	// Get the inquiry
-	inquiry, err := h.inquiryService.GetInquiry(c.Request.Context(), inquiryID)
+	// Validate inquiry ID
+	if inquiryID == "" {
+		h.logger.Error("Email status request missing inquiry ID")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Inquiry ID is required",
+			"code":    "MISSING_INQUIRY_ID",
+		})
+		return
+	}
+
+	// Get the inquiry to verify it exists with timeout
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	inquiry, err := h.inquiryService.GetInquiry(ctx, inquiryID)
 	if err != nil {
+		h.logger.WithError(err).WithField("inquiry_id", inquiryID).Error("Failed to retrieve inquiry for email status")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"error":   "Failed to retrieve inquiry",
+			"error":   "Unable to retrieve inquiry information",
+			"code":    "INQUIRY_RETRIEVAL_ERROR",
+			"details": "Failed to access inquiry data",
 		})
 		return
 	}
 
 	if inquiry == nil {
+		h.logger.WithField("inquiry_id", inquiryID).Warn("Inquiry not found for email status request")
 		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error":   "Inquiry not found",
+			"success":    false,
+			"error":      "Inquiry not found",
+			"code":       "INQUIRY_NOT_FOUND",
+			"inquiry_id": inquiryID,
 		})
 		return
 	}
 
-	// For demo purposes, we'll create a mock email status
-	// In a real system, this would be tracked and stored
-	status := EmailStatus{
-		InquiryID:       inquiry.ID,
-		CustomerEmail:   inquiry.Email,
-		ConsultantEmail: "info@cloudpartner.pro",
-		Status:          "delivered",
-		SentAt:          inquiry.CreatedAt.Add(time.Minute * 1),
-		DeliveredAt:     inquiry.CreatedAt.Add(time.Minute * 1).Add(time.Second * 3),
+	// Check if email metrics service is available and healthy
+	if h.emailMetricsService == nil {
+		h.logger.WithField("inquiry_id", inquiryID).Error("Email metrics service not configured")
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Email monitoring is not configured",
+			"code":    "EMAIL_MONITORING_UNAVAILABLE",
+			"details": "Email status tracking is not available",
+		})
+		return
 	}
 
-	// If the inquiry was created less than 1 minute ago, show as "sending"
-	if time.Since(inquiry.CreatedAt) < time.Minute {
-		status.Status = "sending"
-		status.DeliveredAt = time.Time{}
+	// Check service health with timeout
+	healthCtx, healthCancel := context.WithTimeout(ctx, 3*time.Second)
+	defer healthCancel()
+
+	if !h.emailMetricsService.IsHealthy(healthCtx) {
+		h.logger.WithField("inquiry_id", inquiryID).Error("Email metrics service is unhealthy")
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Email monitoring system is currently unavailable",
+			"code":    "EMAIL_MONITORING_UNHEALTHY",
+			"details": "Email status service is experiencing issues",
+		})
+		return
 	}
+
+	// Get real email status with timeout
+	statusCtx, statusCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer statusCancel()
+
+	emailStatus, err := h.emailMetricsService.GetEmailStatusByInquiry(statusCtx, inquiryID)
+	if err != nil {
+		h.logger.WithError(err).WithField("inquiry_id", inquiryID).Error("Failed to get email status from metrics service")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Unable to retrieve email status at this time",
+			"code":    "EMAIL_STATUS_RETRIEVAL_ERROR",
+			"details": "Failed to access email event data",
+		})
+		return
+	}
+
+	if emailStatus == nil {
+		h.logger.WithField("inquiry_id", inquiryID).Info("No email events found for inquiry")
+		c.JSON(http.StatusNotFound, gin.H{
+			"success":    false,
+			"error":      "No email events found for this inquiry",
+			"code":       "NO_EMAIL_EVENTS",
+			"inquiry_id": inquiryID,
+			"details":    "This inquiry may not have triggered any email notifications yet",
+		})
+		return
+	}
+
+	// Convert domain.EmailStatus to API response format
+	response := h.convertEmailStatusToResponse(emailStatus, inquiry)
+
+	h.logger.WithFields(logrus.Fields{
+		"inquiry_id":  inquiryID,
+		"email_count": emailStatus.TotalEmailsSent,
+		"status":      response.Status,
+	}).Debug("Successfully retrieved email status")
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    status,
+		"data":    response,
+		"meta": gin.H{
+			"total_emails_sent": emailStatus.TotalEmailsSent,
+			"last_email_sent":   emailStatus.LastEmailSent,
+		},
 	})
 }
 
@@ -584,4 +725,307 @@ func generateAdminHTMLFilename(inquiry *domain.Inquiry, report *domain.Report) s
 
 	timestamp := time.Now().Format("20060102")
 	return "admin_" + sanitized + "_" + string(report.Type) + "_" + timestamp + ".html"
+}
+
+// parseTimeRange parses time range parameter into domain.TimeRange
+func (h *AdminHandler) parseTimeRange(timeRangeParam string) (*domain.TimeRange, error) {
+	now := time.Now()
+	var start time.Time
+
+	switch timeRangeParam {
+	case "1h":
+		start = now.Add(-1 * time.Hour)
+	case "24h", "1d":
+		start = now.Add(-24 * time.Hour)
+	case "7d":
+		start = now.Add(-7 * 24 * time.Hour)
+	case "30d":
+		start = now.Add(-30 * 24 * time.Hour)
+	case "90d":
+		start = now.Add(-90 * 24 * time.Hour)
+	default:
+		return nil, fmt.Errorf("unsupported time range: %s (supported: 1h, 1d, 7d, 30d, 90d)", timeRangeParam)
+	}
+
+	return &domain.TimeRange{
+		Start: start,
+		End:   now,
+	}, nil
+}
+
+// convertEmailStatusToResponse converts domain.EmailStatus to API response format
+func (h *AdminHandler) convertEmailStatusToResponse(emailStatus *domain.EmailStatus, inquiry *domain.Inquiry) EmailStatus {
+	response := EmailStatus{
+		InquiryID:       emailStatus.InquiryID,
+		CustomerEmail:   inquiry.Email,
+		ConsultantEmail: "info@cloudpartner.pro",
+		Status:          "no_emails",
+	}
+
+	// Determine overall status based on email events
+	if emailStatus.CustomerEmail != nil || emailStatus.ConsultantEmail != nil || emailStatus.InquiryNotification != nil {
+		// Find the most recent email event to determine overall status
+		var mostRecentEvent *domain.EmailEvent
+		var mostRecentTime time.Time
+
+		for _, event := range []*domain.EmailEvent{emailStatus.CustomerEmail, emailStatus.ConsultantEmail, emailStatus.InquiryNotification} {
+			if event != nil && event.SentAt.After(mostRecentTime) {
+				mostRecentEvent = event
+				mostRecentTime = event.SentAt
+			}
+		}
+
+		if mostRecentEvent != nil {
+			response.Status = string(mostRecentEvent.Status)
+			response.SentAt = mostRecentEvent.SentAt
+			if mostRecentEvent.DeliveredAt != nil {
+				response.DeliveredAt = *mostRecentEvent.DeliveredAt
+			}
+			if mostRecentEvent.ErrorMessage != "" {
+				response.ErrorMessage = mostRecentEvent.ErrorMessage
+			}
+		}
+	}
+
+	return response
+}
+
+// GetEmailEventHistory handles GET /api/v1/admin/email-events
+func (h *AdminHandler) GetEmailEventHistory(c *gin.Context) {
+	// Parse query parameters with validation
+	var filters domain.EmailEventFilters
+
+	// Parse time range with validation
+	timeRangeParam := c.DefaultQuery("time_range", "7d")
+	timeRange, err := h.parseTimeRange(timeRangeParam)
+	if err != nil {
+		h.logger.WithError(err).WithField("time_range", timeRangeParam).Error("Invalid time range parameter")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success":      false,
+			"error":        "Invalid time range parameter: " + err.Error(),
+			"code":         "INVALID_TIME_RANGE",
+			"valid_ranges": []string{"1h", "1d", "7d", "30d", "90d"},
+		})
+		return
+	}
+	filters.TimeRange = timeRange
+
+	// Parse and validate email type filter
+	if emailTypeParam := c.Query("email_type"); emailTypeParam != "" {
+		emailType := domain.EmailEventType(emailTypeParam)
+		// Validate email type
+		validTypes := []domain.EmailEventType{
+			domain.EmailTypeCustomerConfirmation,
+			domain.EmailTypeConsultantNotification,
+			domain.EmailTypeInquiryNotification,
+		}
+		isValid := false
+		for _, validType := range validTypes {
+			if emailType == validType {
+				isValid = true
+				break
+			}
+		}
+		if !isValid {
+			h.logger.WithField("email_type", emailTypeParam).Error("Invalid email type parameter")
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Invalid email type parameter",
+				"code":    "INVALID_EMAIL_TYPE",
+				"valid_types": []string{
+					string(domain.EmailTypeCustomerConfirmation),
+					string(domain.EmailTypeConsultantNotification),
+					string(domain.EmailTypeInquiryNotification),
+				},
+			})
+			return
+		}
+		filters.EmailType = &emailType
+	}
+
+	// Parse and validate status filter
+	if statusParam := c.Query("status"); statusParam != "" {
+		status := domain.EmailEventStatus(statusParam)
+		// Validate status
+		validStatuses := []domain.EmailEventStatus{
+			domain.EmailStatusSent,
+			domain.EmailStatusDelivered,
+			domain.EmailStatusFailed,
+			domain.EmailStatusBounced,
+			domain.EmailStatusSpam,
+		}
+		isValid := false
+		for _, validStatus := range validStatuses {
+			if status == validStatus {
+				isValid = true
+				break
+			}
+		}
+		if !isValid {
+			h.logger.WithField("status", statusParam).Error("Invalid status parameter")
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Invalid status parameter",
+				"code":    "INVALID_STATUS",
+				"valid_statuses": []string{
+					string(domain.EmailStatusSent),
+					string(domain.EmailStatusDelivered),
+					string(domain.EmailStatusFailed),
+					string(domain.EmailStatusBounced),
+					string(domain.EmailStatusSpam),
+				},
+			})
+			return
+		}
+		filters.Status = &status
+	}
+
+	// Parse inquiry ID filter with validation
+	if inquiryIDParam := c.Query("inquiry_id"); inquiryIDParam != "" {
+		if len(inquiryIDParam) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Inquiry ID cannot be empty",
+				"code":    "EMPTY_INQUIRY_ID",
+			})
+			return
+		}
+		filters.InquiryID = &inquiryIDParam
+	}
+
+	// Parse and validate pagination parameters
+	limit := 50 // Default limit
+	if limitParam := c.Query("limit"); limitParam != "" {
+		if parsedLimit, err := fmt.Sscanf(limitParam, "%d", &limit); err != nil || parsedLimit != 1 {
+			h.logger.WithField("limit", limitParam).Error("Invalid limit parameter")
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Invalid limit parameter - must be a number",
+				"code":    "INVALID_LIMIT",
+			})
+			return
+		}
+		if limit <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Limit must be greater than 0",
+				"code":    "INVALID_LIMIT_RANGE",
+			})
+			return
+		}
+		if limit > 1000 {
+			limit = 1000 // Cap maximum limit
+		}
+	}
+	filters.Limit = limit
+
+	offset := 0
+	if offsetParam := c.Query("offset"); offsetParam != "" {
+		if parsedOffset, err := fmt.Sscanf(offsetParam, "%d", &offset); err != nil || parsedOffset != 1 {
+			h.logger.WithField("offset", offsetParam).Error("Invalid offset parameter")
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Invalid offset parameter - must be a number",
+				"code":    "INVALID_OFFSET",
+			})
+			return
+		}
+		if offset < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Offset cannot be negative",
+				"code":    "INVALID_OFFSET_RANGE",
+			})
+			return
+		}
+	}
+	filters.Offset = offset
+
+	// Check if email metrics service is available and healthy
+	if h.emailMetricsService == nil {
+		h.logger.Error("Email metrics service not configured for event history request")
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Email monitoring is not configured",
+			"code":    "EMAIL_MONITORING_UNAVAILABLE",
+			"details": "Email event history is not available",
+		})
+		return
+	}
+
+	// Check service health with timeout
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	healthCtx, healthCancel := context.WithTimeout(ctx, 3*time.Second)
+	defer healthCancel()
+
+	if !h.emailMetricsService.IsHealthy(healthCtx) {
+		h.logger.Error("Email metrics service is unhealthy for event history request")
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Email monitoring system is currently unavailable",
+			"code":    "EMAIL_MONITORING_UNHEALTHY",
+			"details": "Email event history service is experiencing issues",
+		})
+		return
+	}
+
+	// Get email event history with timeout
+	events, err := h.emailMetricsService.GetEmailEventHistory(ctx, filters)
+	if err != nil {
+		h.logger.WithError(err).WithFields(logrus.Fields{
+			"time_range": timeRangeParam,
+			"email_type": filters.EmailType,
+			"status":     filters.Status,
+			"inquiry_id": filters.InquiryID,
+			"limit":      limit,
+			"offset":     offset,
+		}).Error("Failed to get email event history")
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Unable to retrieve email event history at this time",
+			"code":    "EMAIL_HISTORY_RETRIEVAL_ERROR",
+			"details": "Failed to access email event data",
+		})
+		return
+	}
+
+	// Calculate pagination info
+	total := len(events)
+	page := (offset / limit) + 1
+	pages := total / limit
+	if total%limit > 0 {
+		pages++
+	}
+
+	h.logger.WithFields(logrus.Fields{
+		"event_count": len(events),
+		"total":       total,
+		"page":        page,
+		"pages":       pages,
+		"time_range":  timeRangeParam,
+	}).Debug("Successfully retrieved email event history")
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    events,
+		"count":   len(events),
+		"total":   total,
+		"page":    page,
+		"pages":   pages,
+		"filters": map[string]interface{}{
+			"time_range": timeRangeParam,
+			"email_type": filters.EmailType,
+			"status":     filters.Status,
+			"inquiry_id": filters.InquiryID,
+			"limit":      limit,
+			"offset":     offset,
+		},
+		"meta": gin.H{
+			"query_duration_ms": time.Since(time.Now()).Milliseconds(),
+			"service_healthy":   true,
+		},
+	})
 }

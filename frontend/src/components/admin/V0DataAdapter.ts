@@ -651,7 +651,10 @@ export class V0DataAdapter {
     ).length;
 
     // Calculate rates
-    const deliveryRate = totalEmails > 0 ? (deliveredEmails / totalEmails) * 100 : metrics.email_delivery_rate;
+    // If we have email statuses, calculate from them; otherwise use system metrics
+    const deliveryRate = emailStatuses.length > 0 
+      ? (totalEmails > 0 ? (deliveredEmails / totalEmails) * 100 : 0)
+      : metrics.email_delivery_rate;
     
     // Estimate open and click rates based on industry standards and delivery rate
     // These would ideally come from email service provider webhooks
@@ -798,35 +801,176 @@ export class V0DataAdapter {
 
   /**
    * Safe email metrics adaptation with error handling
+   * Prioritizes real data over mock data and provides clear error states
    */
   static safeAdaptEmailMetrics(
     systemMetrics: SystemMetrics | null | undefined,
     emailStatuses: EmailStatus[] = []
-  ): EmailMetrics {
+  ): EmailMetrics | null {
     try {
-      return this.adaptEmailMetrics(systemMetrics || null, emailStatuses);
+      // If we have real system metrics or email statuses, use them
+      if (systemMetrics || (emailStatuses && emailStatuses.length > 0)) {
+        return this.adaptEmailMetrics(systemMetrics || null, emailStatuses);
+      }
+      
+      // Return null to indicate no real data is available
+      // This allows the calling component to handle the no-data state appropriately
+      return null;
     } catch (error) {
       console.error('Error adapting email metrics:', error);
       
-      // Return fallback metrics in case of error
-      return {
-        deliveryRate: 0,
-        openRate: 0,
-        clickRate: 0,
-        failedEmails: 0,
-        totalEmails: 0,
-        bounced: 0,
-        spam: 0,
-        delivered: 0,
-        opened: 0,
-        clicked: 0,
-      };
+      // Return null instead of fallback metrics to indicate error state
+      // This prevents showing misleading data when there's an actual error
+      return null;
     }
   }
 
   /**
+   * Check if real email data is available
+   */
+  static hasRealEmailData(
+    systemMetrics: SystemMetrics | null | undefined,
+    emailStatuses: EmailStatus[] = []
+  ): boolean {
+    // Check if we have system metrics with email data
+    if (systemMetrics && (systemMetrics.emails_sent > 0 || systemMetrics.email_delivery_rate > 0)) {
+      return true;
+    }
+    
+    // Check if we have individual email status data
+    if (emailStatuses && emailStatuses.length > 0) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Get appropriate error message based on data availability
+   */
+  static getEmailDataErrorMessage(
+    systemMetrics: SystemMetrics | null | undefined,
+    emailStatuses: EmailStatus[] = [],
+    apiError?: string
+  ): string {
+    if (apiError) {
+      // Parse API error for more specific messages
+      if (apiError.includes('EMAIL_MONITORING_UNAVAILABLE')) {
+        return 'Email monitoring is not configured. Contact your administrator to enable email tracking.';
+      }
+      if (apiError.includes('EMAIL_MONITORING_UNHEALTHY')) {
+        return 'Email monitoring system is experiencing issues. Metrics may be temporarily unavailable.';
+      }
+      if (apiError.includes('EMAIL_STATUS_RETRIEVAL_ERROR')) {
+        return 'Unable to retrieve email status data. The monitoring system may be overloaded.';
+      }
+      if (apiError.includes('NO_EMAIL_EVENTS')) {
+        return 'No email events have been recorded yet. Email metrics will appear once emails are sent.';
+      }
+      return `Unable to load email metrics: ${apiError}`;
+    }
+    
+    if (!systemMetrics && (!emailStatuses || emailStatuses.length === 0)) {
+      return 'Email monitoring data is not available. This could indicate that email tracking is not configured or no emails have been sent yet.';
+    }
+    
+    if (systemMetrics && systemMetrics.emails_sent === 0) {
+      return 'No emails have been sent through the system yet. Email delivery metrics will appear once email notifications are triggered by new inquiries.';
+    }
+    
+    if (systemMetrics && systemMetrics.email_delivery_rate === 0) {
+      return 'Email delivery tracking is not functioning properly. Check the email monitoring system configuration.';
+    }
+    
+    return 'Email metrics are temporarily unavailable due to a system issue. Please try refreshing the page or contact support if the problem persists.';
+  }
+
+  /**
+   * Get detailed error information for troubleshooting
+   */
+  static getEmailDataErrorDetails(
+    systemMetrics: SystemMetrics | null | undefined,
+    emailStatuses: EmailStatus[] = [],
+    apiError?: string
+  ): {
+    category: 'configuration' | 'data' | 'system' | 'network';
+    severity: 'low' | 'medium' | 'high';
+    suggestions: string[];
+  } {
+    if (apiError) {
+      if (apiError.includes('EMAIL_MONITORING_UNAVAILABLE')) {
+        return {
+          category: 'configuration',
+          severity: 'high',
+          suggestions: [
+            'Contact your system administrator to configure email monitoring',
+            'Verify that email event recording services are properly initialized',
+            'Check system logs for email service startup errors'
+          ]
+        };
+      }
+      if (apiError.includes('EMAIL_MONITORING_UNHEALTHY')) {
+        return {
+          category: 'system',
+          severity: 'medium',
+          suggestions: [
+            'Check the health status of email monitoring services',
+            'Verify database connectivity for email event storage',
+            'Review system resources and performance metrics'
+          ]
+        };
+      }
+      if (apiError.includes('NETWORK') || apiError.includes('timeout')) {
+        return {
+          category: 'network',
+          severity: 'medium',
+          suggestions: [
+            'Check network connectivity to the backend services',
+            'Verify that API endpoints are accessible',
+            'Try refreshing the page after a few moments'
+          ]
+        };
+      }
+    }
+
+    if (!systemMetrics && (!emailStatuses || emailStatuses.length === 0)) {
+      return {
+        category: 'configuration',
+        severity: 'medium',
+        suggestions: [
+          'Verify that email monitoring is enabled in system configuration',
+          'Check if any emails have been sent through the system',
+          'Contact support if email tracking should be available'
+        ]
+      };
+    }
+
+    if (systemMetrics && systemMetrics.emails_sent === 0) {
+      return {
+        category: 'data',
+        severity: 'low',
+        suggestions: [
+          'Email metrics will appear once inquiries trigger email notifications',
+          'Test the system by submitting a sample inquiry',
+          'Verify that email services are properly configured'
+        ]
+      };
+    }
+
+    return {
+      category: 'system',
+      severity: 'medium',
+      suggestions: [
+        'Try refreshing the page to reload email metrics',
+        'Check system status and health monitoring dashboards',
+        'Contact support if the issue persists'
+      ]
+    };
+  }
+
+  /**
    * Generate realistic email metrics for demo purposes
-   * Useful for testing and development
+   * Useful for testing and development - should only be used when explicitly requested
    */
   static generateMockEmailMetrics(totalEmails: number = 100): EmailMetrics {
     const deliveryRate = 85 + Math.random() * 10; // 85-95%
