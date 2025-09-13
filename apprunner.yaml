@@ -3,9 +3,9 @@ runtime: docker
 build:
   commands:
     build:
-      - echo "Building multi-stage Docker image..."
+      - echo "Docker build managed by App Runner"
 run:
-  runtime-version: "24"
+  runtime-version: docker
   command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
   network:
     port: 80
