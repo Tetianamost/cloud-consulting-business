@@ -256,28 +256,30 @@ func (s *Server) setupRoutes() {
 			admin.GET("/email-status/:inquiryId", s.adminHandler.GetEmailStatus)
 			admin.GET("/email-events", s.adminHandler.GetEmailEventHistory)
 
-			// REST API endpoints for chat management
-
-			admin.POST("/chat/sessions", s.chatHandler.CreateChatSession)
-			admin.GET("/chat/sessions", s.chatHandler.ListChatSessions)
-			admin.GET("/chat/sessions/:id", s.chatHandler.GetChatSessionByID)
-			admin.PUT("/chat/sessions/:id", s.chatHandler.UpdateChatSession)
-			admin.DELETE("/chat/sessions/:id", s.chatHandler.DeleteChatSession)
-			admin.GET("/chat/sessions/:id/history", s.chatHandler.GetChatSessionHistory)
+			// Chat management routes - organized to avoid conflicts
+			chatMgmt := admin.Group("/chat-mgmt")
+			{
+				chatMgmt.POST("/sessions", s.chatHandler.CreateChatSession)
+				chatMgmt.GET("/sessions", s.chatHandler.ListChatSessions)
+				chatMgmt.GET("/sessions/:id", s.chatHandler.GetChatSessionByID)
+				chatMgmt.PUT("/sessions/:id", s.chatHandler.UpdateChatSession)
+				chatMgmt.DELETE("/sessions/:id", s.chatHandler.DeleteChatSession)
+				chatMgmt.GET("/sessions/:id/history", s.chatHandler.GetChatSessionHistory)
+			}
 
 			// Legacy endpoints for backward compatibility
 			admin.GET("/chat/sessions-legacy", s.chatHandler.GetChatSessions)
 			admin.GET("/chat/sessions-legacy/:sessionId", s.chatHandler.GetChatSession)
 
 			// Simple working chat endpoints (bypass complex polling)
-			simpleChat := admin.Group("/simple-chat", s.authHandler.AuthMiddleware())
+			simpleChat := admin.Group("/simple-chat")
 			{
 				simpleChat.POST("/messages", s.simpleChatHandler.SendMessage)
 				simpleChat.GET("/messages", s.simpleChatHandler.GetMessages)
 			}
 
 			// Polling-based chat endpoints
-			chatPolling := admin.Group("/chat", s.pollingChatHandler.AuthMiddleware)
+			chatPolling := admin.Group("/chat-polling")
 			{
 				chatPolling.POST("/messages", s.pollingChatHandler.SendMessage)
 				chatPolling.GET("/messages", s.pollingChatHandler.GetMessages)

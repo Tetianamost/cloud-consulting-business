@@ -250,7 +250,7 @@ func validateProductionConfig(cfg config.SESConfig, eventRecorder interfaces.Ema
 		return fmt.Errorf("SES timeout too low for production (%d seconds) - minimum 10 seconds recommended", cfg.Timeout)
 	}
 	if cfg.Timeout > 120 {
-		logger.Warn("SES timeout is very high (%d seconds) - may cause slow email delivery", cfg.Timeout)
+		logger.Warnf("SES timeout is very high (%d seconds) - may cause slow email delivery", cfg.Timeout)
 	}
 
 	// Test event recorder health

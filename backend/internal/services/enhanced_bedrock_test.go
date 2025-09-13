@@ -80,10 +80,107 @@ func (m *MockKnowledgeBaseForEnhanced) GetClientHistory(ctx context.Context, com
 	return args.Get(0).([]*interfaces.ClientEngagement), args.Error(1)
 }
 
+func (m *MockKnowledgeBaseForEnhanced) GetBestPractices(ctx context.Context, category string) ([]*interfaces.BestPractice, error) {
+	args := m.Called(ctx, category)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.BestPractice), args.Error(1)
+}
+
+// Add other missing interface methods to satisfy the KnowledgeBase interface
+func (m *MockKnowledgeBaseForEnhanced) GetServiceOffering(ctx context.Context, id string) (*interfaces.ServiceOffering, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*interfaces.ServiceOffering), args.Error(1)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) GetPricingModels(ctx context.Context, serviceType string) ([]*interfaces.PricingModel, error) {
+	args := m.Called(ctx, serviceType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.PricingModel), args.Error(1)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) GetConsultantSpecializations(ctx context.Context, consultantID string) ([]*interfaces.Specialization, error) {
+	args := m.Called(ctx, consultantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.Specialization), args.Error(1)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) GetExpertiseByArea(ctx context.Context, area string) ([]*interfaces.TeamExpertise, error) {
+	args := m.Called(ctx, area)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.TeamExpertise), args.Error(1)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) GetSimilarProjects(ctx context.Context, inquiry *domain.Inquiry) ([]*interfaces.ProjectPattern, error) {
+	args := m.Called(ctx, inquiry)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.ProjectPattern), args.Error(1)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) GetMethodologyTemplates(ctx context.Context, serviceType string) ([]*interfaces.MethodologyTemplate, error) {
+	args := m.Called(ctx, serviceType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.MethodologyTemplate), args.Error(1)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) GetDeliverableTemplates(ctx context.Context, serviceType string) ([]*interfaces.DeliverableTemplate, error) {
+	args := m.Called(ctx, serviceType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.DeliverableTemplate), args.Error(1)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) UpdateKnowledgeBase(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) SearchKnowledge(ctx context.Context, query string, category string) ([]*interfaces.KnowledgeItem, error) {
+	args := m.Called(ctx, query, category)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.KnowledgeItem), args.Error(1)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) GetKnowledgeStats(ctx context.Context) (*interfaces.KnowledgeStats, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*interfaces.KnowledgeStats), args.Error(1)
+}
+
+func (m *MockKnowledgeBaseForEnhanced) GetComplianceRequirements(ctx context.Context, framework string) ([]*interfaces.ComplianceRequirement, error) {
+	args := m.Called(ctx, framework)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.ComplianceRequirement), args.Error(1)
+}
+
 // MockCompanyKnowledgeIntegrationService for testing
 type MockCompanyKnowledgeIntegrationService struct {
 	mock.Mock
 }
+
+// Ensure it implements the interface
+var _ CompanyKnowledgeIntegrator = (*MockCompanyKnowledgeIntegrationService)(nil)
 
 func (m *MockCompanyKnowledgeIntegrationService) GenerateContextualPrompt(ctx context.Context, inquiry *domain.Inquiry, basePrompt string) (string, error) {
 	args := m.Called(ctx, inquiry, basePrompt)
@@ -244,11 +341,13 @@ func TestEnhancedBedrockService_GenerateEnhancedResponseWithRecommendations_Succ
 	recommendations := &InquiryRecommendations{
 		InquiryID:   inquiry.ID,
 		GeneratedAt: time.Now(),
-		ServiceRecommendations: []ServiceRecommendation{
+		RecommendedServices: []*interfaces.ServiceOffering{
 			{
-				ServiceName: "AWS Migration Hub",
-				Rationale:   "Centralized migration tracking",
-				Priority:    "High",
+				ID:          "aws-migration-hub",
+				Name:        "AWS Migration Hub",
+				Description: "Centralized migration tracking",
+				Category:    "Migration",
+				ServiceType: domain.ServiceTypeMigration,
 			},
 		},
 	}
@@ -266,8 +365,8 @@ func TestEnhancedBedrockService_GenerateEnhancedResponseWithRecommendations_Succ
 	assert.NotNil(t, response)
 	assert.Equal(t, "Enhanced AI response", response.Content)
 	assert.Equal(t, inquiry.ID, response.Recommendations.InquiryID)
-	assert.Len(t, response.Recommendations.ServiceRecommendations, 1)
-	assert.Equal(t, "AWS Migration Hub", response.Recommendations.ServiceRecommendations[0].ServiceName)
+	assert.Len(t, response.Recommendations.RecommendedServices, 1)
+	assert.Equal(t, "AWS Migration Hub", response.Recommendations.RecommendedServices[0].Name)
 
 	mockCompanyInteg.AssertExpectations(t)
 	mockBedrock.AssertExpectations(t)
@@ -302,7 +401,7 @@ func TestEnhancedBedrockService_GenerateEnhancedResponseWithRecommendations_Reco
 	assert.NotNil(t, response)
 	assert.Equal(t, "Enhanced AI response", response.Content)
 	assert.Equal(t, inquiry.ID, response.Recommendations.InquiryID)
-	assert.Empty(t, response.Recommendations.ServiceRecommendations)
+	assert.Empty(t, response.Recommendations.RecommendedServices)
 
 	mockCompanyInteg.AssertExpectations(t)
 	mockBedrock.AssertExpectations(t)
@@ -536,10 +635,10 @@ func TestEnhancedBedrockService_GetModelInfo_Delegation(t *testing.T) {
 
 	expectedInfo := interfaces.BedrockModelInfo{
 		ModelID:     "test-model",
+		ModelName:   "Test Model",
+		Provider:    "amazon",
 		MaxTokens:   4000,
-		InputCost:   0.001,
-		OutputCost:  0.002,
-		Description: "Test model",
+		IsAvailable: true,
 	}
 
 	mockBedrock.On("GetModelInfo").Return(expectedInfo)

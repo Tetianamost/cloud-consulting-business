@@ -397,9 +397,10 @@ func createTestChatHandler() (*ChatHandler, *MockBedrockService, *MockKnowledgeB
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce log noise in tests
 
-	// Create mock metrics collector and performance monitor
-	mockMetricsCollector := &services.ChatMetricsCollector{}
-	mockPerformanceMonitor := &services.ChatPerformanceMonitor{}
+	// Create properly initialized metrics collector and performance monitor
+	mockPerformanceMonitor := services.NewChatPerformanceMonitor(logger)
+	mockCacheMonitor := services.NewCacheMonitor(nil, logger)
+	mockMetricsCollector := services.NewChatMetricsCollector(mockPerformanceMonitor, mockCacheMonitor, logger)
 
 	handler := NewChatHandler(
 		logger,
@@ -460,9 +461,13 @@ func TestChatHandler_ProcessEnhancedChatRequest_Success(t *testing.T) {
 		CreatedAt: time.Now(),
 	}
 
-	// Mock session service calls
-	mockSessionService.On("ValidateSession", mock.Anything, "", userID).Return(nil, assert.AnError)
-	mockSessionService.On("CreateSession", mock.Anything, mock.AnythingOfType("*domain.ChatSession")).Return(nil)
+	// Mock session service calls - since SessionID is empty, ValidateSession won't be called
+	// Only CreateSession will be called
+	mockSessionService.On("CreateSession", mock.Anything, mock.AnythingOfType("*domain.ChatSession")).Return(nil).Run(func(args mock.Arguments) {
+		// Update the session ID in the passed session object
+		sessionArg := args.Get(1).(*domain.ChatSession)
+		sessionArg.ID = session.ID
+	})
 
 	// Mock chat service calls
 	mockChatService.On("SendMessage", mock.Anything, mock.AnythingOfType("*domain.ChatRequest")).Return(chatResponse, nil)
@@ -486,8 +491,8 @@ func TestChatHandler_ProcessEnhancedChatRequest_SessionCreationFailure(t *testin
 	connID := "test-conn-id"
 	userID := "test-user-id"
 
-	// Mock session service failure
-	mockSessionService.On("ValidateSession", mock.Anything, "", userID).Return(nil, assert.AnError)
+	// Mock session service failure - since SessionID is empty, ValidateSession won't be called
+	// Only CreateSession will be called and it will fail
 	mockSessionService.On("CreateSession", mock.Anything, mock.AnythingOfType("*domain.ChatSession")).Return(assert.AnError)
 
 	response := handler.processEnhancedChatRequest(request, connID, userID)
@@ -506,8 +511,12 @@ func TestChatHandler_ProcessEnhancedChatRequest_ChatServiceFailure(t *testing.T)
 	userID := "test-user-id"
 
 	// Mock successful session creation but failed chat service
-	mockSessionService.On("ValidateSession", mock.Anything, "", userID).Return(nil, assert.AnError)
-	mockSessionService.On("CreateSession", mock.Anything, mock.AnythingOfType("*domain.ChatSession")).Return(nil)
+	// Since SessionID is empty, ValidateSession won't be called
+	mockSessionService.On("CreateSession", mock.Anything, mock.AnythingOfType("*domain.ChatSession")).Return(nil).Run(func(args mock.Arguments) {
+		// Update the session ID in the passed session object
+		sessionArg := args.Get(1).(*domain.ChatSession)
+		sessionArg.ID = "test-session-id"
+	})
 	mockChatService.On("SendMessage", mock.Anything, mock.AnythingOfType("*domain.ChatRequest")).Return(nil, assert.AnError)
 
 	response := handler.processEnhancedChatRequest(request, connID, userID)
@@ -612,10 +621,19 @@ func TestChatHandler_RouteWebSocketMessage_ChatMessage(t *testing.T) {
 
 	handler.routeWebSocketMessage(wsMessage, connection, "test-conn-id", "test-user-id")
 
-	// Check that response was sent to connection
+	// Check that both ack and response messages were sent to connection
+	// First message should be acknowledgment
+	select {
+	case ackResponse := <-connection.SendChan:
+		assert.Equal(t, "ack", string(ackResponse.Type))
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("Expected acknowledgment message not received")
+	}
+
+	// Second message should be the actual response
 	select {
 	case response := <-connection.SendChan:
-		assert.Equal(t, WSMessageTypeMessage, response.Type)
+		assert.Equal(t, "message", string(response.Type))
 		assert.Equal(t, "Test AI response", response.Content)
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("Expected response message not received")
@@ -760,7 +778,7 @@ func TestChatHandler_WebSocketAuthMiddleware_NoToken(t *testing.T) {
 
 // Test legacy chat functionality
 func TestChatHandler_ProcessChatRequest_Success(t *testing.T) {
-	handler, mockBedrock, _, _, _ := createTestChatHandler()
+	handler, mockBedrock, mockKB, _, _ := createTestChatHandler()
 
 	request := createTestChatRequest()
 	connID := "test-conn-id"
@@ -774,6 +792,27 @@ func TestChatHandler_ProcessChatRequest_Success(t *testing.T) {
 	}
 	mockBedrock.On("GenerateText", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("*interfaces.BedrockOptions")).Return(bedrockResponse, nil)
 
+	// Mock GetModelInfo call
+	modelInfo := interfaces.BedrockModelInfo{
+		ModelID:     "nova-lite",
+		ModelName:   "Nova Lite",
+		Provider:    "amazon",
+		MaxTokens:   4096,
+		IsAvailable: true,
+	}
+	mockBedrock.On("GetModelInfo").Return(modelInfo)
+
+	// Mock knowledge base calls
+	mockKB.On("GetServiceOfferings", mock.Anything).Return([]*interfaces.ServiceOffering{}, nil)
+	mockKB.On("GetTeamExpertise", mock.Anything).Return([]*interfaces.TeamExpertise{}, nil)
+	mockKB.On("GetPastSolutions", mock.Anything, mock.Anything, mock.Anything).Return([]*interfaces.PastSolution{}, nil)
+	mockKB.On("GetConsultingApproach", mock.Anything, mock.Anything).Return(&interfaces.ConsultingApproach{}, nil)
+	mockKB.On("GetClientHistory", mock.Anything, mock.Anything).Return([]*interfaces.ClientEngagement{}, nil)
+	mockKB.On("GetExpertiseByArea", mock.Anything, mock.Anything).Return([]*interfaces.TeamExpertise{}, nil)
+	mockKB.On("GetSimilarProjects", mock.Anything, mock.Anything).Return([]*interfaces.ProjectPattern{}, nil)
+	mockKB.On("GetMethodologyTemplates", mock.Anything, mock.Anything).Return([]*interfaces.MethodologyTemplate{}, nil)
+	mockKB.On("GetPricingModels", mock.Anything, mock.Anything).Return([]*interfaces.PricingModel{}, nil)
+
 	response := handler.processChatRequest(request, connID)
 
 	assert.True(t, response.Success)
@@ -782,16 +821,35 @@ func TestChatHandler_ProcessChatRequest_Success(t *testing.T) {
 	assert.NotEmpty(t, response.SessionID)
 
 	mockBedrock.AssertExpectations(t)
+	mockKB.AssertExpectations(t)
 }
 
 func TestChatHandler_ProcessChatRequest_BedrockFailure(t *testing.T) {
-	handler, mockBedrock, _, _, _ := createTestChatHandler()
+	handler, mockBedrock, mockKB, _, _ := createTestChatHandler()
 
 	request := createTestChatRequest()
 	connID := "test-conn-id"
 
 	// Mock Bedrock failure
+	modelInfo := interfaces.BedrockModelInfo{
+		ModelName:   "Nova Lite",
+		Provider:    "amazon",
+		MaxTokens:   4096,
+		IsAvailable: true,
+	}
+	mockBedrock.On("GetModelInfo").Return(modelInfo)
 	mockBedrock.On("GenerateText", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("*interfaces.BedrockOptions")).Return(nil, assert.AnError)
+
+	// Mock knowledge base calls (needed for enhanced bedrock service)
+	mockKB.On("GetServiceOfferings", mock.Anything).Return([]*interfaces.ServiceOffering{}, nil)
+	mockKB.On("GetTeamExpertise", mock.Anything).Return([]*interfaces.TeamExpertise{}, nil)
+	mockKB.On("GetPastSolutions", mock.Anything, mock.Anything, mock.Anything).Return([]*interfaces.PastSolution{}, nil)
+	mockKB.On("GetConsultingApproach", mock.Anything, mock.Anything).Return(&interfaces.ConsultingApproach{}, nil)
+	mockKB.On("GetClientHistory", mock.Anything, mock.Anything).Return([]*interfaces.ClientEngagement{}, nil)
+	mockKB.On("GetExpertiseByArea", mock.Anything, mock.Anything).Return([]*interfaces.TeamExpertise{}, nil)
+	mockKB.On("GetSimilarProjects", mock.Anything, mock.Anything).Return([]*interfaces.ProjectPattern{}, nil)
+	mockKB.On("GetMethodologyTemplates", mock.Anything, mock.Anything).Return([]*interfaces.MethodologyTemplate{}, nil)
+	mockKB.On("GetPricingModels", mock.Anything, mock.Anything).Return([]*interfaces.PricingModel{}, nil)
 
 	response := handler.processChatRequest(request, connID)
 

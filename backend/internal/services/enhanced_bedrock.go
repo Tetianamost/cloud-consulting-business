@@ -11,15 +11,21 @@ import (
 	"github.com/cloud-consulting/backend/internal/interfaces"
 )
 
+// CompanyKnowledgeIntegrator defines the interface for company knowledge integration
+type CompanyKnowledgeIntegrator interface {
+	GenerateContextualPrompt(ctx context.Context, inquiry *domain.Inquiry, basePrompt string) (string, error)
+	GetRecommendationsForInquiry(ctx context.Context, inquiry *domain.Inquiry) (*InquiryRecommendations, error)
+}
+
 // EnhancedBedrockService wraps the base Bedrock service with knowledge base integration
 type EnhancedBedrockService struct {
 	bedrockService        interfaces.BedrockService
 	knowledgeBase         interfaces.KnowledgeBase
-	companyKnowledgeInteg *CompanyKnowledgeIntegrationService
+	companyKnowledgeInteg CompanyKnowledgeIntegrator
 }
 
 // NewEnhancedBedrockService creates a new enhanced Bedrock service
-func NewEnhancedBedrockService(bedrock interfaces.BedrockService, kb interfaces.KnowledgeBase, companyInteg *CompanyKnowledgeIntegrationService) *EnhancedBedrockService {
+func NewEnhancedBedrockService(bedrock interfaces.BedrockService, kb interfaces.KnowledgeBase, companyInteg CompanyKnowledgeIntegrator) *EnhancedBedrockService {
 	return &EnhancedBedrockService{
 		bedrockService:        bedrock,
 		knowledgeBase:         kb,

@@ -585,9 +585,12 @@ func (h *AdminHandler) DownloadReport(c *gin.Context) {
 		RequestID: requestID,
 	}
 
-	// Validate inquiry ID
-	if err := h.errorHandler.ValidateInquiryID(inquiryID); err != nil {
-		h.errorHandler.HandleDownloadError(c, err, ErrCodeValidationError, errorContext)
+	// Validate inquiry ID - return 404 for empty ID to match routing behavior
+	if inquiryID == "" {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "Not found",
+		})
 		return
 	}
 
