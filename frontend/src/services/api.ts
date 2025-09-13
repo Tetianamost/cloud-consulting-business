@@ -290,12 +290,12 @@ class ApiService {
   
   // Get a specific report by ID
   async getReport(reportId: string): Promise<{ success: boolean; data: ReportWithInquiry }> {
-    return this.request<{ success: boolean; data: ReportWithInquiry }>(`/api/v1/admin/reports/${reportId}`);
+    return this.request<{ success: boolean; data: ReportWithInquiry }>(`/api/v1/admin/reports/view/${reportId}`);
   }
   
   // Download report in specified format
   async downloadReport(inquiryId: string, format: 'pdf' | 'html'): Promise<Blob> {
-    const url = `${this.baseUrl}/api/v1/admin/reports/${inquiryId}/download/${format}`;
+    const url = `${this.baseUrl}/api/v1/admin/reports/download/${inquiryId}/${format}`;
     
     const headers: HeadersInit = {};
     if (this.authToken) {

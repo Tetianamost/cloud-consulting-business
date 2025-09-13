@@ -250,8 +250,8 @@ func (s *Server) setupRoutes() {
 		{
 			admin.GET("/inquiries", s.adminHandler.ListInquiries)
 			admin.GET("/reports", s.adminHandler.ListReports)
-			admin.GET("/reports/:inquiryId/download/:format", s.adminHandler.DownloadReport)
-			admin.GET("/reports/:reportId", s.adminHandler.GetReport)
+			admin.GET("/reports/download/:inquiryId/:format", s.adminHandler.DownloadReport)
+			admin.GET("/reports/view/:reportId", s.adminHandler.GetReport)
 			admin.GET("/metrics", s.adminHandler.GetSystemMetrics)
 			admin.GET("/email-status/:inquiryId", s.adminHandler.GetEmailStatus)
 			admin.GET("/email-events", s.adminHandler.GetEmailEventHistory)
