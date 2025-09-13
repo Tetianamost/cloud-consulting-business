@@ -126,8 +126,8 @@ fi
 
 cd ..
 
-# Wait a moment for backend to start
-sleep 3
+# Wait a moment for backend to start (increased timeout for full initialization)
+sleep 6
 
 # Check if backend is running
 if ! curl -f http://localhost:$PORT/health > /dev/null 2>&1; then
