@@ -1,19 +1,19 @@
 # Multi-stage build for App Runner deployment
-FROM node:18-alpine AS frontend-builder
+FROM public.ecr.aws/docker/library/node:18-alpine AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci --only=production
 COPY frontend/ ./
 RUN npm run build
 
-FROM golang:1.21-alpine AS backend-builder
+FROM public.ecr.aws/docker/library/golang:1.21-alpine AS backend-builder
 WORKDIR /app
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o server cmd/server/main.go
 
-FROM nginx:alpine
+FROM public.ecr.aws/docker/library/nginx:alpine
 RUN apk add --no-cache supervisor
 COPY --from=frontend-builder /app/frontend/build /usr/share/nginx/html
 COPY --from=backend-builder /app/server /usr/local/bin/server
