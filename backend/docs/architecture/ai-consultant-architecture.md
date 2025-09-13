@@ -13,7 +13,7 @@ The AI Consultant system provides an advanced, context-aware chat interface for 
 │  AIConsultantPage.tsx                                          │
 │  ├── Context Management (Client, Meeting Type)                 │
 │  ├── Quick Actions (8 pre-defined consulting actions)          │
-│  ├── Connection Management (WebSocket/Polling)                 │
+│  ├── Connection Management (Polling-based)                    │
 │  ├── Message Interface (Input, Display, History)               │
 │  └── Settings Panel (Configuration, Status)                    │
 │                                                                 │
@@ -387,7 +387,7 @@ if err := c.ShouldBindJSON(&req); err != nil {
 - **Analytics Database**: Separate analytics data store
 
 #### Real-time Features
-- **WebSocket Integration**: Real-time message delivery
+- **Polling Integration**: Near real-time message delivery
 - **Typing Indicators**: Show when AI is generating responses
 - **Presence Management**: Online/offline status
 - **Push Notifications**: Browser notifications for new messages

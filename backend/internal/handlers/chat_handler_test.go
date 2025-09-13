@@ -87,6 +87,99 @@ func (m *MockKnowledgeBase) GetClientHistory(ctx context.Context, company string
 	return args.Get(0).([]*interfaces.ClientEngagement), args.Error(1)
 }
 
+func (m *MockKnowledgeBase) GetBestPractices(ctx context.Context, category string) ([]*interfaces.BestPractice, error) {
+	args := m.Called(ctx, category)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.BestPractice), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) GetComplianceRequirements(ctx context.Context, framework string) ([]*interfaces.ComplianceRequirement, error) {
+	args := m.Called(ctx, framework)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.ComplianceRequirement), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) GetConsultantSpecializations(ctx context.Context, consultantID string) ([]*interfaces.Specialization, error) {
+	args := m.Called(ctx, consultantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.Specialization), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) GetDeliverableTemplates(ctx context.Context, serviceType string) ([]*interfaces.DeliverableTemplate, error) {
+	args := m.Called(ctx, serviceType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.DeliverableTemplate), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) GetExpertiseByArea(ctx context.Context, area string) ([]*interfaces.TeamExpertise, error) {
+	args := m.Called(ctx, area)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.TeamExpertise), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) GetKnowledgeStats(ctx context.Context) (*interfaces.KnowledgeStats, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*interfaces.KnowledgeStats), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) GetMethodologyTemplates(ctx context.Context, serviceType string) ([]*interfaces.MethodologyTemplate, error) {
+	args := m.Called(ctx, serviceType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.MethodologyTemplate), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) GetPricingModels(ctx context.Context, serviceType string) ([]*interfaces.PricingModel, error) {
+	args := m.Called(ctx, serviceType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.PricingModel), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) GetServiceOffering(ctx context.Context, id string) (*interfaces.ServiceOffering, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*interfaces.ServiceOffering), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) GetSimilarProjects(ctx context.Context, inquiry *domain.Inquiry) ([]*interfaces.ProjectPattern, error) {
+	args := m.Called(ctx, inquiry)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.ProjectPattern), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) SearchKnowledge(ctx context.Context, query string, category string) ([]*interfaces.KnowledgeItem, error) {
+	args := m.Called(ctx, query, category)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*interfaces.KnowledgeItem), args.Error(1)
+}
+
+func (m *MockKnowledgeBase) UpdateKnowledgeBase(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
 // MockSessionService for testing
 type MockSessionService struct {
 	mock.Mock
@@ -284,6 +377,14 @@ func (m *MockChatService) GetMessageStats(ctx context.Context, sessionID string)
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*interfaces.MessageStats), args.Error(1)
+}
+
+func (m *MockChatService) ListMessages(ctx context.Context, filters *domain.ChatMessageFilters) ([]*domain.ChatMessage, error) {
+	args := m.Called(ctx, filters)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.ChatMessage), args.Error(1)
 }
 
 // Test helper functions

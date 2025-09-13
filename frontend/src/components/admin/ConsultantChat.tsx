@@ -15,16 +15,6 @@ import {
 import enhancedAIService from '../../services/simpleAIService';
 import useDebouncedInput from '../../hooks/useDebouncedInput';
 
-interface ChatMessage {
-  id: string;
-  type: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: string;
-  session_id: string;
-}
-
-
-
 interface ConsultantChatProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;

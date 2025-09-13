@@ -7,8 +7,8 @@ import reportWebVitals from './reportWebVitals';
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
-// Temporarily disable StrictMode to fix WebSocket connection issues
-// StrictMode causes double mounting in development which closes WebSocket connections immediately
+// StrictMode disabled for development stability
+// Can be re-enabled as the app now uses polling-based chat instead of WebSocket
 root.render(
   <App />
 );

@@ -7,16 +7,20 @@ import ChatToggle from './ChatToggle';
 import chatReducer from '../../store/slices/chatSlice';
 import connectionReducer from '../../store/slices/connectionSlice';
 
-// Mock websocket service
-jest.mock('../../services/websocketService', () => ({
+// Mock the enhanced AI service
+jest.mock('../../services/simpleAIService', () => ({
   __esModule: true,
   default: {
-    connect: jest.fn().mockResolvedValue(undefined),
-    disconnect: jest.fn(),
-    sendChatMessage: jest.fn(),
-    getConnectionStatus: jest.fn().mockReturnValue('disconnected'),
-    isHealthy: jest.fn().mockReturnValue(false),
-    forceReconnect: jest.fn(),
+    checkConnection: jest.fn().mockResolvedValue(true),
+    isHealthy: jest.fn().mockReturnValue(true),
+    sendMessage: jest.fn().mockResolvedValue({
+      content: 'Mock AI response',
+      timestamp: new Date().toISOString(),
+    }),
+    getMessages: jest.fn().mockResolvedValue([]),
+    getSessionId: jest.fn().mockReturnValue('test-session-id'),
+    resetSession: jest.fn(),
+    forceReconnect: jest.fn().mockResolvedValue(true),
   },
 }));
 
@@ -70,13 +74,12 @@ describe('ChatToggle', () => {
       connection: {
         status: 'connected' as const,
         isHealthy: true,
-        webSocket: null,
-        lastConnected: null,
+        error: null,
         reconnectAttempts: 0,
         maxReconnectAttempts: 10,
         reconnectDelay: 1000,
         maxReconnectDelay: 30000,
-        error: null,
+        lastConnected: null,
         latency: null,
         lastPingTime: null,
         connectionId: null,
@@ -132,7 +135,7 @@ describe('ChatToggle', () => {
 
     // Should render the ConsultantChat component
     await waitFor(() => {
-      expect(screen.getByText(/consultant assistant/i)).toBeInTheDocument();
+      expect(screen.getByText(/ai assistant/i)).toBeInTheDocument();
     });
   });
 
@@ -156,7 +159,7 @@ describe('ChatToggle', () => {
     renderWithProviders(<ChatToggle />);
     
     // Should render the ConsultantChat component immediately
-    expect(screen.getByText(/consultant assistant/i)).toBeInTheDocument();
+    expect(screen.getByText(/ai assistant/i)).toBeInTheDocument();
   });
 
   it('shows notifications when there are unread messages and chat is closed', () => {
@@ -206,12 +209,11 @@ describe('ChatToggle', () => {
         status: 'failed' as const,
         isHealthy: false,
         error: 'Connection failed',
-        webSocket: null,
-        lastConnected: null,
         reconnectAttempts: 3,
         maxReconnectAttempts: 10,
         reconnectDelay: 1000,
         maxReconnectDelay: 30000,
+        lastConnected: null,
         latency: null,
         lastPingTime: null,
         connectionId: null,

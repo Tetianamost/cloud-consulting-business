@@ -17,5 +17,10 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "frontend",
+    "backend",
+    "node_modules"
   ]
 }

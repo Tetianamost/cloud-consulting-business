@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI Consultant Live Chat API provides real-time chat capabilities for admin users to interact with an AI assistant powered by AWS Bedrock. The system supports both WebSocket connections for real-time communication and REST endpoints for session management.
+The AI Consultant Live Chat API provides chat capabilities for admin users to interact with an AI assistant powered by AWS Bedrock. The system uses HTTP polling for reliable communication and REST endpoints for session management.
 
 ## Base URL
 
@@ -17,35 +17,30 @@ All chat endpoints require admin authentication using JWT tokens. Include the to
 Authorization: Bearer <your-jwt-token>
 ```
 
-For WebSocket connections, the token can be provided as:
-- Query parameter: `?token=<your-jwt-token>`
+For HTTP requests, the token should be provided as:
 - Authorization header: `Authorization: Bearer <your-jwt-token>`
 
-## WebSocket Connection
+## HTTP Polling
 
 ### Endpoint
 ```
-GET /api/v1/admin/chat/ws
+POST /api/v1/admin/chat/polling
 ```
 
 ### Connection Protocol
 
-The WebSocket connection follows a structured message protocol for real-time communication. The system supports dual communication modes:
+The HTTP polling follows a structured request-response protocol for reliable communication:
 
-- **WebSocket (Primary)**: Real-time bidirectional communication for optimal performance
-- **HTTP Polling (Fallback)**: Automatic fallback when WebSocket connections are not available
+- **HTTP Polling**: Reliable request-response communication for chat functionality
 
 ### Connection States
 
 The frontend connection manager recognizes the following states:
 - `disconnected`: No active connection
 - `connecting`: Attempting to establish connection  
-- `connected`: WebSocket connection established and active
-- `polling`: HTTP polling connection active (fallback mode)
+- `polling`: HTTP polling connection active
 - `reconnecting`: Attempting to reconnect after connection loss
 - `error`: Connection failed
-
-Both `connected` and `polling` states are treated as valid connected states, ensuring seamless user experience regardless of the underlying communication method.
 
 #### Message Types
 
@@ -57,11 +52,11 @@ Both `connected` and `polling` states are treated as valid connected states, ens
 - `ack` - Message acknowledgments
 - `heartbeat` - Connection health checks
 
-#### WebSocket Message Format
+#### HTTP Polling Message Format
 
 ```json
 {
-  "type": "message|typing|status|error|presence|ack|heartbeat",
+  "type": "message|status|error",
   "session_id": "string",
   "message_id": "string",
   "content": "string",
@@ -90,15 +85,7 @@ Both `connected` and `polling` states are treated as valid connected states, ens
 }
 ```
 
-**Typing Indicator:**
-```json
-{
-  "type": "typing",
-  "session_id": "session-123",
-  "content": "true",
-  "timestamp": "2025-02-08T10:30:00Z"
-}
-```
+
 
 **AI Response:**
 ```json
@@ -387,7 +374,7 @@ Retrieves comprehensive chat system metrics.
   "data": {
     "overall_status": "healthy",
     "components": {
-      "websocket_server": "healthy",
+      "chat_service": "healthy",
       "database": "healthy",
       "redis_cache": "healthy",
       "ai_service": "healthy"
@@ -430,7 +417,7 @@ All API errors follow a consistent format:
 - `CHAT_VALIDATION_ERROR` - Invalid request data
 - `CHAT_AI_SERVICE_ERROR` - AI service unavailable or error
 - `CHAT_DATABASE_ERROR` - Database connection or query error
-- `CHAT_WEBSOCKET_ERROR` - WebSocket connection error
+- `CHAT_CONNECTION_ERROR` - Connection error
 
 ### HTTP Status Codes
 
@@ -448,7 +435,7 @@ All API errors follow a consistent format:
 
 The API implements rate limiting to prevent abuse:
 
-- **WebSocket Messages**: 60 messages per minute per user
+- **Chat Messages**: 60 messages per minute per user
 - **REST API Calls**: 100 requests per minute per user
 - **Session Creation**: 10 sessions per hour per user
 
@@ -486,27 +473,27 @@ curl -X GET http://localhost:8080/api/v1/admin/chat/metrics \
   -H "Authorization: Bearer your-jwt-token"
 ```
 
-### WebSocket Testing
+### HTTP Polling Testing
 
-Use a WebSocket client to test real-time functionality:
+Use HTTP requests to test chat functionality:
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/api/v1/admin/chat/ws?token=your-jwt-token');
-
-ws.onopen = function() {
-  // Send a chat message
-  ws.send(JSON.stringify({
+// Send a chat message
+fetch('http://localhost:8080/api/v1/admin/chat/polling', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your-jwt-token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
     type: 'message',
     session_id: 'session-123',
     content: 'Hello, AI assistant!',
     timestamp: new Date().toISOString()
-  }));
-};
-
-ws.onmessage = function(event) {
-  const message = JSON.parse(event.data);
-  console.log('Received:', message);
-};
+  })
+})
+.then(response => response.json())
+.then(data => console.log('Response:', data));
 ```
 
 ## Security Considerations
@@ -520,7 +507,7 @@ ws.onmessage = function(event) {
 
 ## Performance Optimization
 
-- WebSocket connections are pooled and reused
+- HTTP connections are optimized and reused
 - Message history is paginated to reduce load times
 - Redis caching improves session retrieval performance
 - Database queries are optimized with proper indexing

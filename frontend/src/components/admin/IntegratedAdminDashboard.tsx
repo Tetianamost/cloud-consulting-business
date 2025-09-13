@@ -10,7 +10,7 @@ import ChatToggle from './ChatToggle';
 import SimpleChat from './SimpleChat';
 import ChatPage from './ChatPage';
 import ConnectionStatus from './ConnectionStatus';
-import SimpleWebSocketTest from './SimpleWebSocketTest';
+
 import ChatModeToggle from './ChatModeToggle';
 import { SimpleWorkingChat } from './SimpleWorkingChat';
 import { RootState } from '../../store';
@@ -116,7 +116,6 @@ export const IntegratedAdminDashboard: React.FC<IntegratedAdminDashboardProps> =
               <Route path="chat-mode" element={<ChatModeToggle />} />
               <Route path="metrics" element={<MetricsDashboard />} />
               <Route path="email-status" element={<EmailMonitor />} />
-              <Route path="websocket-test" element={<SimpleWebSocketTest />} />
               <Route path="simple-chat" element={<SimpleWorkingChat />} />
             </Routes>
           )}

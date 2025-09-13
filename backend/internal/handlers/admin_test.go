@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -121,6 +122,41 @@ func (m *MockEmailService) IsHealthy() bool {
 	return args.Bool(0)
 }
 
+// MockEmailMetricsService is a mock implementation of the EmailMetricsService interface
+type MockEmailMetricsService struct {
+	mock.Mock
+}
+
+func (m *MockEmailMetricsService) GetEmailMetrics(ctx context.Context, timeRange domain.TimeRange) (*domain.EmailMetrics, error) {
+	args := m.Called(ctx, timeRange)
+	return args.Get(0).(*domain.EmailMetrics), args.Error(1)
+}
+
+func (m *MockEmailMetricsService) GetEmailStatusByInquiry(ctx context.Context, inquiryID string) (*domain.EmailStatus, error) {
+	args := m.Called(ctx, inquiryID)
+	return args.Get(0).(*domain.EmailStatus), args.Error(1)
+}
+
+func (m *MockEmailMetricsService) GetRecentEmailActivity(ctx context.Context, hours int) ([]*domain.EmailEvent, error) {
+	args := m.Called(ctx, hours)
+	return args.Get(0).([]*domain.EmailEvent), args.Error(1)
+}
+
+func (m *MockEmailMetricsService) IsHealthy(ctx context.Context) bool {
+	args := m.Called(ctx)
+	return args.Bool(0)
+}
+
+func (m *MockEmailMetricsService) GetEmailEventHistory(ctx context.Context, filters domain.EmailEventFilters) ([]*domain.EmailEvent, error) {
+	args := m.Called(ctx, filters)
+	return args.Get(0).([]*domain.EmailEvent), args.Error(1)
+}
+
+func (m *MockEmailMetricsService) GetMetrics() *interfaces.EmailMetricsServiceMetrics {
+	args := m.Called()
+	return args.Get(0).(*interfaces.EmailMetricsServiceMetrics)
+}
+
 func TestDownloadReport_RouteParameterExtraction(t *testing.T) {
 	// Set Gin to test mode
 	gin.SetMode(gin.TestMode)
@@ -129,10 +165,12 @@ func TestDownloadReport_RouteParameterExtraction(t *testing.T) {
 	mockInquiryService := &MockInquiryService{}
 	mockReportService := &MockReportService{}
 	mockEmailService := &MockEmailService{}
+	mockEmailMetricsService := &MockEmailMetricsService{}
 	memStorage := storage.NewInMemoryStorage()
+	logger := logrus.New()
 
 	// Create admin handler
-	adminHandler := NewAdminHandler(memStorage, mockInquiryService, mockReportService, mockEmailService)
+	adminHandler := NewAdminHandler(memStorage, mockInquiryService, mockReportService, mockEmailService, mockEmailMetricsService, logger)
 
 	// Create test inquiry with report
 	testInquiry := &domain.Inquiry{
@@ -248,10 +286,12 @@ func TestDownloadReport_RouteRegistration(t *testing.T) {
 	mockInquiryService := &MockInquiryService{}
 	mockReportService := &MockReportService{}
 	mockEmailService := &MockEmailService{}
+	mockEmailMetricsService := &MockEmailMetricsService{}
 	memStorage := storage.NewInMemoryStorage()
+	logger := logrus.New()
 
 	// Create admin handler
-	adminHandler := NewAdminHandler(memStorage, mockInquiryService, mockReportService, mockEmailService)
+	adminHandler := NewAdminHandler(memStorage, mockInquiryService, mockReportService, mockEmailService, mockEmailMetricsService, logger)
 
 	// Create router and register the new route
 	router := gin.New()
@@ -283,10 +323,12 @@ func TestDownloadReport_ParameterValidation(t *testing.T) {
 	mockInquiryService := &MockInquiryService{}
 	mockReportService := &MockReportService{}
 	mockEmailService := &MockEmailService{}
+	mockEmailMetricsService := &MockEmailMetricsService{}
 	memStorage := storage.NewInMemoryStorage()
+	logger := logrus.New()
 
 	// Create admin handler
-	adminHandler := NewAdminHandler(memStorage, mockInquiryService, mockReportService, mockEmailService)
+	adminHandler := NewAdminHandler(memStorage, mockInquiryService, mockReportService, mockEmailService, mockEmailMetricsService, logger)
 
 	// Create router and register route
 	router := gin.New()

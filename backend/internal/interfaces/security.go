@@ -211,6 +211,14 @@ type AuditLogFilters struct {
 	Offset    int       `json:"offset,omitempty"`
 }
 
+// RateLimitStatus represents the status of rate limiting for a user
+type RateLimitStatus struct {
+	UserID       string                    `json:"user_id"`
+	Limits       map[string]*RateLimitInfo `json:"limits"`
+	IsBlocked    bool                      `json:"is_blocked"`
+	BlockedUntil *time.Time                `json:"blocked_until,omitempty"`
+}
+
 // JWT Claims for chat authentication
 type ChatJWTClaims struct {
 	UserID      string   `json:"user_id"`

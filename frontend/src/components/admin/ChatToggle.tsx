@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { MessageSquare, Bell, AlertCircle } from 'lucide-react';
 import { RootState } from '../../store';
 import ConsultantChat from './ConsultantChat';
-import websocketService from '../../services/websocketService';
 
 interface ChatNotification {
   id: string;
@@ -42,7 +41,7 @@ export const ChatToggle: React.FC = () => {
     localStorage.setItem('chatWidgetState', JSON.stringify(state));
   }, [isChatOpen, isMinimized]);
 
-  // WebSocket connection is managed by the IntegratedAdminDashboard
+  // Polling connection is managed by the IntegratedAdminDashboard
   // No need to initialize here
 
   // Handle new messages for notifications

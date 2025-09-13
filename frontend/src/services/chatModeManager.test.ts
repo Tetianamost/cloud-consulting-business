@@ -1,14 +1,6 @@
 import { chatModeManager, ChatMode } from './chatModeManager';
 
 // Mock the services
-jest.mock('./websocketService', () => ({
-  connect: jest.fn(),
-  disconnect: jest.fn(),
-  isHealthy: jest.fn(() => true),
-  forceReconnect: jest.fn(),
-  onStatusChange: jest.fn(),
-}));
-
 jest.mock('./pollingChatService', () => ({
   startPolling: jest.fn(),
   stopPolling: jest.fn(),
@@ -29,69 +21,28 @@ describe('ChatModeManager', () => {
       ok: true,
       json: () => Promise.resolve({
         config: {
-          mode: 'auto',
-          enable_websocket_fallback: true,
-          websocket_timeout: 10,
+          mode: 'polling',
           polling_interval: 3000,
           max_reconnect_attempts: 3,
-          fallback_delay: 5000,
         },
       }),
     });
   });
 
-  describe('Mode Switching', () => {
-    test('should switch to websocket mode', async () => {
-      await chatModeManager.switchMode('websocket');
-      expect(chatModeManager.getCurrentMode()).toBe('websocket');
-      expect(chatModeManager.getActiveService()).toBe('websocket');
-    });
-
-    test('should switch to polling mode', async () => {
-      await chatModeManager.switchMode('polling');
+  describe('Mode Management', () => {
+    test('should use polling mode', async () => {
+      await chatModeManager.initializeChatService();
       expect(chatModeManager.getCurrentMode()).toBe('polling');
       expect(chatModeManager.getActiveService()).toBe('polling');
     });
-
-    test('should handle auto mode', async () => {
-      await chatModeManager.switchMode('auto');
-      expect(chatModeManager.getCurrentMode()).toBe('auto');
-      // In auto mode, it should try WebSocket first
-      expect(chatModeManager.getActiveService()).toBe('websocket');
-    });
   });
 
-  describe('Fallback Mechanism', () => {
-    test('should trigger fallback after max reconnect attempts', async () => {
-      // Set up auto mode
-      await chatModeManager.switchMode('auto');
-      
-      // Simulate WebSocket failures
-      const fallbackState = chatModeManager.getFallbackState();
-      expect(fallbackState.isInFallback).toBe(false);
-      
-      // The actual fallback logic would be triggered by WebSocket status changes
-      // This is a simplified test of the state management
-    });
-
-    test('should not fallback when disabled', async () => {
-      // Mock config with fallback disabled
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          config: {
-            mode: 'auto',
-            enable_websocket_fallback: false,
-            websocket_timeout: 10,
-            polling_interval: 3000,
-            max_reconnect_attempts: 3,
-            fallback_delay: 5000,
-          },
-        }),
-      });
-
+  describe('Polling Configuration', () => {
+    test('should handle polling configuration', async () => {
       const config = chatModeManager.getConfiguration();
-      expect(config?.enable_websocket_fallback).toBe(false);
+      expect(config?.mode).toBe('polling');
+      expect(config?.polling_interval).toBe(3000);
+      expect(config?.max_reconnect_attempts).toBe(3);
     });
   });
 
@@ -99,7 +50,7 @@ describe('ChatModeManager', () => {
     test('should load configuration from backend', async () => {
       const config = chatModeManager.getConfiguration();
       expect(config).toBeTruthy();
-      expect(config?.mode).toBe('auto');
+      expect(config?.mode).toBe('polling');
     });
 
     test('should update configuration', async () => {
@@ -129,8 +80,10 @@ describe('ChatModeManager', () => {
     test('should track performance metrics', () => {
       const metrics = chatModeManager.getPerformanceMetrics();
       expect(metrics).toBeTruthy();
-      expect(metrics.websocket).toBeTruthy();
       expect(metrics.polling).toBeTruthy();
+      expect(metrics.polling.averageResponseTime).toBeDefined();
+      expect(metrics.polling.successRate).toBeDefined();
+      expect(metrics.polling.errorCount).toBeDefined();
     });
   });
 

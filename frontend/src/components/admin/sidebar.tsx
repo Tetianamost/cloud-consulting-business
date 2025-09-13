@@ -132,11 +132,6 @@ const navItems = [
     href: "/admin/email-status",
     icon: Mail,
   },
-  {
-    title: "WebSocket Test",
-    href: "/admin/websocket-test",
-    icon: Settings,
-  },
 ]
 
 export function AdminSidebar() {

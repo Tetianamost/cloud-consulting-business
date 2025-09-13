@@ -1,9 +1,17 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import websocketService, { ChatRequest } from '../services/websocketService';
+import { pollingChatService } from '../services/pollingChatService';
 import { setError } from '../store/slices/chatSlice';
 
-export interface UseWebSocketReturn {
+export interface ChatRequest {
+  message: string;
+  session_id?: string;
+  client_name?: string;
+  context?: string;
+  quick_action?: string;
+}
+
+export interface UsePollingChatReturn {
   // Connection state
   isConnected: boolean;
   isConnecting: boolean;
@@ -16,28 +24,29 @@ export interface UseWebSocketReturn {
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
-  sendMessage: (request: ChatRequest) => string;
+  sendMessage: (request: ChatRequest) => Promise<string>;
   forceReconnect: () => void;
 }
 
-export const useWebSocket = (autoConnect = true): UseWebSocketReturn => {
+// Polling-based chat hook for reliable communication
+export const usePollingChat = (autoConnect = true): UsePollingChatReturn => {
   const dispatch = useAppDispatch();
   const connectionState = useAppSelector(state => state.connection);
   const isInitializedRef = useRef(false);
 
   // Connection state derived from Redux store
-  const isConnected = connectionState.status === 'connected';
+  const isConnected = connectionState.status === 'connected' || connectionState.status === 'polling';
   const isConnecting = connectionState.status === 'connecting';
   const isReconnecting = connectionState.status === 'reconnecting';
   const connectionError = connectionState.error;
-  const isHealthy = connectionState.isHealthy;
+  const isHealthy = pollingChatService.isHealthy();
   const latency = connectionState.latency;
   const reconnectAttempts = connectionState.reconnectAttempts;
 
   // Memoized actions
   const connect = useCallback(async (): Promise<void> => {
     try {
-      await websocketService.connect();
+      pollingChatService.startPolling();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to connect';
       dispatch(setError(errorMessage));
@@ -46,20 +55,26 @@ export const useWebSocket = (autoConnect = true): UseWebSocketReturn => {
   }, [dispatch]);
 
   const disconnect = useCallback((): void => {
-    websocketService.disconnect();
+    pollingChatService.stopPolling();
   }, []);
 
-  const sendMessage = useCallback((request: ChatRequest): string => {
+  const sendMessage = useCallback(async (request: ChatRequest): Promise<string> => {
     if (!isConnected && !isReconnecting) {
       dispatch(setError('Not connected to chat service'));
       return '';
     }
     
-    return websocketService.sendChatMessage(request);
+    try {
+      return await pollingChatService.sendMessage(request);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      dispatch(setError(errorMessage));
+      throw error;
+    }
   }, [isConnected, isReconnecting, dispatch]);
 
   const forceReconnect = useCallback((): void => {
-    websocketService.forceReconnect();
+    pollingChatService.forceReconnect();
   }, []);
 
   // Auto-connect on mount if enabled
@@ -79,8 +94,7 @@ export const useWebSocket = (autoConnect = true): UseWebSocketReturn => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Only disconnect if this is the last component using the WebSocket
-      // In a real app, you might want to implement reference counting
+      // Only disconnect if this is the last component using polling
       if (!autoConnect) {
         disconnect();
       }
@@ -105,4 +119,7 @@ export const useWebSocket = (autoConnect = true): UseWebSocketReturn => {
   };
 };
 
-export default useWebSocket;
+// Keep the old export name for backward compatibility, but use polling
+export const useWebSocket = usePollingChat;
+
+export default usePollingChat;

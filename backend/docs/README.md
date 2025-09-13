@@ -65,9 +65,9 @@ docker-compose up -d
 - `GET /api/v1/inquiries/{id}/report` - Get generated report
 
 ### AI Consultant Live Chat
-- `GET /api/v1/admin/chat/ws` - WebSocket connection for real-time chat
 - `POST /api/v1/admin/chat/sessions` - Create new chat session
 - `GET /api/v1/admin/chat/sessions` - List chat sessions
+- `POST /api/v1/admin/chat/polling` - HTTP polling for chat messages
 - `GET /api/v1/admin/chat/sessions/{id}` - Get specific chat session
 - `PUT /api/v1/admin/chat/sessions/{id}` - Update chat session
 - `DELETE /api/v1/admin/chat/sessions/{id}` - Delete chat session

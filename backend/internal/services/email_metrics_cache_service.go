@@ -159,11 +159,8 @@ func (s *EmailMetricsCacheService) GetEmailEventHistory(ctx context.Context, fil
 				s.cacheHits++
 
 				// For history, we need to deserialize differently
-				var cachedEvents []*domain.EmailEvent
-				if dataBytes, err := json.Marshal(entry.Data); err == nil {
-					// This is a workaround - in production, you'd want a more sophisticated caching mechanism
-					s.logger.WithField("cache_key", cacheKey).Debug("Email event history served from cache")
-				}
+				// This is a workaround - in production, you'd want a more sophisticated caching mechanism
+				s.logger.WithField("cache_key", cacheKey).Debug("Email event history served from cache")
 			}
 			s.cacheMutex.RUnlock()
 		}

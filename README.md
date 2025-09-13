@@ -6,7 +6,7 @@ A comprehensive Go backend system for processing and categorizing cloud consulti
 
 - 🚀 **Service Inquiry Processing**: Handle four main service types (Assessment, Migration, Optimization, Architecture Review)
 - 🤖 **AI Report Generation**: Automatically generate draft reports using Amazon Bedrock AI
-- 💬 **Real-time Chat System**: WebSocket-based chat with AI assistant and automatic polling fallback
+- 💬 **Real-time Chat System**: Polling-based chat with AI assistant for reliable communication
 - 📧 **Email Notifications**: Professional email notifications using AWS SES
 - 👨‍💼 **Admin Dashboard**: React-based admin interface with comprehensive management tools
 - 🔐 **Secure Authentication**: JWT-based admin authentication with session management
@@ -113,7 +113,7 @@ All methods will make the application available at:
   - Real-time connection status monitoring
   - Debounced input for optimal performance
   - Session persistence across page reloads
-- Real-time chat with AI assistant (WebSocket + polling fallback)
+- Real-time chat with AI assistant (polling-based)
 - Inquiry and report management with AI-generated reports
 - System metrics and performance monitoring
 - Email delivery tracking with AWS SES integration
@@ -138,12 +138,11 @@ All methods will make the application available at:
 - `GET /api/v1/admin/reports/{id}/download/{format}` - Download reports (PDF/HTML)
 
 ### Chat Endpoints (Protected)
-- `GET /api/v1/admin/chat/ws` - WebSocket connection for real-time chat
 - `POST /api/v1/admin/chat/sessions` - Create new chat session
 - `GET /api/v1/admin/chat/sessions` - List chat sessions with metadata
 - `GET /api/v1/admin/chat/sessions/{id}/history` - Get chat history with pagination
 - `GET /api/v1/admin/chat/metrics` - Chat system performance metrics
-- `POST /api/v1/admin/chat/polling` - HTTP polling fallback for chat messages
+- `POST /api/v1/admin/chat/polling` - HTTP polling for chat messages
 - `POST /api/v1/admin/chat/send` - Send message with context and quick actions
 
 ### AI Consultant Endpoints (Protected)
@@ -158,6 +157,61 @@ All methods will make the application available at:
 - `GET /api/v1/admin/performance/*` - Performance optimization and monitoring
 
 ## Development
+
+### Build Scripts
+
+The project includes convenient build scripts for different scenarios:
+
+#### Application-Only Build
+```bash
+# Build just the main application (no tests)
+./backend/scripts/build_app_only.sh
+```
+
+#### Test Categories
+```bash
+# Run specific test categories
+./backend/scripts/run_test_categories.sh [CATEGORY] [OPTIONS]
+
+# Examples:
+./backend/scripts/run_test_categories.sh unit              # Unit tests only
+./backend/scripts/run_test_categories.sh integration -v   # Integration tests (verbose)
+./backend/scripts/run_test_categories.sh email --coverage # Email tests with coverage
+./backend/scripts/run_test_categories.sh all              # All test categories
+./backend/scripts/run_test_categories.sh list             # List available tests
+```
+
+Available test categories:
+- **unit**: Unit tests (`*_test.go` files in `internal/`)
+- **integration**: Integration tests (`testing/integration/`)
+- **email**: Email system tests (`testing/email/`)
+- **performance**: Performance tests (`testing/performance/`)
+- **all**: Run all test categories
+
+### File Organization
+
+The project follows a clean separation between application code and test utilities:
+
+```
+backend/
+├── cmd/server/              # Main application entry point
+├── internal/               # Application code
+│   ├── config/            # Configuration management
+│   ├── domain/            # Domain models and business logic
+│   ├── handlers/          # HTTP request handlers
+│   ├── interfaces/        # Service interfaces and contracts
+│   ├── repositories/      # Data access layer
+│   ├── services/          # Business logic services
+│   ├── server/            # Server setup and middleware
+│   └── storage/           # Storage implementations
+├── testing/               # Organized test utilities (NEW)
+│   ├── integration/       # Integration test executables
+│   ├── email/            # Email system test executables
+│   ├── performance/      # Performance test executables
+│   └── shared/           # Shared test utilities and mocks
+├── scripts/              # Build and deployment scripts
+└── docs/                 # API and system documentation
+```
 
 ### Manual Docker Commands
 
@@ -215,7 +269,7 @@ L=3600
 
 - **Backend**: Go with Gin framework
 - **Frontend**: React with TypeScript and Redux Toolkit
-- **Real-time Communication**: WebSocket with HTTP polling fallback
+- **Real-time Communication**: HTTP polling for reliable chat functionality
 - **Storage**: In-memory (for demo) with plans for PostgreSQL
 - **AI**: Amazon Bedrock Nova model
 - **Email**: AWS SES
@@ -231,7 +285,7 @@ L=3600
 
 ## Troubleshooting
 
-### Common Issues
+### Quick Fixes
 
 1. **Port conflicts**: Make sure ports 3006 and 8061 are available
 2. **Docker issues**: Ensure Docker is running and you have sufficient resources
@@ -244,6 +298,17 @@ L=3600
    - Check your DNS settings
    - Try using local builds instead of registry pulls
    - Use the offline build option
+
+### Build Issues
+
+For comprehensive build and compilation troubleshooting, see: **[TROUBLESHOOTING_BUILD_ISSUES.md](./TROUBLESHOOTING_BUILD_ISSUES.md)**
+
+Common build issues include:
+- Multiple `package main` redeclaration errors
+- Go module dependency conflicts
+- TypeScript compilation errors
+- Test execution problems
+- Docker build context issues
 
 ### Logs
 
@@ -266,6 +331,39 @@ curl http://localhost:8061/health
 
 # Frontend health
 curl http://localhost:3006
+```
+
+### Build Verification
+
+```bash
+# Test application build
+./backend/scripts/build_app_only.sh
+
+# Test specific test categories
+./backend/scripts/run_test_categories.sh list
+./backend/scripts/run_test_categories.sh unit
+
+# Test frontend build
+cd frontend && npm run build
+```
+
+### Testing
+
+For comprehensive testing instructions and guidelines, see: **[TESTING_GUIDE.md](./TESTING_GUIDE.md)**
+
+Quick test commands:
+```bash
+# Run all tests
+./backend/scripts/run_test_categories.sh all
+
+# Run specific test categories
+./backend/scripts/run_test_categories.sh unit
+./backend/scripts/run_test_categories.sh integration
+./backend/scripts/run_test_categories.sh email
+./backend/scripts/run_test_categories.sh performance
+
+# List available tests
+./backend/scripts/run_test_categories.sh list
 ```
 
 ## Stopping the Application

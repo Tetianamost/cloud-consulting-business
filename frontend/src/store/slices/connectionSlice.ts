@@ -4,7 +4,6 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 're
 
 interface ConnectionState {
   status: ConnectionStatus;
-  webSocket: WebSocket | null;
   lastConnected: string | null;
   reconnectAttempts: number;
   maxReconnectAttempts: number;
@@ -12,8 +11,6 @@ interface ConnectionState {
   maxReconnectDelay: number;
   error: string | null;
   latency: number | null;
-  lastPingTime: number | null;
-  lastPongTime: number | null;
   isHealthy: boolean;
   connectionId: string | null;
   // Polling-specific state
@@ -26,7 +23,6 @@ interface ConnectionState {
 
 const initialState: ConnectionState = {
   status: 'disconnected',
-  webSocket: null,
   lastConnected: null,
   reconnectAttempts: 0,
   maxReconnectAttempts: 10,
@@ -34,8 +30,6 @@ const initialState: ConnectionState = {
   maxReconnectDelay: 30000, // Max 30 seconds
   error: null,
   latency: null,
-  lastPingTime: null,
-  lastPongTime: null,
   isHealthy: false,
   connectionId: null,
   // Polling-specific state
@@ -65,9 +59,7 @@ const connectionSlice = createSlice({
       }
     },
     
-    setWebSocket: (state, action: PayloadAction<WebSocket | null>) => {
-      state.webSocket = action.payload;
-    },
+
     
     setConnectionId: (state, action: PayloadAction<string | null>) => {
       state.connectionId = action.payload;
@@ -115,13 +107,7 @@ const connectionSlice = createSlice({
       state.isHealthy = action.payload < 5000; // Consider unhealthy if latency > 5s
     },
     
-    setPingTime: (state, action: PayloadAction<number>) => {
-      state.lastPingTime = action.payload;
-    },
-    
-    setPongTime: (state, action: PayloadAction<number>) => {
-      state.lastPongTime = action.payload;
-    },
+
     
     setHealthStatus: (state, action: PayloadAction<boolean>) => {
       state.isHealthy = action.payload;
@@ -129,20 +115,9 @@ const connectionSlice = createSlice({
     
     // Connection cleanup
     cleanup: (state) => {
-      if (state.webSocket) {
-        try {
-          state.webSocket.close();
-        } catch (error) {
-          console.warn('Error closing WebSocket:', error);
-        }
-      }
-      
-      state.webSocket = null;
       state.status = 'disconnected';
       state.connectionId = null;
       state.latency = null;
-      state.lastPingTime = null;
-      state.lastPongTime = null;
       state.isHealthy = false;
       // Reset polling state
       state.isPolling = false;
@@ -196,7 +171,6 @@ const connectionSlice = createSlice({
 
 export const {
   setConnectionStatus,
-  setWebSocket,
   setConnectionId,
   incrementReconnectAttempts,
   resetReconnectAttempts,
@@ -204,8 +178,6 @@ export const {
   setConnectionError,
   clearConnectionError,
   updateLatency,
-  setPingTime,
-  setPongTime,
   setHealthStatus,
   cleanup,
   forceReconnect,

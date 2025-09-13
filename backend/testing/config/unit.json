@@ -1,0 +1,71 @@
+{
+  "environment": "unit",
+  "database": {
+    "driver": "sqlite",
+    "url": ":memory:",
+    "max_connections": 1,
+    "conn_max_lifetime": "30m",
+    "conn_max_idle_time": "5m",
+    "migrations_path": "backend/scripts",
+    "seed_data_path": "backend/testing/fixtures"
+  },
+  "redis": {
+    "url": "redis://localhost:6379/1",
+    "password": "",
+    "db": 1,
+    "max_retries": 3,
+    "dial_timeout": "5s",
+    "read_timeout": "3s"
+  },
+  "aws": {
+    "region": "us-east-1",
+    "access_key_id": "",
+    "secret_access_key": "",
+    "session_token": "",
+    "use_mocks": true
+  },
+  "bedrock": {
+    "base_url": "http://localhost:8080",
+    "model": "anthropic.claude-3-sonnet-20240229-v1:0",
+    "max_tokens": 500,
+    "temperature": 0.7,
+    "timeout": "10s",
+    "use_mock": true
+  },
+  "ses": {
+    "sender_email": "test@example.com",
+    "reply_to_email": "test@example.com",
+    "timeout": "5s",
+    "use_mock": true,
+    "verified_emails": ["test@example.com"]
+  },
+  "logging": {
+    "level": "error",
+    "format": "json",
+    "output": "stdout",
+    "structured": true
+  },
+  "performance": {
+    "max_response_time": "2s",
+    "max_memory_usage": 50000000,
+    "max_cpu_usage": 50.0,
+    "concurrent_requests": 1,
+    "test_duration": "10s",
+    "warmup_duration": "1s"
+  },
+  "quality": {
+    "min_accuracy": 0.70,
+    "min_completeness": 0.65,
+    "min_relevance": 0.70,
+    "min_actionability": 0.65,
+    "min_technical_depth": 0.60,
+    "min_business_value": 0.65
+  },
+  "timeout": "10s",
+  "parallel": true,
+  "verbose": false,
+  "skip_slow": true,
+  "cleanup_db": false,
+  "seed_data": false,
+  "custom_vars": {}
+}

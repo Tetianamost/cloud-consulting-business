@@ -91,7 +91,7 @@ Client Question → Admin Interface → AI Assistant → AWS Bedrock → Respons
 - **Message Area**: Displays conversation history
 - **Input Field**: Where you type messages
 - **Quick Actions**: Buttons for common prompts
-- **Connection Status**: Shows WebSocket connection health
+- **Connection Status**: Shows polling connection health
 - **User Info**: Your profile and session details
 
 ## Module 3: Basic Chat Operations
@@ -718,7 +718,7 @@ Client has existing infrastructure across AWS, Azure, and Google Cloud and wants
 **AI Assistant**: The AWS Bedrock-powered chatbot that provides consultation responses
 **Session**: A conversation thread with a specific client or topic
 **Quick Actions**: Pre-defined prompts for common consultation scenarios
-**WebSocket**: Real-time communication protocol used for chat
+**Polling**: HTTP-based communication protocol used for chat
 **JWT Token**: Authentication token for secure access
 **Session Context**: Background information about the consultation topic
 

@@ -7,13 +7,13 @@ This guide covers the deployment and configuration of the AI Consultant Live Cha
 ## Architecture Overview
 
 The chat system consists of:
-- **Backend API**: Go-based REST API and WebSocket server
+- **Backend API**: Go-based REST API with polling endpoints
 - **Frontend**: React-based admin interface
 - **Database**: PostgreSQL for persistent storage
 - **Cache**: Redis for session management and caching
 - **AI Service**: AWS Bedrock integration
 - **Monitoring**: Prometheus, Grafana, and custom alerting
-- **Load Balancer**: Nginx for WebSocket and HTTP traffic
+- **Load Balancer**: Nginx for HTTP traffic
 
 ## Prerequisites
 
@@ -81,9 +81,9 @@ BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
 JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRY=24h
 
-# WebSocket
-WS_READ_BUFFER_SIZE=1024
-WS_WRITE_BUFFER_SIZE=1024
+# Chat Configuration
+CHAT_POLLING_INTERVAL=3000
+CHAT_MAX_RETRIES=3
 WS_MAX_MESSAGE_SIZE=4096
 
 # Rate Limiting
@@ -126,9 +126,9 @@ BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
 JWT_SECRET=${JWT_SECRET}
 JWT_EXPIRY=8h
 
-# WebSocket
-WS_READ_BUFFER_SIZE=2048
-WS_WRITE_BUFFER_SIZE=2048
+# Chat Configuration
+CHAT_POLLING_INTERVAL=2000
+CHAT_MAX_RETRIES=5
 WS_MAX_MESSAGE_SIZE=8192
 
 # Rate Limiting
@@ -173,9 +173,9 @@ BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
 JWT_SECRET=${JWT_SECRET}
 JWT_EXPIRY=4h
 
-# WebSocket
-WS_READ_BUFFER_SIZE=4096
-WS_WRITE_BUFFER_SIZE=4096
+# Chat Configuration
+CHAT_POLLING_INTERVAL=1000
+CHAT_MAX_RETRIES=10
 WS_MAX_MESSAGE_SIZE=16384
 
 # Rate Limiting
@@ -338,7 +338,7 @@ ingress:
   enabled: true
   className: nginx
   annotations:
-    nginx.ingress.kubernetes.io/websocket-services: "chat-backend"
+
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
   hosts:
@@ -531,17 +531,14 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512;
 
-    # WebSocket support
-    location /api/v1/admin/chat/ws {
+    # Chat polling endpoints
+    location /api/v1/admin/chat/polling {
         proxy_pass http://chat_backend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 86400;
+        proxy_read_timeout 30;
     }
 
     # API endpoints
@@ -636,7 +633,7 @@ alerting:
 Import the dashboard configuration from `monitoring/grafana/dashboards/chat-system-dashboard.json`
 
 Key metrics to monitor:
-- WebSocket connections
+- HTTP polling requests
 - Message throughput
 - AI response times
 - Error rates
@@ -749,7 +746,7 @@ docker-compose start backend
 - [ ] Deploy backend services
 - [ ] Deploy frontend
 - [ ] Configure load balancer
-- [ ] Test WebSocket connections
+- [ ] Test polling endpoints
 - [ ] Verify API endpoints
 - [ ] Check monitoring dashboards
 
@@ -775,10 +772,10 @@ psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "SELECT 1;"
 docker-compose logs backend | grep "database"
 ```
 
-#### WebSocket Connection Issues
+#### Chat Polling Issues
 ```bash
-# Test WebSocket endpoint
-wscat -c ws://localhost:8080/api/v1/admin/chat/ws
+# Test polling endpoint
+curl -X POST http://localhost:8080/api/v1/admin/chat/polling
 
 # Check nginx configuration
 nginx -t

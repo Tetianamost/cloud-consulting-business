@@ -8,62 +8,22 @@ import { ConsultantChat } from './ConsultantChat';
 import chatReducer from '../../store/slices/chatSlice';
 import connectionReducer from '../../store/slices/connectionSlice';
 
-// Mock WebSocket
-class MockWebSocket {
-  static CONNECTING = 0;
-  static OPEN = 1;
-  static CLOSING = 2;
-  static CLOSED = 3;
-
-  readyState = MockWebSocket.CONNECTING;
-  onopen: ((event: Event) => void) | null = null;
-  onclose: ((event: CloseEvent) => void) | null = null;
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
-
-  constructor(public url: string) {
-    // Simulate connection opening
-    setTimeout(() => {
-      this.readyState = MockWebSocket.OPEN;
-      if (this.onopen) {
-        this.onopen(new Event('open'));
-      }
-    }, 10);
-  }
-
-  send(data: string) {
-    // Mock sending data
-    console.log('Mock WebSocket send:', data);
-    
-    // Simulate receiving a response
-    setTimeout(() => {
-      if (this.onmessage) {
-        const mockResponse = {
-          success: true,
-          session_id: 'test-session-id',
-          message: {
-            id: 'response-' + Date.now(),
-            type: 'assistant',
-            content: 'Mock AI response to: ' + JSON.parse(data).message,
-            timestamp: new Date().toISOString(),
-            session_id: 'test-session-id'
-          }
-        };
-        
-        this.onmessage(new MessageEvent('message', {
-          data: JSON.stringify(mockResponse)
-        }));
-      }
-    }, 100);
-  }
-
-  close() {
-    this.readyState = MockWebSocket.CLOSED;
-    if (this.onclose) {
-      this.onclose(new CloseEvent('close'));
-    }
-  }
-}
+// Mock the enhanced AI service
+jest.mock('../../services/simpleAIService', () => ({
+  __esModule: true,
+  default: {
+    checkConnection: jest.fn().mockResolvedValue(true),
+    isHealthy: jest.fn().mockReturnValue(true),
+    sendMessage: jest.fn().mockResolvedValue({
+      content: 'Mock AI response',
+      timestamp: new Date().toISOString(),
+    }),
+    getMessages: jest.fn().mockResolvedValue([]),
+    getSessionId: jest.fn().mockReturnValue('test-session-id'),
+    resetSession: jest.fn(),
+    forceReconnect: jest.fn().mockResolvedValue(true),
+  },
+}));
 
 // Mock localStorage
 const mockLocalStorage = {
@@ -77,8 +37,14 @@ Object.defineProperty(window, 'localStorage', {
   value: mockLocalStorage,
 });
 
-// Mock WebSocket globally
-(global as any).WebSocket = MockWebSocket;
+// Mock fetch for API calls
+global.fetch = jest.fn().mockResolvedValue({
+  ok: true,
+  json: jest.fn().mockResolvedValue({
+    success: true,
+    messages: [],
+  }),
+});
 
 // Create test store
 const createTestStore = () => {
@@ -100,6 +66,16 @@ describe('ConsultantChat', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLocalStorage.getItem.mockReturnValue('mock-admin-token');
+    
+    // Reset AI service mocks to default values
+    const mockAIService = require('../../services/simpleAIService').default;
+    mockAIService.checkConnection.mockResolvedValue(true);
+    mockAIService.isHealthy.mockReturnValue(true);
+    mockAIService.sendMessage.mockResolvedValue({
+      content: 'Mock AI response',
+      timestamp: new Date().toISOString(),
+    });
+    mockAIService.getSessionId.mockReturnValue('test-session-id');
   });
 
   afterEach(() => {
@@ -113,7 +89,7 @@ describe('ConsultantChat', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText('Consultant Assistant')).toBeInTheDocument();
+    expect(screen.getByText('AI Assistant')).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Ask about AWS services/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument();
   });
@@ -148,51 +124,50 @@ describe('ConsultantChat', () => {
     expect(screen.getByText('Next Steps')).toBeInTheDocument();
   });
 
-  it('shows settings panel when settings button is clicked', () => {
+  it('displays quick action buttons', () => {
     render(
       <TestWrapper>
         <ConsultantChat />
       </TestWrapper>
     );
 
-    const settingsButton = screen.getByRole('button', { name: /clock/i });
-    fireEvent.click(settingsButton);
-
-    expect(screen.getByLabelText('Client Name')).toBeInTheDocument();
-    expect(screen.getByLabelText('Meeting Context')).toBeInTheDocument();
-    expect(screen.getByText('Clear Chat History')).toBeInTheDocument();
+    expect(screen.getByText('Cost Estimate')).toBeInTheDocument();
+    expect(screen.getByText('Security Review')).toBeInTheDocument();
+    expect(screen.getByText('Best Practices')).toBeInTheDocument();
+    expect(screen.getByText('Alternatives')).toBeInTheDocument();
+    expect(screen.getByText('Next Steps')).toBeInTheDocument();
   });
 
-  it('updates client name and meeting context', () => {
+  it('opens full AI assistant when maximize button is clicked', () => {
+    // Mock window.open
+    const mockOpen = jest.fn();
+    Object.defineProperty(window, 'open', {
+      value: mockOpen,
+      writable: true,
+    });
+
     render(
       <TestWrapper>
         <ConsultantChat />
       </TestWrapper>
     );
 
-    // Open settings
-    const settingsButton = screen.getByRole('button', { name: /clock/i });
-    fireEvent.click(settingsButton);
+    const maximizeButton = screen.getByTitle('Open Full AI Assistant');
+    fireEvent.click(maximizeButton);
 
-    // Update client name
-    const clientNameInput = screen.getByLabelText('Client Name');
-    fireEvent.change(clientNameInput, { target: { value: 'Test Client' } });
-    expect(clientNameInput).toHaveValue('Test Client');
-
-    // Update meeting context
-    const contextInput = screen.getByLabelText('Meeting Context');
-    fireEvent.change(contextInput, { target: { value: 'Migration planning' } });
-    expect(contextInput).toHaveValue('Migration planning');
+    expect(mockOpen).toHaveBeenCalledWith('/admin/ai-consultant', '_blank');
   });
 
   it('sends message when form is submitted', async () => {
+    const mockSendMessage = require('../../services/simpleAIService').default.sendMessage;
+    
     render(
       <TestWrapper>
         <ConsultantChat />
       </TestWrapper>
     );
 
-    // Wait for WebSocket to connect
+    // Wait for service to initialize
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Ask about AWS services/)).not.toBeDisabled();
     });
@@ -215,9 +190,18 @@ describe('ConsultantChat', () => {
       expect(screen.getByText('What is EC2?')).toBeInTheDocument();
     });
 
+    // Verify the AI service was called
+    expect(mockSendMessage).toHaveBeenCalledWith({
+      message: 'What is EC2?',
+      context: {
+        clientName: undefined,
+        meetingType: undefined,
+      },
+    });
+
     // Wait for AI response
     await waitFor(() => {
-      expect(screen.getByText(/Mock AI response to: What is EC2?/)).toBeInTheDocument();
+      expect(screen.getByText('Mock AI response')).toBeInTheDocument();
     });
   });
 
@@ -228,7 +212,7 @@ describe('ConsultantChat', () => {
       </TestWrapper>
     );
 
-    // Wait for WebSocket to connect
+    // Wait for service to initialize
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Ask about AWS services/)).not.toBeDisabled();
     });
@@ -238,7 +222,7 @@ describe('ConsultantChat', () => {
     // Type message
     fireEvent.change(input, { target: { value: 'Test message' } });
 
-    // Press Enter
+    // Press Enter (this will trigger form submission)
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
     // Wait for message to appear
@@ -248,13 +232,15 @@ describe('ConsultantChat', () => {
   });
 
   it('handles quick action clicks', async () => {
+    const mockSendMessage = require('../../services/simpleAIService').default.sendMessage;
+    
     render(
       <TestWrapper>
         <ConsultantChat />
       </TestWrapper>
     );
 
-    // Wait for WebSocket to connect
+    // Wait for service to initialize
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Ask about AWS services/)).not.toBeDisabled();
     });
@@ -267,9 +253,18 @@ describe('ConsultantChat', () => {
       expect(screen.getByText('Provide a cost estimate for this solution')).toBeInTheDocument();
     });
 
+    // Verify the AI service was called with the quick action prompt
+    expect(mockSendMessage).toHaveBeenCalledWith({
+      message: 'Provide a cost estimate for this solution',
+      context: {
+        clientName: undefined,
+        meetingType: undefined,
+      },
+    });
+
     // Wait for AI response
     await waitFor(() => {
-      expect(screen.getByText(/Mock AI response to: Provide a cost estimate/)).toBeInTheDocument();
+      expect(screen.getByText('Mock AI response')).toBeInTheDocument();
     });
   });
 
@@ -280,7 +275,7 @@ describe('ConsultantChat', () => {
       </TestWrapper>
     );
 
-    // Wait for WebSocket to connect
+    // Wait for service to initialize
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Ask about AWS services/)).not.toBeDisabled();
     });
@@ -306,34 +301,26 @@ describe('ConsultantChat', () => {
       </TestWrapper>
     );
 
-    // Initially should show connecting/disconnected state
+    // Should show connected status
+    await waitFor(() => {
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+    });
+
+    // Status indicator should be green
     const statusIndicator = document.querySelector('.w-2.h-2.rounded-full');
     expect(statusIndicator).toBeInTheDocument();
-
-    // Wait for connection to establish
-    await waitFor(() => {
-      expect(statusIndicator).toHaveClass('bg-green-400');
-    });
+    expect(statusIndicator).toHaveClass('bg-green-400');
   });
 
-  it('clears chat history when clear button is clicked', () => {
+  it('shows welcome message when no messages exist', () => {
     render(
       <TestWrapper>
         <ConsultantChat />
       </TestWrapper>
     );
 
-    // Open settings
-    const settingsButton = screen.getByRole('button', { name: /clock/i });
-    fireEvent.click(settingsButton);
-
-    // Click clear chat history
-    const clearButton = screen.getByText('Clear Chat History');
-    fireEvent.click(clearButton);
-
-    // Verify that messages are cleared (this would need to be tested with existing messages)
-    // For now, just verify the button exists and is clickable
-    expect(clearButton).toBeInTheDocument();
+    expect(screen.getByText(/Start a conversation or click to open full AI Assistant/)).toBeInTheDocument();
+    expect(screen.getByText('Open Full AI Assistant')).toBeInTheDocument();
   });
 
   it('formats timestamps correctly', async () => {
@@ -343,7 +330,7 @@ describe('ConsultantChat', () => {
       </TestWrapper>
     );
 
-    // Wait for WebSocket to connect
+    // Wait for service to initialize
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Ask about AWS services/)).not.toBeDisabled();
     });
@@ -359,21 +346,11 @@ describe('ConsultantChat', () => {
     });
   });
 
-  it('disables input and buttons when not connected', () => {
-    // Mock WebSocket to fail connection
-    const FailingWebSocket = class extends MockWebSocket {
-      constructor(url: string) {
-        super(url);
-        setTimeout(() => {
-          this.readyState = MockWebSocket.CLOSED;
-          if (this.onerror) {
-            this.onerror(new Event('error'));
-          }
-        }, 10);
-      }
-    };
-
-    (global as any).WebSocket = FailingWebSocket;
+  it('disables input and buttons when service is unhealthy', async () => {
+    // Mock the AI service to be unhealthy
+    const mockAIService = require('../../services/simpleAIService').default;
+    mockAIService.checkConnection.mockResolvedValue(false);
+    mockAIService.isHealthy.mockReturnValue(false);
 
     render(
       <TestWrapper>
@@ -381,29 +358,25 @@ describe('ConsultantChat', () => {
       </TestWrapper>
     );
 
-    const input = screen.getByPlaceholderText(/Connecting/);
-    const sendButton = screen.getByRole('button', { name: /send/i });
+    // Wait for service check to complete
+    await waitFor(() => {
+      expect(screen.getByText('Offline')).toBeInTheDocument();
+    });
 
-    expect(input).toBeDisabled();
-    expect(sendButton).toBeDisabled();
+    // Should show connection lost warning
+    expect(screen.getByText(/Connection lost. Trying to reconnect/)).toBeInTheDocument();
+    
+    // Status indicator should be red
+    const statusIndicator = document.querySelector('.w-2.h-2.rounded-full');
+    expect(statusIndicator).toHaveClass('bg-red-400');
   });
 
-  it('handles WebSocket connection errors gracefully', async () => {
+  it('handles AI service connection errors gracefully', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-    // Mock WebSocket to simulate error
-    const ErrorWebSocket = class extends MockWebSocket {
-      constructor(url: string) {
-        super(url);
-        setTimeout(() => {
-          if (this.onerror) {
-            this.onerror(new Event('error'));
-          }
-        }, 10);
-      }
-    };
-
-    (global as any).WebSocket = ErrorWebSocket;
+    
+    // Mock the AI service to throw an error
+    const mockAIService = require('../../services/simpleAIService').default;
+    mockAIService.checkConnection.mockRejectedValue(new Error('Connection failed'));
 
     render(
       <TestWrapper>
@@ -413,29 +386,19 @@ describe('ConsultantChat', () => {
 
     // Wait for error to be handled
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('WebSocket error:', expect.any(Event));
+      expect(consoleSpy).toHaveBeenCalledWith('[ConsultantChat] Failed to initialize AI service:', expect.any(Error));
     });
 
     consoleSpy.mockRestore();
   });
 
-  it('attempts to reconnect when WebSocket closes', async () => {
+  it('attempts to reconnect when service becomes unhealthy', async () => {
     jest.useFakeTimers();
-
-    const ReconnectingWebSocket = class extends MockWebSocket {
-      constructor(url: string) {
-        super(url);
-        // Simulate connection closing after a short time
-        setTimeout(() => {
-          this.readyState = MockWebSocket.CLOSED;
-          if (this.onclose) {
-            this.onclose(new CloseEvent('close'));
-          }
-        }, 50);
-      }
-    };
-
-    (global as any).WebSocket = ReconnectingWebSocket;
+    
+    const mockAIService = require('../../services/simpleAIService').default;
+    // Initially healthy, then becomes unhealthy
+    mockAIService.isHealthy.mockReturnValueOnce(true).mockReturnValue(false);
+    mockAIService.forceReconnect.mockResolvedValue(true);
 
     render(
       <TestWrapper>
@@ -443,34 +406,25 @@ describe('ConsultantChat', () => {
       </TestWrapper>
     );
 
-    // Fast-forward time to trigger reconnection
+    // Fast-forward time to trigger reconnection check
     act(() => {
-      jest.advanceTimersByTime(3000);
+      jest.advanceTimersByTime(30000);
     });
 
-    // Verify that a new WebSocket connection attempt is made
-    // This is implicit in the component's reconnection logic
+    // Wait for reconnection attempt
+    await waitFor(() => {
+      expect(mockAIService.forceReconnect).toHaveBeenCalled();
+    });
 
     jest.useRealTimers();
   });
 
-  it('handles malformed WebSocket messages gracefully', async () => {
+  it('handles AI service errors gracefully', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-    const MalformedMessageWebSocket = class extends MockWebSocket {
-      send(data: string) {
-        // Send malformed response
-        setTimeout(() => {
-          if (this.onmessage) {
-            this.onmessage(new MessageEvent('message', {
-              data: 'invalid json'
-            }));
-          }
-        }, 10);
-      }
-    };
-
-    (global as any).WebSocket = MalformedMessageWebSocket;
+    
+    // Mock the AI service to throw an error when sending message
+    const mockAIService = require('../../services/simpleAIService').default;
+    mockAIService.sendMessage.mockRejectedValue(new Error('Service error'));
 
     render(
       <TestWrapper>
@@ -478,19 +432,19 @@ describe('ConsultantChat', () => {
       </TestWrapper>
     );
 
-    // Wait for connection
+    // Wait for service to initialize
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Ask about AWS services/)).not.toBeDisabled();
     });
 
-    // Send message to trigger malformed response
+    // Send message to trigger error
     const input = screen.getByPlaceholderText(/Ask about AWS services/);
     fireEvent.change(input, { target: { value: 'Test' } });
     fireEvent.submit(input.closest('form')!);
 
     // Wait for error to be logged
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to parse WebSocket message:', expect.any(SyntaxError));
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to send message:', expect.any(Error));
     });
 
     consoleSpy.mockRestore();
@@ -512,13 +466,15 @@ describe('ConsultantChat', () => {
   });
 
   it('prevents sending empty messages', async () => {
+    const mockSendMessage = require('../../services/simpleAIService').default.sendMessage;
+    
     render(
       <TestWrapper>
         <ConsultantChat />
       </TestWrapper>
     );
 
-    // Wait for WebSocket to connect
+    // Wait for service to initialize
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Ask about AWS services/)).not.toBeDisabled();
     });
@@ -528,18 +484,34 @@ describe('ConsultantChat', () => {
     // Try to send empty message
     fireEvent.click(sendButton);
 
-    // Verify no message was sent (no new messages appear)
-    expect(screen.queryByText('')).not.toBeInTheDocument();
+    // Verify no message was sent to the service
+    expect(mockSendMessage).not.toHaveBeenCalled();
   });
 
-  it('shows welcome message when no messages exist', () => {
+  it('handles retry button click when connection is lost', async () => {
+    // Mock the AI service to be initially unhealthy
+    const mockAIService = require('../../services/simpleAIService').default;
+    mockAIService.checkConnection.mockResolvedValueOnce(false);
+    mockAIService.isHealthy.mockReturnValueOnce(false);
+    mockAIService.forceReconnect.mockResolvedValue(true);
+
     render(
       <TestWrapper>
         <ConsultantChat />
       </TestWrapper>
     );
 
-    expect(screen.getByText(/Start a conversation to get real-time AWS consulting assistance/)).toBeInTheDocument();
+    // Wait for connection lost message
+    await waitFor(() => {
+      expect(screen.getByText(/Connection lost. Trying to reconnect/)).toBeInTheDocument();
+    });
+
+    // Click retry button
+    const retryButton = screen.getByText('Retry');
+    fireEvent.click(retryButton);
+
+    // Verify forceReconnect was called
+    expect(mockAIService.forceReconnect).toHaveBeenCalled();
   });
 
   it('displays user and assistant message types correctly', async () => {
@@ -549,7 +521,7 @@ describe('ConsultantChat', () => {
       </TestWrapper>
     );
 
-    // Wait for WebSocket to connect
+    // Wait for service to initialize
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Ask about AWS services/)).not.toBeDisabled();
     });
@@ -564,12 +536,12 @@ describe('ConsultantChat', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Mock AI response/)).toBeInTheDocument();
+      expect(screen.getByText('Mock AI response')).toBeInTheDocument();
     });
 
     // Check that messages have correct styling
     const userMessage = screen.getByText('Test question').closest('div');
-    const assistantMessage = screen.getByText(/Mock AI response/).closest('div');
+    const assistantMessage = screen.getByText('Mock AI response').closest('div');
 
     expect(userMessage).toHaveClass('justify-end');
     expect(assistantMessage).toHaveClass('justify-start');

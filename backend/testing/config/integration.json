@@ -1,0 +1,71 @@
+{
+  "environment": "integration",
+  "database": {
+    "driver": "postgres",
+    "url": "postgres://test:test@localhost/test_integration_db?sslmode=disable",
+    "max_connections": 10,
+    "conn_max_lifetime": "30m",
+    "conn_max_idle_time": "5m",
+    "migrations_path": "backend/scripts",
+    "seed_data_path": "backend/testing/fixtures"
+  },
+  "redis": {
+    "url": "redis://localhost:6379/2",
+    "password": "",
+    "db": 2,
+    "max_retries": 3,
+    "dial_timeout": "5s",
+    "read_timeout": "3s"
+  },
+  "aws": {
+    "region": "us-east-1",
+    "access_key_id": "",
+    "secret_access_key": "",
+    "session_token": "",
+    "use_mocks": false
+  },
+  "bedrock": {
+    "base_url": "",
+    "model": "anthropic.claude-3-sonnet-20240229-v1:0",
+    "max_tokens": 1000,
+    "temperature": 0.7,
+    "timeout": "30s",
+    "use_mock": false
+  },
+  "ses": {
+    "sender_email": "info@cloudpartner.pro",
+    "reply_to_email": "info@cloudpartner.pro",
+    "timeout": "10s",
+    "use_mock": false,
+    "verified_emails": ["info@cloudpartner.pro", "test@example.com"]
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "output": "stdout",
+    "structured": true
+  },
+  "performance": {
+    "max_response_time": "5s",
+    "max_memory_usage": 100000000,
+    "max_cpu_usage": 80.0,
+    "concurrent_requests": 5,
+    "test_duration": "30s",
+    "warmup_duration": "5s"
+  },
+  "quality": {
+    "min_accuracy": 0.80,
+    "min_completeness": 0.75,
+    "min_relevance": 0.80,
+    "min_actionability": 0.75,
+    "min_technical_depth": 0.70,
+    "min_business_value": 0.75
+  },
+  "timeout": "30s",
+  "parallel": false,
+  "verbose": true,
+  "skip_slow": false,
+  "cleanup_db": true,
+  "seed_data": true,
+  "custom_vars": {}
+}

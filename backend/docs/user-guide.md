@@ -15,7 +15,7 @@ The AI Consultant Live Chat system provides real-time AI-powered assistance for 
 
 ### System Requirements
 
-- **Browser**: Modern web browser with WebSocket support (Chrome, Firefox, Safari, Edge)
+- **Browser**: Modern web browser (Chrome, Firefox, Safari, Edge)
 - **Connection**: Stable internet connection for real-time features
 - **Authentication**: Valid admin JWT token
 
@@ -27,21 +27,20 @@ The AI Consultant Live Chat system provides real-time AI-powered assistance for 
 2. **Session Manager**: View and manage chat sessions
 3. **Message Area**: Real-time conversation display
 4. **Input Field**: Type and send messages
-5. **Connection Status**: Shows WebSocket connection health
+5. **Connection Status**: Shows polling connection health
 6. **Quick Actions**: Pre-defined prompts for common scenarios
 
 ### Connection Status Indicators
 
 The chat system automatically manages your connection and provides seamless communication through multiple methods:
 
-- 🟢 **Connected**: WebSocket real-time communication active (optimal performance)
-- 🟠 **Polling**: HTTP polling mode active (reliable fallback with near real-time updates)
+- 🟢 **Connected**: HTTP polling communication active (optimal performance)
 - 🟡 **Connecting**: Establishing connection
 - 🔄 **Reconnecting**: Attempting to restore connection after interruption
 - 🔴 **Disconnected**: No active connection
 - ⚠️ **Error**: Connection error, manual refresh may be needed
 
-**Note**: Both "Connected" and "Polling" states provide full chat functionality. The system automatically switches between WebSocket and HTTP polling to ensure reliable communication regardless of network conditions.
+**Note**: The system uses HTTP polling to ensure reliable communication regardless of network conditions.
 
 ## Using Chat Features
 
@@ -178,7 +177,7 @@ Focus on security and scalability concerns."
 #### Message Delivery Issues
 **Symptom**: Messages show as failed or not delivered
 **Solutions**:
-1. Verify WebSocket connection status
+1. Verify polling connection status
 2. Resend the message
 3. Check for rate limiting warnings
 4. Refresh the session
@@ -207,7 +206,7 @@ Focus on security and scalability concerns."
 #### System Errors
 - **"AI service unavailable"**: Wait for service recovery
 - **"Database connection error"**: Report to IT support
-- **"WebSocket connection failed"**: Check network connectivity
+- **"Polling connection failed"**: Check network connectivity
 
 ## Performance Tips
 
@@ -228,7 +227,7 @@ Focus on security and scalability concerns."
 #### Browser Optimization
 - **Update Browser**: Use latest version for best performance
 - **Close Tabs**: Reduce browser memory usage
-- **Disable Extensions**: Some extensions may interfere with WebSocket connections
+- **Disable Extensions**: Some extensions may interfere with HTTP requests
 - **Clear Cache**: Regular cleanup improves performance
 
 ## Security and Privacy

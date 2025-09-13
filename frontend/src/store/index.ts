@@ -10,8 +10,7 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['connection/setWebSocket'],
-        ignoredPaths: ['connection.webSocket'],
+        // All state is now serializable with polling-based chat
       },
     }),
 });

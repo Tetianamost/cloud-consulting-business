@@ -32,10 +32,8 @@ services:
       
       # Chat-specific Configuration
       - CHAT_ENABLED=true
-      - WEBSOCKET_ENABLED=true
-      - WEBSOCKET_PING_INTERVAL=30s
-      - WEBSOCKET_PONG_WAIT=60s
-      - WEBSOCKET_WRITE_WAIT=10s
+      - CHAT_MODE=polling
+      - CHAT_POLLING_INTERVAL=3000
       - CHAT_SESSION_TIMEOUT=24h
       - CHAT_MESSAGE_MAX_LENGTH=10000
       - CHAT_RATE_LIMIT_REQUESTS=100
@@ -102,11 +100,11 @@ services:
       - "3006:80"
     environment:
       - REACT_APP_API_URL=http://localhost:8061
-      - REACT_APP_WS_URL=ws://localhost:8061
       - REACT_APP_CHAT_ENABLED=true
+      - REACT_APP_CHAT_MODE=polling
+      - REACT_APP_CHAT_POLLING_INTERVAL=3000
       - REACT_APP_CHAT_MAX_MESSAGE_LENGTH=10000
-      - REACT_APP_CHAT_RECONNECT_INTERVAL=5000
-      - REACT_APP_CHAT_MAX_RECONNECT_ATTEMPTS=10
+      - REACT_APP_CHAT_MAX_RETRIES=3
       - REACT_APP_ENVIRONMENT=production
     depends_on:
       - backend-chat
@@ -210,7 +208,7 @@ services:
       --save 300 10
       --save 60 10000
 
-  # Nginx load balancer for WebSocket support
+  # Nginx load balancer for HTTP polling support
   nginx-chat:
     image: nginx:alpine
     ports:
@@ -276,7 +274,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_INSTALL_PLUGINS=grafana-websocket-datasource
+
     volumes:
       - grafana_chat_data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards

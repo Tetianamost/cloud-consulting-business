@@ -287,7 +287,7 @@ sequenceDiagram
 - Query optimization and indexing
 
 ### Additional Features
-- Real-time notifications via WebSockets
+- Real-time notifications via HTTP polling
 - Advanced analytics and reporting
 - Multi-tenant architecture
 - Internationalization support
