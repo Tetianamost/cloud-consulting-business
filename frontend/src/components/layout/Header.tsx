@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link as RouterLink } from 'react-router-dom';
 import { Link } from 'react-scroll';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { theme } from '../../styles/theme';
-import { Button } from '../ui/button';
+
 import Icon from '../ui/Icon';
 
 const HeaderContainer = styled(motion.header) <{ $isScrolled: boolean; $isHidden: boolean }>`
@@ -137,6 +137,86 @@ const AdminLinkContainer = styled.div`
   @media (max-width: ${theme.breakpoints.lg}) {
     margin: ${theme.space[4]} 0;
     width: 100%;
+  }
+`;
+
+const ContactButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 12px;
+  font-size: ${theme.fontSizes.xs};
+  font-weight: ${theme.fontWeights.medium};
+  border-radius: ${theme.borderRadius.md};
+  background-color: ${theme.colors.secondary};
+  color: ${theme.colors.white};
+  border: 2px solid ${theme.colors.secondary};
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-family: ${theme.fonts.primary};
+  white-space: nowrap;
+  
+  &:hover {
+    background-color: #e6890a;
+    border-color: #e6890a;
+  }
+  
+  &:active {
+    background-color: #cc7700;
+    border-color: #cc7700;
+  }
+  
+  &:focus-visible {
+    outline: 2px solid ${theme.colors.secondary};
+    outline-offset: 2px;
+  }
+  
+  @media (max-width: ${theme.breakpoints.lg}) {
+    width: 100%;
+    height: 40px;
+    font-size: ${theme.fontSizes.sm};
+  }
+`;
+
+const AdminLink = styled(RouterLink)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 12px;
+  font-size: ${theme.fontSizes.xs};
+  font-weight: ${theme.fontWeights.medium};
+  border-radius: ${theme.borderRadius.md};
+  background-color: transparent;
+  color: ${theme.colors.secondary};
+  border: 2px solid ${theme.colors.secondary};
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-family: ${theme.fonts.primary};
+  white-space: nowrap;
+  
+  &:hover {
+    background-color: ${theme.colors.secondary};
+    color: ${theme.colors.white};
+  }
+  
+  &:active {
+    background-color: #e6890a;
+    color: ${theme.colors.white};
+  }
+  
+  &:focus-visible {
+    outline: 2px solid ${theme.colors.secondary};
+    outline-offset: 2px;
+  }
+  
+  @media (max-width: ${theme.breakpoints.lg}) {
+    width: 100%;
+    height: 40px;
+    font-size: ${theme.fontSizes.sm};
   }
 `;
 
@@ -287,24 +367,8 @@ const Header: React.FC = () => {
           >
             Pricing
           </NavLink>
-          {/* Admin link - only visible if admin is enabled */}
-          {process.env.REACT_APP_ENABLE_ADMIN !== 'false' && (
-            <AdminLinkContainer>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                asChild
-              >
-                <RouterLink to="/admin/login" onClick={closeMenu}>
-                  Sign In
-                </RouterLink>
-              </Button>
-            </AdminLinkContainer>
-          )}
           <NavButton>
-            <Button
-              variant="default"
-              size="sm"
+            <ContactButton
               onClick={() => {
                 closeMenu();
                 // Scroll to contact section
@@ -315,8 +379,16 @@ const Header: React.FC = () => {
               }}
             >
               Contact Us
-            </Button>
+            </ContactButton>
           </NavButton>
+          {/* Admin link - only visible if admin is enabled - placed last for separation */}
+          {process.env.REACT_APP_ENABLE_ADMIN !== 'false' && (
+            <AdminLinkContainer>
+              <AdminLink to="/admin/login" onClick={closeMenu}>
+                Admin Sign In
+              </AdminLink>
+            </AdminLinkContainer>
+          )}
         </NavLinks>
       </Nav>
     </HeaderContainer>

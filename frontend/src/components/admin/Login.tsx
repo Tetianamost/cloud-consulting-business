@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import styled from 'styled-components';
-import { theme } from '../../styles/theme';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import Icon from '../ui/Icon';
-import { FiLock, FiUser, FiAlertCircle } from 'react-icons/fi';
+import React, { useState } from "react";
+import styled from "styled-components";
+import { theme } from "../../styles/theme";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import Icon from "../ui/Icon";
+import { FiLock, FiUser, FiAlertCircle } from "react-icons/fi";
 
 const LoginContainer = styled.div`
   display: flex;
@@ -31,7 +31,7 @@ const LoginHeader = styled.div`
 `;
 
 const LoginTitle = styled.h1`
-  font-size: ${theme.fontSizes['2xl']};
+  font-size: ${theme.fontSizes["2xl"]};
   font-weight: ${theme.fontWeights.bold};
   color: ${theme.colors.gray900};
   margin-bottom: ${theme.space[2]};
@@ -66,12 +66,13 @@ const InputWrapper = styled.div`
 
 const Input = styled.input`
   width: 100%;
-  padding: ${theme.space[3]} ${theme.space[3]} ${theme.space[3]} ${theme.space[10]};
+  padding: ${theme.space[3]} ${theme.space[3]} ${theme.space[3]}
+    ${theme.space[10]};
   border: 1px solid ${theme.colors.gray300};
   border-radius: ${theme.borderRadius.md};
   font-size: ${theme.fontSizes.md};
   transition: ${theme.transitions.normal};
-  
+
   &:focus {
     outline: none;
     border-color: ${theme.colors.primary};
@@ -98,12 +99,12 @@ const LoginButton = styled.button`
   cursor: pointer;
   transition: ${theme.transitions.normal};
   margin-top: ${theme.space[2]};
-  
+
   &:hover {
     background-color: ${theme.colors.primary};
     opacity: 0.9;
   }
-  
+
   &:disabled {
     background-color: ${theme.colors.gray400};
     cursor: not-allowed;
@@ -136,55 +137,57 @@ const DemoNote = styled.div`
 `;
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username || !password) {
-      setError('Please enter both username and password');
+      setError("Please enter both username and password");
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const success = await login(username, password);
-      
+
       if (success) {
         // Redirect to admin dashboard
-        navigate('/admin/dashboard');
+        navigate("/admin/dashboard");
       } else {
-        setError('Invalid username or password');
+        setError("Invalid username or password");
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
     <LoginContainer>
       <LoginCard>
         <LoginHeader>
-          <LoginTitle>Sign In</LoginTitle>
-          <LoginSubtitle>Admin access to the cloud consulting dashboard</LoginSubtitle>
+          <LoginTitle>Admin Sign In</LoginTitle>
+          <LoginSubtitle>
+            Administrator access to the cloud consulting dashboard
+          </LoginSubtitle>
         </LoginHeader>
-        
+
         {error && (
           <ErrorMessage>
             <Icon icon={FiAlertCircle} size={16} />
             {error}
           </ErrorMessage>
         )}
-        
+
         <LoginForm onSubmit={handleSubmit}>
           <FormGroup>
             <Label htmlFor="username">Username</Label>
@@ -202,7 +205,7 @@ const Login: React.FC = () => {
               />
             </InputWrapper>
           </FormGroup>
-          
+
           <FormGroup>
             <Label htmlFor="password">Password</Label>
             <InputWrapper>
@@ -219,15 +222,17 @@ const Login: React.FC = () => {
               />
             </InputWrapper>
           </FormGroup>
-          
+
           <LoginButton type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? "Signing in..." : "Sign In"}
           </LoginButton>
         </LoginForm>
-        
+
         <DemoNote>
-          <strong>Demo Credentials:</strong><br />
-          Username: admin<br />
+          <strong>Demo Credentials:</strong>
+          <br />
+          Username: admin
+          <br />
           Password: cloudadmin
         </DemoNote>
       </LoginCard>

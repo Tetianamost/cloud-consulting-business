@@ -168,15 +168,6 @@ const Contact: React.FC = () => {
       >
         Ready to discuss your cloud needs? Reach out for a free initial consultation. We'll respond promptly to set up a meeting.
       </SectionSubtitle>
-      
-      <FormContainer
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={formVariants}
-        >
-          <ContactForm />
-        </FormContainer>
         
       <ContactContainer>
         <ContactInfo
@@ -279,6 +270,15 @@ const Contact: React.FC = () => {
             ></iframe>
           </GoogleMap>
         </ContactInfo>
+        
+        <FormContainer
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={formVariants}
+        >
+          <ContactForm />
+        </FormContainer>
       </ContactContainer>
     </Section>
   );
