@@ -5,7 +5,7 @@ build:
     build:
       - echo "Building multi-stage Docker image..."
 run:
-  runtime-version: latest
+  runtime-version: "24"
   command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
   network:
     port: 80
