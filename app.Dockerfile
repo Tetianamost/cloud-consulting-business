@@ -11,7 +11,7 @@ COPY frontend/build /usr/share/nginx/html
 COPY .build/server /usr/local/bin/server
 
 # Copy backend templates
-COPY backend/templates /templates
+COPY backend/templates /usr/local/bin/templates
 
 # Copy configuration files
 COPY nginx.conf /etc/nginx/nginx.conf
