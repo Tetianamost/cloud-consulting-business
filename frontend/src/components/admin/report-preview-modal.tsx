@@ -13,8 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import apiService from "../../services/api"
 
 // Markdown rendering
-/* @ts-ignore */
-import MarkdownIt from "markdown-it"
+import { marked } from "marked"
 
 interface ReportPreviewModalProps {
   report?: any
@@ -111,12 +110,12 @@ export function ReportPreviewModal({ report: initialReport, reportId, isOpen, on
     }
   }
 
-  // Markdown renderer using remark
-  const mdParser = new MarkdownIt()
-  function markdownToHtml(md: string) {
+  // Markdown renderer using marked
+  function markdownToHtml(md: string): string {
     if (!md) return ""
     try {
-      return mdParser.render(md)
+      const result = marked.parse(md)
+      return typeof result === 'string' ? result : md.replace(/\n/g, "<br/>")
     } catch {
       return md.replace(/\n/g, "<br/>")
     }
