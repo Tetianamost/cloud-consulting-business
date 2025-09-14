@@ -1,6 +1,6 @@
 import { IntegrationListResponse } from "../types/integrations";
 // API service for backend communication
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8061';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 export interface CreateInquiryRequest {
   name: string;

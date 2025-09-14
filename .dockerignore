@@ -30,7 +30,6 @@ websocket-dependency-analysis.md
 backend/logs/
 backend/tmp/
 frontend/node_modules/
-frontend/build/
 frontend/.next/
 frontend/dist/
 backend/vendor/
