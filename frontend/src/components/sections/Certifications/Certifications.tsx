@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import Section from '../../ui/Section';
+import Section from '../../ui/section';
 import CertificationBadge from './CertificationBadge';
 import { FaAward, FaCertificate } from 'react-icons/fa';
 import { SiAmazon } from 'react-icons/si';

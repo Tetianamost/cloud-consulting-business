@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { FiMail, FiCheck, FiX, FiClock, FiRefreshCw } from 'react-icons/fi';
 import { theme } from '../../styles/theme';
 import apiService, { EmailStatus, Inquiry } from '../../services/api';
-import Icon from '../ui/Icon';
+import Icon from '../ui/icon';
 
 const EmailStatusContainer = styled.div`
   display: flex;

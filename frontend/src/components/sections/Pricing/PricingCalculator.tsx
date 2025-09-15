@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence, easeOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import { Button } from '../../ui/Button';
+import { Button } from '../../ui/button';
 import { FiInfo, FiCheckCircle, FiX, FiMail, FiUser, FiPhone, FiBriefcase, FiAlertCircle } from 'react-icons/fi';
-import Icon from '../../ui/Icon';
+import Icon from '../../ui/icon';
 import { apiService, CreateInquiryRequest } from '../../../services/api';
 
 const CalculatorContainer = styled(motion.div)`

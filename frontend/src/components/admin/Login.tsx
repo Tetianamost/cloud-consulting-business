@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { theme } from "../../styles/theme";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import Icon from "../ui/Icon";
+import Icon from "../ui/icon";
 import { FiLock, FiUser, FiAlertCircle } from "react-icons/fi";
 
 const LoginContainer = styled.div`

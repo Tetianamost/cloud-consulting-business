@@ -20,7 +20,7 @@ import {
 } from 'react-icons/fi';
 import { theme } from '../../styles/theme';
 import apiService, { Inquiry, SystemMetrics, EmailStatus } from '../../services/api';
-import Icon from '../ui/Icon';
+import Icon from '../ui/icon';
 import { AdminSidebar } from './sidebar';
 import { InquiryList } from './inquiry-list';
 import { MetricsDashboard } from './metrics-dashboard';

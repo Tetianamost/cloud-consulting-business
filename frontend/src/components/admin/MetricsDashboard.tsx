@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { FiBarChart2, FiPieChart, FiTrendingUp, FiClock } from 'react-icons/fi';
 import { theme } from '../../styles/theme';
 import apiService, { SystemMetrics } from '../../services/api';
-import Icon from '../ui/Icon';
+import Icon from '../ui/icon';
 
 const MetricsContainer = styled.div`
   display: flex;

@@ -15,21 +15,21 @@ import {
   Globe,
 } from "lucide-react"
 
-import { Badge } from "../ui/Badge"
-import { Button } from "../ui/Button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card"
-import { Input } from "../ui/Input"
-import { Progress } from "../ui/Progress"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select"
-import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/Table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/Tabs"
+import { Badge } from "../ui/badge"
+import { Button } from "../ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
+import { Input } from "../ui/input"
+import { Progress } from "../ui/progress"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../ui/Dropdown-menu"
+} from "../ui/dropdown-menu"
 import apiService, { Inquiry, EmailStatus } from '../../services/api'
 
 // Sample data for demonstration

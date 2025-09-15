@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence, easeOut, easeInOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import Section from '../../ui/Section';
+import Section from '../../ui/section';
 import { FiArrowRight, FiArrowLeft } from 'react-icons/fi';
 import ProjectHighlightCard from './ProjectInsightsCard';
-import Icon from '../../ui/Icon';
+import Icon from '../../ui/icon';
 
 const projectHighlights = [
 	{

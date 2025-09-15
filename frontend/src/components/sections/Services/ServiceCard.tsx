@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { motion, AnimatePresence, easeOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
 import { FiChevronDown } from 'react-icons/fi';
-import Icon from '../../ui/Icon';
+import Icon from '../../ui/icon';
 
 interface ServiceItem {
   id: number;

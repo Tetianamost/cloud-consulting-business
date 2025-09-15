@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Download, FileText, Globe, Maximize2, Minimize2, Table, X } from "lucide-react"
-import { Badge } from "../ui/Badge"
-import { Button } from "../ui/Button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/Dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/Dropdown-menu"
-import { ScrollArea } from "../ui/Scroll-area"
-import { Separator } from "../ui/Separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/Tabs"
+import { Badge } from "../ui/badge"
+import { Button } from "../ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
+import { ScrollArea } from "../ui/scroll-area"
+import { Separator } from "../ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import apiService from "../../services/api"
 
 // Markdown rendering

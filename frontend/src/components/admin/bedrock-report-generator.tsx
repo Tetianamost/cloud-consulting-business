@@ -1,14 +1,14 @@
 import { useState } from "react"
 import { Bot, FileText, Loader2, Settings, Sparkles, X } from "lucide-react"
-import { Button } from "../ui/Button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/Dialog"
-import { Label } from "../ui/Label"
-import { RadioGroup, RadioGroupItem } from "../ui/Radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select"
-import { Textarea } from "../ui/Textarea"
-import { Badge } from "../ui/Badge"
-import { Progress } from "../ui/Progress"
+import { Button } from "../ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
+import { Label } from "../ui/label"
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import { Textarea } from "../ui/textarea"
+import { Badge } from "../ui/badge"
+import { Progress } from "../ui/progress"
 
 interface BedrockReportGeneratorProps {
   isOpen: boolean

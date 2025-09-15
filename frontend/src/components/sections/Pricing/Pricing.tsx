@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import Section from '../../ui/Section';
+import Section from '../../ui/section';
 import PricingCalculator from './PricingCalculator';
 
 const SectionTitle = styled(motion.h2)`

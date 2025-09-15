@@ -6,7 +6,7 @@ import { Link } from 'react-scroll';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { theme } from '../../styles/theme';
 
-import Icon from '../ui/Icon';
+import Icon from '../ui/icon';
 
 const HeaderContainer = styled(motion.header) <{ $isScrolled: boolean; $isHidden: boolean }>`
   position: fixed;

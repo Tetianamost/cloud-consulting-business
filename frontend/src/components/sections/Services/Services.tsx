@@ -2,9 +2,9 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import Section from '../../ui/Section';
+import Section from '../../ui/section';
 import ServiceCard from './ServiceCard';
-import Icon from '../../ui/Icon';
+import Icon from '../../ui/icon';
 import { FiCloudOff, FiCloudSnow, FiCpu, FiDollarSign, FiShield, FiMonitor } from 'react-icons/fi';
 
 

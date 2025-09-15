@@ -2,10 +2,10 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import Section from '../../ui/Section';
+import Section from '../../ui/section';
 import ContactForm from './ContactForm';
 import { FiMapPin, FiMail, FiClock } from 'react-icons/fi';
-import Icon from '../../ui/Icon';
+import Icon from '../../ui/icon';
 
 const SectionTitle = styled(motion.h2)`
   text-align: center;
