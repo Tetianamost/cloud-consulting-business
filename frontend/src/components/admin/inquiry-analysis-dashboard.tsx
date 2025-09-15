@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { Bot, TrendingUp, Clock, AlertTriangle, CheckCircle, Eye, Download } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
-import { Badge } from "../ui/badge"
-import { Button } from "../ui/button"
-import { Progress } from "../ui/progress"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card"
+import { Badge } from "../ui/Badge"
+import { Button } from "../ui/Button"
+import { Progress } from "../ui/Progress"
 import { BedrockReportGenerator } from "./bedrock-report-generator"
 
 // Sample data for AI-generated reports

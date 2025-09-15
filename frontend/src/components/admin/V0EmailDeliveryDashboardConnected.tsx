@@ -3,7 +3,7 @@ import { V0EmailDeliveryDashboard, EmailMetrics } from './V0EmailDeliveryDashboa
 import { V0DataAdapter } from './V0DataAdapter';
 import apiService, { SystemMetrics, EmailStatus, Inquiry } from '../../services/api';
 import { AlertTriangle } from 'lucide-react';
-import { Card, CardContent } from '../ui/card';
+import { Card, CardContent } from '../ui/Card';
 
 interface V0EmailDeliveryDashboardConnectedProps {
   className?: string;

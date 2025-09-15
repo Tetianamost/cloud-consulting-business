@@ -1,14 +1,14 @@
 import { useState } from "react"
 import { Calendar, FileText, Settings, X } from "lucide-react"
-import { Button } from "../ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
-import { Checkbox } from "../ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
-import { Input } from "../ui/input"
-import { Label } from "../ui/label"
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
-import { Textarea } from "../ui/textarea"
+import { Button } from "../ui/Button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card"
+import { Checkbox } from "../ui/Checkbox"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/Dialog"
+import { Input } from "../ui/Input"
+import { Label } from "../ui/Label"
+import { RadioGroup, RadioGroupItem } from "../ui/Radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select"
+import { Textarea } from "../ui/Textarea"
 
 interface ReportGeneratorModalProps {
   isOpen: boolean

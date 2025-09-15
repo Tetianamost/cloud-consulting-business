@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
-import { Badge } from "../ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/Card";
+import { Badge } from "../ui/Badge";
 import apiService from "../../services/api";
 import DOMPurify from "dompurify";
 import { marked } from "marked";

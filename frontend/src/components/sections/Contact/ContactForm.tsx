@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Formik, Form, Field, ErrorMessage, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import { theme } from '../../../styles/theme';
-import { Button } from '../../ui/button';
+import { Button } from '../../ui/Button';
 import { FiCheckCircle, FiAlertCircle, FiLoader, FiSend, FiMail, FiClock } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
 import { apiService, CreateInquiryRequest } from '../../../services/api';

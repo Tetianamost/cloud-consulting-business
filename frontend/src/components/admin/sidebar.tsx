@@ -2,7 +2,7 @@ import React from "react"
 import { Link, useLocation } from "react-router-dom"
 import { BarChart3, Mail, MessageSquare, Settings, FileText, Bot } from "lucide-react"
 import styled from "styled-components"
-import { Button } from "../ui/button"
+import { Button } from "../ui/Button"
 import { theme } from "../../styles/theme"
 
 const SidebarContainer = styled.div`

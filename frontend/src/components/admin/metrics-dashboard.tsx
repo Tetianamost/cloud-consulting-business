@@ -29,18 +29,18 @@ import {
   YAxis,
 } from "recharts"
 
-import { Button } from "../ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
-import { Checkbox } from "../ui/checkbox"
-import { Badge } from "../ui/badge"
+import { Button } from "../ui/Button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/Tabs"
+import { Checkbox } from "../ui/Checkbox"
+import { Badge } from "../ui/Badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu"
+} from "../ui/Dropdown-menu"
 import apiService, { SystemMetrics, Inquiry } from '../../services/api'
 
 // Sample data for demonstration

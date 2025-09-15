@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence, easeOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import { Button } from '../../ui/button';
+import { Button } from '../../ui/Button';
 import { FiInfo, FiCheckCircle, FiX, FiMail, FiUser, FiPhone, FiBriefcase, FiAlertCircle } from 'react-icons/fi';
 import Icon from '../../ui/Icon';
 import { apiService, CreateInquiryRequest } from '../../../services/api';

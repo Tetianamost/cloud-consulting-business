@@ -9,10 +9,10 @@ import {
   TrendingDown,
   Minus
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Progress } from '../ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Badge } from '../ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
+import { Progress } from '../ui/Progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
+import { Badge } from '../ui/Badge';
 import { V0SkeletonCard, V0ProgressBar, V0LoadingSpinner } from './V0LoadingStates';
 import { V0ApiErrorFallback } from './V0ErrorFallbacks';
 import { useV0ApiErrorHandler } from './useV0ErrorHandler';

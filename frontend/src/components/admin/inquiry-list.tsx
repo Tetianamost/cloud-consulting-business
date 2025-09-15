@@ -11,10 +11,10 @@ import {
   Eye,
 } from "lucide-react"
 
-import { Badge } from "../ui/badge"
-import { Button } from "../ui/button"
-import { Card } from "../ui/card"
-import { Checkbox } from "../ui/checkbox"
+import { Badge } from "../ui/Badge"
+import { Button } from "../ui/Button"
+import { Card } from "../ui/Card"
+import { Checkbox } from "../ui/Checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,10 +22,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu"
-import { Input } from "../ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
-import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
+} from "../ui/Dropdown-menu"
+import { Input } from "../ui/Input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select"
+import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/Table"
 import apiService, { Inquiry } from '../../services/api'
 
 // Loading and error states

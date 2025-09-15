@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion, easeInOut, easeOut } from 'framer-motion';
 import { theme } from '../../../styles/theme';
-import { Button } from '../../ui/button';
+import { Button } from '../../ui/Button';
 import CloudAnimation from './CloudAnimation';
 import { FiArrowRight } from 'react-icons/fi';
 import Icon from '../../ui/Icon';

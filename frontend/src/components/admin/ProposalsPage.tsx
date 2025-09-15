@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { fetchProposals, submitProposal, Proposal, SubmitProposalRequest } from "../../services/proposalService";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
 import { AlertCircle, RefreshCw } from "lucide-react";
 
 const ProposalsPage: React.FC = () => {
