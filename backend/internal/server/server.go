@@ -88,7 +88,7 @@ func New(cfg *config.Config, logger *logrus.Logger) (*Server, error) {
 	}
 
 	// Initialize template service first
-	templateService := services.NewTemplateService("templates", logger)
+	templateService := services.NewTemplateService("/templates", logger)
 
 	// Initialize PDF service
 	pdfService := services.NewPDFService(logger)
