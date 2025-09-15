@@ -8,19 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/chromedp"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cloud-consulting/backend/internal/interfaces"
 )
 
-// pdfService implements the PDFService interface using chromedp
+// pdfService implements the PDFService interface using gofpdf
 type pdfService struct {
 	logger      *logrus.Logger
 	initialized bool
-	useChrome   bool
 }
 
 // NewPDFService creates a new PDF service instance
@@ -28,49 +25,14 @@ func NewPDFService(logger *logrus.Logger) interfaces.PDFService {
 	service := &pdfService{
 		logger:      logger,
 		initialized: true,
-		useChrome:   true, // Try to use chromedp first
 	}
 	
-	// Check if chromedp is available
-	if !service.checkChromedpAvailable() {
-		logger.Warn("chromedp not available, falling back to gofpdf")
-		service.useChrome = false
-	}
-	
-	if service.useChrome {
-		logger.Info("PDF service initialized successfully with chromedp")
-	} else {
-		logger.Info("PDF service initialized successfully with gofpdf fallback")
-	}
+	logger.Info("PDF service initialized successfully with gofpdf")
 	
 	return service
 }
 
-// checkChromedpAvailable checks if chromedp is available on the system
-func (p *pdfService) checkChromedpAvailable() bool {
-	// Create a context with timeout for testing
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	
-	// Try to create a chromedp context
-	chromeCtx, chromeCancel := chromedp.NewContext(ctx)
-	defer chromeCancel()
-	
-	// Test with minimal HTML
-	var pdfBytes []byte
-	err := chromedp.Run(chromeCtx,
-		chromedp.Navigate("data:text/html,<html><body>test</body></html>"),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			var err error
-			pdfBytes, _, err = page.PrintToPDF().Do(ctx)
-			return err
-		}),
-	)
-	
-	return err == nil && len(pdfBytes) > 0
-}
-
-// GeneratePDF generates a PDF from HTML content with proper CSS rendering
+// GeneratePDF generates a PDF from HTML content using gofpdf
 func (p *pdfService) GeneratePDF(ctx context.Context, htmlContent string, options *interfaces.PDFOptions) ([]byte, error) {
 	if !p.initialized {
 		return nil, fmt.Errorf("PDF service not initialized")
@@ -81,117 +43,7 @@ func (p *pdfService) GeneratePDF(ctx context.Context, htmlContent string, option
 		options = p.getDefaultOptions()
 	}
 	
-	// Use chromedp if available, otherwise fall back to gofpdf
-	if p.useChrome {
-		return p.generatePDFWithChromedp(ctx, htmlContent, options)
-	}
-	
 	return p.generatePDFWithGofpdf(ctx, htmlContent, options)
-}
-
-// generatePDFWithChromedp generates PDF using chromedp for proper HTML/CSS rendering
-func (p *pdfService) generatePDFWithChromedp(ctx context.Context, htmlContent string, options *interfaces.PDFOptions) ([]byte, error) {
-	// Create a context with timeout
-	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(options.LoadTimeout)*time.Second)
-	defer cancel()
-	
-	// Create chromedp context
-	chromeCtx, chromeCancel := chromedp.NewContext(timeoutCtx)
-	defer chromeCancel()
-	
-	// Enhance HTML content with proper styling and structure
-	enhancedHTML := p.enhanceHTMLForPDF(htmlContent, options)
-	
-	// Create data URL from HTML content
-	dataURL := "data:text/html;charset=utf-8," + enhancedHTML
-	
-	// Configure PDF print parameters
-	printParams := page.PrintToPDF()
-	
-	// Set page size and orientation
-	if options.PageSize == "A4" {
-		printParams = printParams.WithPaperWidth(8.27).WithPaperHeight(11.7) // A4 in inches
-	}
-	
-	if options.Orientation == "Landscape" {
-		printParams = printParams.WithLandscape(true)
-	}
-	
-	// Set margins (convert to inches for chromedp)
-	marginTop := p.convertMarginToInches(options.MarginTop)
-	marginRight := p.convertMarginToInches(options.MarginRight)
-	marginBottom := p.convertMarginToInches(options.MarginBottom)
-	marginLeft := p.convertMarginToInches(options.MarginLeft)
-	
-	printParams = printParams.WithMarginTop(marginTop).
-		WithMarginRight(marginRight).
-		WithMarginBottom(marginBottom).
-		WithMarginLeft(marginLeft)
-	
-	// Enable print media type and background graphics
-	printParams = printParams.WithPrintBackground(true)
-	
-	// Generate PDF
-	var pdfBytes []byte
-	err := chromedp.Run(chromeCtx,
-		chromedp.Navigate(dataURL),
-		chromedp.WaitReady("body"),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			var err error
-			pdfBytes, _, err = printParams.Do(ctx)
-			return err
-		}),
-	)
-	
-	if err != nil {
-		p.logger.WithError(err).Error("Failed to generate PDF with chromedp")
-		return nil, fmt.Errorf("failed to generate PDF: %w", err)
-	}
-	
-	p.logger.WithFields(logrus.Fields{
-		"pdf_size": len(pdfBytes),
-		"method":   "chromedp",
-	}).Info("PDF generated successfully")
-	
-	return pdfBytes, nil
-}
-
-// convertMarginToInches converts margin strings to inches for chromedp
-func (p *pdfService) convertMarginToInches(margin string) float64 {
-	if margin == "" {
-		return 1.0 // Default 1 inch
-	}
-	
-	// Remove spaces
-	margin = strings.TrimSpace(margin)
-	
-	// Handle different units
-	if strings.HasSuffix(margin, "in") {
-		// Already in inches
-		value := strings.TrimSuffix(margin, "in")
-		if inches := p.parseFloat(value); inches > 0 {
-			return inches
-		}
-	} else if strings.HasSuffix(margin, "cm") {
-		// Convert cm to inches (1 inch = 2.54 cm)
-		value := strings.TrimSuffix(margin, "cm")
-		if cm := p.parseFloat(value); cm > 0 {
-			return cm / 2.54
-		}
-	} else if strings.HasSuffix(margin, "mm") {
-		// Convert mm to inches (1 inch = 25.4 mm)
-		value := strings.TrimSuffix(margin, "mm")
-		if mm := p.parseFloat(value); mm > 0 {
-			return mm / 25.4
-		}
-	} else {
-		// Assume pixels and convert (rough approximation: 96px = 1 inch)
-		if px := p.parseFloat(margin); px > 0 {
-			return px / 96.0
-		}
-	}
-	
-	return 1.0 // Default fallback
 }
 
 // generatePDFWithGofpdf generates PDF using gofpdf as fallback (plain text)
