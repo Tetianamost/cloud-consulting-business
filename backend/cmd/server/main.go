@@ -18,12 +18,15 @@ func main() {
 	log.Println("Starting Cloud Consulting Backend...")
 	
 	// Load configuration
+	log.Println("Loading configuration...")
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 	
-	log.Printf("Configuration loaded. Port: %s, LogLevel: %d", cfg.Port, cfg.LogLevel)
+	log.Printf("Configuration loaded successfully. Port: %s, LogLevel: %d", cfg.Port, cfg.LogLevel)
+	log.Printf("Environment variables: GIN_MODE=%s, ENABLE_EMAIL_EVENTS=%s", 
+		os.Getenv("GIN_MODE"), os.Getenv("ENABLE_EMAIL_EVENTS"))
 
 	// Initialize logger
 	logger := logrus.New()
@@ -31,8 +34,10 @@ func main() {
 	logger.SetFormatter(&logrus.JSONFormatter{})
 
 	// Create server
+	log.Println("Creating server instance...")
 	srv, err := server.New(cfg, logger)
 	if err != nil {
+		log.Printf("CRITICAL ERROR: Failed to create server: %v", err)
 		logger.Fatalf("Failed to create server: %v", err)
 	}
 	
