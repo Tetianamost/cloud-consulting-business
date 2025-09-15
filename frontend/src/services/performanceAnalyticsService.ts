@@ -1,6 +1,6 @@
 // Performance Analytics Service for consultant performance tracking, QA/validation, and analytics
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8061';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 import apiService from "./api";
 

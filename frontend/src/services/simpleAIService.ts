@@ -31,7 +31,7 @@ class EnhancedAIService {
     this.sessionId = `session-${Date.now()}-${Math.random()
       .toString(36)
       .substring(2, 9)}`;
-    this.baseUrl = process.env.REACT_APP_API_URL || "http://localhost:8061";
+    this.baseUrl = process.env.REACT_APP_API_URL || "";
   }
 
   static getInstance(): EnhancedAIService {

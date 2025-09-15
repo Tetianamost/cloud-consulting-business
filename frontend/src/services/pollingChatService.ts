@@ -158,7 +158,7 @@ class PollingChatService {
     });
 
     // Initialize configuration
-    this.baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8061';
+    this.baseUrl = process.env.REACT_APP_API_URL || '';
     this.authToken = localStorage.getItem('adminToken');
 
     // Initialize polling strategy

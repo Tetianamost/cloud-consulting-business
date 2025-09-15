@@ -41,7 +41,7 @@ export interface ContinuousImprovementItem {
 // --- API Functions ---
 
 // Fetch recommendation accuracy tracking data
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8061';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 // Use apiService for admin QA endpoints
 // Use apiService for admin QA endpoints
