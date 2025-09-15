@@ -1,6 +1,6 @@
 module github.com/cloud-consulting/backend
 
-go 1.23
+go 1.23.0
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.6
