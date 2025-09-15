@@ -67,7 +67,9 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		Port:     getEnv("PORT", "8080"),
+		// Prefer BACKEND_PORT to avoid conflicts with nginx listening on :80
+		// Fallback to PORT if BACKEND_PORT is not set, and default to 8061
+		Port:     getEnv("BACKEND_PORT", getEnv("PORT", "8061")),
 		LogLevel: getEnvAsInt("LOG_LEVEL", 4), // Info level
 		GinMode:  getEnv("GIN_MODE", "debug"),
 		// Added http://localhost:3007 for development only

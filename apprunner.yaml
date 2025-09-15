@@ -4,7 +4,7 @@ run:
   network:
     port: 80
   env:
-    - name: PORT
+    - name: BACKEND_PORT
       value: "8061"
     - name: GIN_MODE
       value: "release"
