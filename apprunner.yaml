@@ -6,9 +6,13 @@ run:
     env: PORT
   env:
     - name: PORT
-      value: "80"
+      value: "8061"
     - name: GIN_MODE
       value: "release"
+    - name: ENABLE_EMAIL_EVENTS
+      value: "true"
+    - name: LOG_LEVEL
+      value: "4"
     - name: CHAT_MODE
       value: "polling"
     - name: AWS_REGION
@@ -23,7 +27,9 @@ run:
       value: "info@cloudpartner.pro"
     - name: CORS_ALLOWED_ORIGINS
       value: "https://cloudpartner.pro,https://www.cloudpartner.pro"
-    - name: DATABASE_URL
-      value: "postgresql://postgres:CloudConsulting2024!@consulting-prod.c2v4ggsygj4q.us-east-1.rds.amazonaws.com:5432/postgres"
     - name: JWT_SECRET
-      value: "TEMP_JWT_SECRET_TO_BE_UPDATED"
+      value: "cloud-consulting-demo-secret"
+    - name: DATABASE_URL
+      value: "postgresql://postgres:CloudConsulting2025@consulting-prod.c2v4ggsygj4q.us-east-1.rds.amazonaws.com:5432/postgres"
+
+      
