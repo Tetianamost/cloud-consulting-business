@@ -11,7 +11,7 @@ SERVICE_NAME="cloud-consulting-prod"
 REGION="us-east-1"
 ACCOUNT_ID="757742990331"
 ECR_URI="757742990331.dkr.ecr.us-east-1.amazonaws.com/cloud-consulting-business"
-ROLE_NAME="AppRunnerECRAccessRole"
+# No IAM role needed - using existing permissions
 
 echo -e "${YELLOW}🚀 Creating App Runner service with ECR image...${NC}"
 echo "Service Name: $SERVICE_NAME"
@@ -19,50 +19,8 @@ echo "ECR Image: $ECR_URI:latest"
 echo "Region: $REGION"
 echo ""
 
-# Step 1: Create IAM role for App Runner to access ECR
-echo -e "${YELLOW}Step 1: Creating IAM role for ECR access...${NC}"
-
-# Check if role already exists
-if aws iam get-role --role-name $ROLE_NAME >/dev/null 2>&1; then
-    echo "IAM role $ROLE_NAME already exists"
-    ROLE_ARN=$(aws iam get-role --role-name $ROLE_NAME --query 'Role.Arn' --output text)
-else
-    # Create trust policy
-    cat > /tmp/trust-policy.json << EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "build.apprunner.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-EOF
-
-    # Create the role
-    ROLE_ARN=$(aws iam create-role \
-        --role-name $ROLE_NAME \
-        --assume-role-policy-document file:///tmp/trust-policy.json \
-        --query 'Role.Arn' \
-        --output text)
-
-    # Attach ECR access policy
-    aws iam attach-role-policy \
-        --role-name $ROLE_NAME \
-        --policy-arn arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
-
-    echo -e "${GREEN}✅ IAM role created: $ROLE_ARN${NC}"
-    
-    # Clean up temp file
-    rm /tmp/trust-policy.json
-fi
-
-# Step 2: Create App Runner service
-echo -e "${YELLOW}Step 2: Creating App Runner service...${NC}"
+# Step 1: Create App Runner service
+echo -e "${YELLOW}Step 1: Creating App Runner service...${NC}"
 
 # Check if service already exists
 if aws apprunner describe-service --service-arn "arn:aws:apprunner:$REGION:$ACCOUNT_ID:service/$SERVICE_NAME" >/dev/null 2>&1; then
@@ -139,14 +97,21 @@ else
     echo -e "${GREEN}✅ Service created: $SERVICE_ARN${NC}"
 fi
 
-# Step 3: Wait for service to be ready
-echo -e "${YELLOW}Step 3: Waiting for service to be running...${NC}"
-echo "This may take several minutes..."
+# Step 2: Check service status
+echo -e "${YELLOW}Step 2: Checking service status...${NC}"
 
-aws apprunner wait service-running --service-arn "$SERVICE_ARN" --region $REGION
+if [ -n "$SERVICE_ARN" ]; then
+    STATUS=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --region $REGION --query 'Service.Status' --output text 2>/dev/null || echo "UNKNOWN")
+    echo "Current status: $STATUS"
+    echo "Service will take several minutes to start. Check status with:"
+    echo "aws apprunner describe-service --service-arn \"$SERVICE_ARN\" --region $REGION"
+else
+    echo -e "${RED}❌ Failed to get service ARN${NC}"
+    exit 1
+fi
 
-# Step 4: Get service URL
-echo -e "${YELLOW}Step 4: Getting service information...${NC}"
+# Step 3: Get service information
+echo -e "${YELLOW}Step 3: Getting service information...${NC}"
 
 SERVICE_URL=$(aws apprunner describe-service \
     --service-arn "$SERVICE_ARN" \
