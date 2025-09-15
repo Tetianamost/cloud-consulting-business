@@ -1,12 +1,12 @@
 # Multi-stage build for App Runner deployment
-FROM public.ecr.aws/docker/library/node:18-alpine AS frontend-builder
+FROM public.ecr.aws/docker/library/node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
-FROM public.ecr.aws/docker/library/golang:1.23-alpine AS backend-builder
+FROM public.ecr.aws/docker/library/golang:1.24-alpine AS backend-builder
 WORKDIR /app
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
