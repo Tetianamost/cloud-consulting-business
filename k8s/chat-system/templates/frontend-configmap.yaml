@@ -1,0 +1,26 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-consultant-chat.fullname" . }}-frontend-config
+  labels:
+    {{- include "ai-consultant-chat.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+data:
+  # API configuration
+  REACT_APP_API_URL: "https://{{ (index .Values.ingress.hosts 0).host }}/api"
+  REACT_APP_WS_URL: "wss://{{ (index .Values.ingress.hosts 0).host }}/api/v1/admin/chat/ws"
+  
+  # Chat configuration
+  REACT_APP_CHAT_ENABLED: "true"
+  REACT_APP_CHAT_MAX_MESSAGE_LENGTH: "{{ .Values.backend.chat.messageMaxLength }}"
+  REACT_APP_CHAT_RECONNECT_INTERVAL: "5000"
+  REACT_APP_CHAT_MAX_RECONNECT_ATTEMPTS: "10"
+  
+  # Environment
+  REACT_APP_ENVIRONMENT: "{{ .Values.app.environment }}"
+  
+  # Feature flags
+  REACT_APP_WEBSOCKET_ENABLED: "true"
+  REACT_APP_METRICS_ENABLED: "true"
+{{- end }}

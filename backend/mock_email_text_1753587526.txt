@@ -1,0 +1,27 @@
+Thank you for your cloud consulting inquiry!
+
+Dear customer1,
+
+We have received your inquiry for cloud consulting services and wanted to confirm that it has been successfully submitted.
+
+Inquiry Details
+===============
+Services Requested: assessment
+Company: Partner
+Reference ID: test_inquiry_123
+
+What happens next?
+==================
+• Our team will review your inquiry within 24 hours
+• We'll prepare a customized assessment based on your requirements
+• A cloud consultant will reach out to discuss your project in detail
+• We'll provide you with a detailed proposal and timeline
+
+If you have any immediate questions or need to provide additional information, please don't hesitate to contact us.
+
+Best regards,
+Cloud Consulting Team
+info@cloudpartner.pro
+
+---
+This is an automated confirmation email. Please do not reply to this message.

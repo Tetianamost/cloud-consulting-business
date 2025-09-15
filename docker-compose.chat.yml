@@ -1,0 +1,329 @@
+# Enhanced Docker Compose configuration for AI Consultant Live Chat System
+# This extends the base docker-compose.yml with chat-specific services and configurations
+
+version: '3.8'
+
+services:
+  # Enhanced Backend service with chat capabilities
+  backend-chat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        - ENABLE_CHAT=true
+    ports:
+      - "8061:8061"
+    environment:
+      - PORT=8061
+      - LOG_LEVEL=4
+      - GIN_MODE=debug
+      - CORS_ALLOWED_ORIGINS=http://localhost:3006,http://localhost:3007,http://frontend-chat
+      
+      # AWS Configuration
+      - AWS_BEARER_TOKEN_BEDROCK=${AWS_BEARER_TOKEN_BEDROCK}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BEDROCK_REGION=${BEDROCK_REGION:-us-east-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-amazon.nova-lite-v1:0}
+      - BEDROCK_BASE_URL=${BEDROCK_BASE_URL:-https://bedrock-runtime.us-east-1.amazonaws.com}
+      - BEDROCK_TIMEOUT_SECONDS=${BEDROCK_TIMEOUT_SECONDS:-30}
+      
+      # Chat-specific Configuration
+      - CHAT_ENABLED=true
+      - CHAT_MODE=polling
+      - CHAT_POLLING_INTERVAL=3000
+      - CHAT_SESSION_TIMEOUT=24h
+      - CHAT_MESSAGE_MAX_LENGTH=10000
+      - CHAT_RATE_LIMIT_REQUESTS=100
+      - CHAT_RATE_LIMIT_WINDOW=1m
+      
+      # Database Configuration
+      - DATABASE_URL=postgres://postgres:password@db-chat:5432/consulting?sslmode=disable
+      - DATABASE_MAX_CONNECTIONS=25
+      - DATABASE_MAX_IDLE_CONNECTIONS=5
+      - DATABASE_CONNECTION_MAX_LIFETIME=5m
+      
+      # Redis Configuration
+      - REDIS_URL=redis://redis-chat:6379/0
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_MAX_CONNECTIONS=10
+      - REDIS_IDLE_TIMEOUT=5m
+      - CACHE_TTL=1h
+      
+      # Security Configuration
+      - JWT_SECRET=${JWT_SECRET:-chat-system-secret-key}
+      - JWT_EXPIRATION=24h
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-32-char-encryption-key-here}
+      
+      # Monitoring Configuration
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9090
+      - HEALTH_CHECK_ENABLED=true
+      - LOG_FORMAT=json
+      - LOG_CORRELATION_ID=true
+      
+    depends_on:
+      db-chat:
+        condition: service_healthy
+      redis-chat:
+        condition: service_healthy
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8061/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    volumes:
+      - chat_logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Enhanced Frontend service with chat UI
+  frontend-chat:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - ENABLE_CHAT=true
+    ports:
+      - "3006:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8061
+      - REACT_APP_CHAT_ENABLED=true
+      - REACT_APP_CHAT_MODE=polling
+      - REACT_APP_CHAT_POLLING_INTERVAL=3000
+      - REACT_APP_CHAT_MAX_MESSAGE_LENGTH=10000
+      - REACT_APP_CHAT_MAX_RETRIES=3
+      - REACT_APP_ENVIRONMENT=production
+    depends_on:
+      - backend-chat
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # PostgreSQL database with chat schema
+  db-chat:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: consulting
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_chat_data:/var/lib/postgresql/data
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./backend/scripts/chat_migration.sql:/docker-entrypoint-initdb.d/02-chat-migration.sql
+      - ./backend/scripts/enhanced_chat_migration.sql:/docker-entrypoint-initdb.d/03-enhanced-chat-migration.sql
+      - ./backend/scripts/performance_optimization_indexes.sql:/docker-entrypoint-initdb.d/04-performance-indexes.sql
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d consulting"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    command: >
+      postgres
+      -c max_connections=100
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+
+  # Redis cache for chat sessions and messages
+  redis-chat:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_chat_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+
+  # Nginx load balancer for HTTP polling support
+  nginx-chat:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-chat.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - nginx_chat_logs:/var/log/nginx
+    depends_on:
+      - backend-chat
+      - frontend-chat
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # Prometheus for metrics collection
+  prometheus-chat:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus-chat.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/rules:/etc/prometheus/rules
+      - prometheus_chat_data:/prometheus
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
+  # Grafana for monitoring dashboards
+  grafana-chat:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+
+    volumes:
+      - grafana_chat_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus-chat
+    networks:
+      - chat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Database migration service
+  db-migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.migrate
+    environment:
+      - DATABASE_URL=postgres://postgres:password@db-chat:5432/consulting?sslmode=disable
+    depends_on:
+      db-chat:
+        condition: service_healthy
+    networks:
+      - chat-network
+    restart: "no"
+    volumes:
+      - ./backend/scripts:/migrations
+
+volumes:
+  postgres_chat_data:
+    driver: local
+  redis_chat_data:
+    driver: local
+  prometheus_chat_data:
+    driver: local
+  grafana_chat_data:
+    driver: local
+  chat_logs:
+    driver: local
+  nginx_chat_logs:
+    driver: local
+
+networks:
+  chat-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,0 +1,36 @@
+# Database migration Dockerfile
+FROM postgres:15-alpine
+
+# Install additional tools for migration
+RUN apk add --no-cache curl bash
+
+# Copy migration scripts
+COPY scripts/ /migrations/
+
+# Create migration runner script
+RUN cat > /migrate.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Starting database migration..."
+
+# Wait for database to be ready
+until pg_isready -h db-chat -p 5432 -U postgres; do
+  echo "Waiting for database to be ready..."
+  sleep 2
+done
+
+echo "Database is ready. Running migrations..."
+
+# Run migrations in order
+psql $DATABASE_URL -f /migrations/init.sql
+psql $DATABASE_URL -f /migrations/chat_migration.sql
+psql $DATABASE_URL -f /migrations/enhanced_chat_migration.sql
+psql $DATABASE_URL -f /migrations/performance_optimization_indexes.sql
+
+echo "Database migration completed successfully!"
+EOF
+
+RUN chmod +x /migrate.sh
+
+CMD ["/migrate.sh"]

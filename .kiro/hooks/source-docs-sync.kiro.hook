@@ -1,0 +1,32 @@
+{
+  "enabled": true,
+  "name": "Source Documentation Sync",
+  "description": "Monitors all source files in the repository (Go, TypeScript, configuration files) and triggers documentation updates in README.md or /docs folder when changes are detected",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "backend/**/*.go",
+      "frontend/src/**/*.ts",
+      "frontend/src/**/*.tsx",
+      "*.go",
+      "*.ts",
+      "*.tsx",
+      "*.json",
+      "*.yaml",
+      "*.yml",
+      "docker-compose*.yml",
+      "Dockerfile*",
+      "*.md",
+      "backend/docs/**/*",
+      "frontend/src/components/**/*",
+      "backend/internal/**/*",
+      "scripts/**/*",
+      "k8s/**/*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Source files have been modified in this Go backend and React frontend project. Please analyze the changes and update the documentation accordingly. Focus on:\n\n1. Update README.md with any new features, API changes, or setup instructions\n2. Update relevant documentation in backend/docs/ or create new docs if needed\n3. Update API documentation for any handler/endpoint changes\n4. Update architecture documentation for any structural changes\n5. Ensure all new components, services, or significant code changes are properly documented\n6. Update deployment or configuration documentation if infrastructure files changed\n\nPlease review the changed files and provide comprehensive documentation updates that align with the project's standards for a cloud consulting platform with AI-powered features."
+  }
+}

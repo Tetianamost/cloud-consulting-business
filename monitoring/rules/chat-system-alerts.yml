@@ -1,0 +1,215 @@
+# Prometheus alerting rules for AI Consultant Live Chat System
+
+groups:
+  - name: chat-system-critical
+    rules:
+      # Service availability alerts
+      - alert: ChatBackendDown
+        expr: up{job="backend-chat"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Chat backend service is down"
+          description: "The chat backend service has been down for more than 1 minute"
+          runbook_url: "https://docs.example.com/runbooks/chat-backend-down"
+
+      - alert: ChatFrontendDown
+        expr: up{job="frontend-chat"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: frontend
+        annotations:
+          summary: "Chat frontend service is down"
+          description: "The chat frontend service has been down for more than 2 minutes"
+          runbook_url: "https://docs.example.com/runbooks/chat-frontend-down"
+
+      - alert: DatabaseConnectionFailure
+        expr: chat_database_connections_failed_total > 0
+        for: 30s
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection failures detected"
+          description: "{{ $value }} database connection failures in the last 30 seconds"
+          runbook_url: "https://docs.example.com/runbooks/database-connection-failure"
+
+      - alert: RedisConnectionFailure
+        expr: chat_redis_connections_failed_total > 0
+        for: 30s
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis connection failures detected"
+          description: "{{ $value }} Redis connection failures in the last 30 seconds"
+          runbook_url: "https://docs.example.com/runbooks/redis-connection-failure"
+
+  - name: chat-system-performance
+    rules:
+      # Performance alerts
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(chat_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for the last 5 minutes"
+          runbook_url: "https://docs.example.com/runbooks/high-response-time"
+
+      - alert: HighErrorRate
+        expr: rate(chat_requests_failed_total[5m]) / rate(chat_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+          runbook_url: "https://docs.example.com/runbooks/high-error-rate"
+
+      - alert: WebSocketConnectionsHigh
+        expr: chat_websocket_connections_active > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: websocket
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "{{ $value }} active WebSocket connections"
+          runbook_url: "https://docs.example.com/runbooks/high-websocket-connections"
+
+      - alert: MessageProcessingLag
+        expr: chat_message_processing_lag_seconds > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "Message processing lag detected"
+          description: "Message processing lag is {{ $value }}s"
+          runbook_url: "https://docs.example.com/runbooks/message-processing-lag"
+
+  - name: chat-system-resources
+    rules:
+      # Resource utilization alerts
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{container="backend"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "High CPU usage on backend"
+          description: "Backend CPU usage is {{ $value }}% for the last 10 minutes"
+          runbook_url: "https://docs.example.com/runbooks/high-cpu-usage"
+
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{container="backend"} / container_spec_memory_limit_bytes{container="backend"} * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "High memory usage on backend"
+          description: "Backend memory usage is {{ $value }}% of limit"
+          runbook_url: "https://docs.example.com/runbooks/high-memory-usage"
+
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: chat_database_connections_active / chat_database_connections_max > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "{{ $value | humanizePercentage }} of database connections are in use"
+          runbook_url: "https://docs.example.com/runbooks/database-connection-pool-exhaustion"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.example.com/runbooks/redis-memory-high"
+
+  - name: chat-system-business
+    rules:
+      # Business logic alerts
+      - alert: NoActiveChats
+        expr: chat_sessions_active == 0
+        for: 30m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "No active chat sessions"
+          description: "There have been no active chat sessions for 30 minutes"
+          runbook_url: "https://docs.example.com/runbooks/no-active-chats"
+
+      - alert: UnusuallyHighChatVolume
+        expr: rate(chat_messages_total[1h]) > 1000
+        for: 10m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Unusually high chat message volume"
+          description: "Chat message rate is {{ $value }} messages/hour"
+          runbook_url: "https://docs.example.com/runbooks/high-chat-volume"
+
+      - alert: AIServiceFailures
+        expr: rate(chat_ai_requests_failed_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: ai
+        annotations:
+          summary: "AI service failures detected"
+          description: "AI service failure rate is {{ $value }} requests/second"
+          runbook_url: "https://docs.example.com/runbooks/ai-service-failures"
+
+  - name: chat-system-security
+    rules:
+      # Security alerts
+      - alert: UnauthorizedAccessAttempts
+        expr: rate(chat_auth_failures_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High number of authentication failures"
+          description: "{{ $value }} authentication failures per second"
+          runbook_url: "https://docs.example.com/runbooks/auth-failures"
+
+      - alert: RateLimitExceeded
+        expr: rate(chat_rate_limit_exceeded_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "Rate limit exceeded frequently"
+          description: "Rate limit exceeded {{ $value }} times per second"
+          runbook_url: "https://docs.example.com/runbooks/rate-limit-exceeded"
+
+      - alert: SuspiciousActivity
+        expr: rate(chat_suspicious_activity_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "{{ $value }} suspicious activities detected per second"
+          runbook_url: "https://docs.example.com/runbooks/suspicious-activity"

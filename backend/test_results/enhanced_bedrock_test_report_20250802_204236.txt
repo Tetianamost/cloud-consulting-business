@@ -1,0 +1,50 @@
+Enhanced Bedrock AI Assistant - Comprehensive Test Report
+=========================================================
+
+Test Run Date: Sat Aug  2 20:42:36 MDT 2025
+Go Version: go1.22.10
+Test Environment: Darwin 24.5.0
+Backend Directory: /Users/tm/personal-projects/cloud-consulting-business/backend
+
+=== Prerequisites Check ===
+✓ Go is available: go1.24.5
+=== Installing Dependencies ===
+✓ Go dependencies installed
+=== Comprehensive Enhanced Bedrock Validation ===
+
+Test: Comprehensive Enhanced Bedrock Validation
+Description: Runs comprehensive testing including real-world scenarios, A/B testing, regression testing, and user acceptance testing
+Command: go run test_comprehensive_enhanced_bedrock_validation.go
+Started: Sat Aug  2 20:42:37 MDT 2025
+
+# command-line-arguments
+./test_comprehensive_enhanced_bedrock_validation.go:2087:133: undefined: interfaces.EffectivenessValidation
+./test_comprehensive_enhanced_bedrock_validation.go:2088:21: undefined: interfaces.EffectivenessValidation
+./test_comprehensive_enhanced_bedrock_validation.go:2101:3: unknown field OverallAccuracy in struct literal of type interfaces.AccuracyMetrics
+./test_comprehensive_enhanced_bedrock_validation.go:2129:3: cannot use promptArchitect (variable of type *MockPromptArchitectForValidation) as interfaces.PromptArchitect value in argument to NewComprehensiveTestValidator: *MockPromptArchitectForValidation does not implement interfaces.PromptArchitect (missing method GetTemplate)
+./test_comprehensive_enhanced_bedrock_validation.go:2130:3: cannot use knowledgeBase (variable of type *MockKnowledgeBaseForValidation) as interfaces.KnowledgeBase value in argument to NewComprehensiveTestValidator: *MockKnowledgeBaseForValidation does not implement interfaces.KnowledgeBase (missing method GetBestPractices)
+./test_comprehensive_enhanced_bedrock_validation.go:2131:3: cannot use qaService (variable of type *MockQAServiceForValidation) as interfaces.QualityAssuranceService value in argument to NewComprehensiveTestValidator: *MockQAServiceForValidation does not implement interfaces.QualityAssuranceService (wrong type for method GenerateImprovementInsights)
+		have GenerateImprovementInsights(context.Context, *interfaces.QualityTimeRange) (*interfaces.ImprovementInsights, error)
+		want GenerateImprovementInsights(context.Context, *interfaces.TimeRange) (*interfaces.ImprovementInsights, error)
+✓ Comprehensive Enhanced Bedrock Validation completed successfully
+Completed: Sat Aug  2 20:42:38 MDT 2025
+Status: SUCCESS
+=== Enhanced Bedrock Unit Tests ===
+
+Test: Enhanced Bedrock Unit Tests
+Description: Runs unit tests for the enhanced Bedrock service
+Command: go test -v -race -timeout=30m ./internal/services/enhanced_bedrock_test.go ./internal/services/enhanced_bedrock.go
+Started: Sat Aug  2 20:42:38 MDT 2025
+
+# command-line-arguments [command-line-arguments.test]
+internal/services/enhanced_bedrock.go:18:25: undefined: CompanyKnowledgeIntegrationService
+internal/services/enhanced_bedrock.go:22:110: undefined: CompanyKnowledgeIntegrationService
+internal/services/enhanced_bedrock.go:59:22: undefined: InquiryRecommendations
+internal/services/enhanced_bedrock.go:402:18: undefined: InquiryRecommendations
+internal/services/enhanced_bedrock.go:403:19: undefined: CompanyContext
+internal/services/enhanced_bedrock_test.go:93:127: undefined: InquiryRecommendations
+internal/services/enhanced_bedrock_test.go:98:23: undefined: InquiryRecommendations
+internal/services/enhanced_bedrock_test.go:109:26: cannot use mockKB (variable of type *MockKnowledgeBaseForEnhanced) as interfaces.KnowledgeBase value in struct literal: *MockKnowledgeBaseForEnhanced does not implement interfaces.KnowledgeBase (missing method GetBestPractices)
+internal/services/enhanced_bedrock_test.go:244:22: undefined: InquiryRecommendations
+internal/services/enhanced_bedrock_test.go:247:29: undefined: ServiceRecommendation
+internal/services/enhanced_bedrock_test.go:247:29: too many errors

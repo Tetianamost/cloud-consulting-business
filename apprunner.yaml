@@ -1,0 +1,28 @@
+version: 1.0
+run:
+  command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+  network:
+    port: 80
+  env:
+    - name: BACKEND_PORT
+      value: "8061"
+    - name: GIN_MODE
+      value: "release"
+    - name: ENABLE_EMAIL_EVENTS
+      value: "true"
+    - name: LOG_LEVEL
+      value: "4"
+    - name: CHAT_MODE
+      value: "polling"
+    - name: AWS_REGION
+      value: "us-east-1"
+    - name: BEDROCK_REGION
+      value: "us-east-1"
+    - name: BEDROCK_MODEL_ID
+      value: "amazon.nova-lite-v1:0"
+    - name: AWS_SES_REGION
+      value: "us-east-1"
+    - name: SES_SENDER_EMAIL
+      value: "info@cloudpartner.pro"
+    - name: CORS_ALLOWED_ORIGINS
+      value: "https://cloudpartner.pro,https://www.cloudpartner.pro"

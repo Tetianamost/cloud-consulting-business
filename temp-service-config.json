@@ -1,0 +1,13 @@
+{
+    "AutoDeploymentsEnabled": true,
+    "CodeRepository": {
+        "RepositoryUrl": "https://github.com/Tetianamost/cloud-consulting-business",
+        "SourceCodeVersion": {
+            "Type": "BRANCH",
+            "Value": "kiro-dev"
+        },
+        "CodeConfiguration": {
+            "ConfigurationSource": "REPOSITORY"
+        }
+    }
+}
