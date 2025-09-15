@@ -31,5 +31,7 @@ run:
       value: "cloud-consulting-demo-secret"
     - name: DATABASE_URL
       value: "postgresql://postgres:CloudConsulting2025@consulting-prod.c2v4ggsygj4q.us-east-1.rds.amazonaws.com:5432/postgres"
-
-      
+    - name: AWS_ACCESS_KEY_ID
+      value: "placeholder"
+    - name: AWS_SECRET_ACCESS_KEY
+      value: "placeholder"
